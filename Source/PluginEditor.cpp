@@ -95,10 +95,9 @@ MixerStrip::MixerStrip(RaBubanjProcessor& p, int busToUse) : processor(p), bus(b
     setName(channelName + " channel"); addMouseListener(this, true);
     select.setButtonText(channelName); select.setName("Select " + channelName);
     select.setColour(juce::TextButton::buttonOnColourId, bus >= 8 ? gold : cyan);
-    select.onClick = [this] { if (onSelect) onSelect(bus); };
-    eq.setName("Open " + channelName + " EQ"); eq.onClick = select.onClick;
-    select.setTooltip("Select " + channelName + " and open its EQ"); eq.setTooltip("Open " + channelName + " parametric EQ");
-    for (auto* b : { &select, &eq, &mute }) addAndMakeVisible(*b);
+    select.onClick = [this] { if (onSelect) onSelect(bus); if (bus < 8) processor.audition(bus); };
+    select.setTooltip(bus < 8 ? "Select "+channelName+" and play its selected factory sound" : "Select "+channelName+" EQ");
+    for (auto* b : { &select, &mute }) addAndMakeVisible(*b);
     mute.setClickingTogglesState(true); mute.setTooltip("Mute " + channelName);
     mute.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xffb67a62));
     slider(gain, juce::Slider::LinearVertical, 46); gain.setName(channelName + " level");
@@ -116,8 +115,11 @@ MixerStrip::MixerStrip(RaBubanjProcessor& p, int busToUse) : processor(p), bus(b
         panAttachment = std::make_unique<SliderAttachment>(p.parameters, "pan" + id, pan);
         sendAttachment = std::make_unique<SliderAttachment>(p.parameters, "send" + id, send);
         muteAttachment = std::make_unique<ButtonAttachment>(p.parameters, "mute" + id, mute);
-        audition.setButtonText(juce::String(rabubanj::notes[static_cast<size_t>(bus)]) + "  HIT"); audition.setName("Preview " + channelName);
-        audition.onClick = [this] { processor.audition(bus); }; addAndMakeVisible(audition);
+        preset.setName(channelName+" factory preset");
+        for (int i = 0; i < rabubanj::factoryPresetCount; ++i)
+            preset.addItem(rabubanj::factoryPresets[static_cast<size_t>(bus)][static_cast<size_t>(i)].name, i+1);
+        preset.setWantsKeyboardFocus(false); addAndMakeVisible(preset);
+        presetAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(p.parameters, "preset"+id, preset);
     }
     else
     {
@@ -151,11 +153,11 @@ void MixerStrip::resized()
 {
     auto area = getLocalBounds().reduced(6, 8);
     select.setBounds(area.removeFromTop(25)); area.removeFromTop(5);
-    eq.setBounds(area.removeFromTop(19)); area.removeFromTop(5);
+    area.removeFromTop(19); area.removeFromTop(5);
     auto bottom = area.removeFromBottom(56);
     auto buttons = bottom.removeFromTop(21);
     mute.setBounds(buttons.removeFromLeft(buttons.getWidth()/2).reduced(1, 0)); solo.setBounds(buttons.reduced(1, 0));
-    bottom.removeFromTop(7); audition.setBounds(bottom.removeFromTop(21));
+    bottom.removeFromTop(7); preset.setBounds(bottom.removeFromTop(21));
     auto panArea = area.removeFromTop(27); pan.setBounds(panArea.withTrimmedTop(9));
     area.removeFromBottom(6); area.removeFromTop(15); faderArea = area;
     if (bus < 8)
@@ -198,8 +200,7 @@ void MixerStrip::refresh()
         const auto count = processor.getHitCount(bus); flash = count != lastHit ? 1.0f : flash*.76f; lastHit = count;
     }
     select.setToggleState(bus == 9 || bus == processor.getSelectedChannel(), juce::dontSendNotification);
-    const bool bypassed = processor.getEqSettings(bus).bypass;
-    eq.setButtonText(bypassed ? "EQ BYPASS" : "EQ"); eq.setColour(juce::TextButton::textColourOffId, bypassed ? muted : cyan);
+    if (bus < 8) preset.setTooltip(channelName+" factory sound: "+preset.getText()+". Click the channel name to audition.");
     repaint();
 }
 
@@ -277,8 +278,8 @@ void RaBubanjEditor::paint(juce::Graphics& g)
     text(g, "SIZE", { size.getX(), size.getY()-14, size.getWidth(), 13 }, 9, muted, juce::Justification::centred);
     text(g, "DAMPING", { damping.getX(), damping.getY()-14, damping.getWidth(), 13 }, 9, muted, juce::Justification::centred);
     text(g, "WIDTH", { width.getX(), width.getY()-14, width.getWidth(), 13 }, 9, muted, juce::Justification::centred);
-    text(g, "DRAG EQ POINTS: FREQ / GAIN     WHEEL: Q     DOUBLE-CLICK: RESET GAIN", footerArea, 9, muted);
-    text(g, "GM MIDI  /  GENERATED KIT", footerArea, 9, muted, juce::Justification::centredRight);
+    text(g, "DRAG EQ: FREQ / GAIN    WHEEL: Q    RIGHT-CLICK: BAND ON/OFF", footerArea, 9, muted);
+    text(g, "GM MIDI  /  80 FACTORY SOUNDS", footerArea, 9, muted, juce::Justification::centredRight);
 }
 void RaBubanjEditor::timerCallback()
 {

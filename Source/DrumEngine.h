@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstdint>
 #include <vector>
+#include "FactoryPresets.h"
 
 namespace rabubanj
 {
@@ -42,6 +43,7 @@ public:
     {
         sampleRate = rate > 0.0 ? rate : 44100.0;
         reset();
+        factory = &FactoryBank::get();
         for (int drum = 0; drum < drumCount; ++drum)
             for (int layer = 0; layer < 3; ++layer)
                 for (int rr = 0; rr < 3; ++rr)
@@ -54,6 +56,12 @@ public:
         counters = {};
         serial = 0;
     }
+
+    void setPreset(int drum, int preset) noexcept
+    {
+        if (drum >= 0 && drum < drumCount) presetIndices[static_cast<size_t>(drum)] = std::clamp(preset, 0, factoryPresetCount-1);
+    }
+    int getPreset(int drum) const noexcept { return presetIndices[static_cast<size_t>(drum)]; }
 
     void trigger(int note, float velocity) noexcept
     {
@@ -73,7 +81,12 @@ public:
         }
         const auto layer = std::min(2, static_cast<int>(velocity * 3));
         const auto rr = counters[static_cast<size_t>(drum)]++ % 3;
-        *selected = { true, drum, layer, rr, 0, 0, velocity, ++serial };
+        const auto preset = presetIndices[static_cast<size_t>(drum)];
+        *selected = {};
+        selected->active = true; selected->drum = drum; selected->velocity = velocity; selected->age = ++serial;
+        selected->sample = preset == 0 || factory == nullptr ? &bank[static_cast<size_t>(drum)][static_cast<size_t>(layer)][static_cast<size_t>(rr)]
+            : &factory->sample(drum, preset, layer, rr);
+        selected->increment = preset == 0 || factory == nullptr ? 1.0 : factorySampleRate/sampleRate;
     }
 
     void render(float* left, float* right, int count, const Mix& mix) noexcept
@@ -109,14 +122,17 @@ private:
     struct Voice
     {
         bool active = false;
-        int drum = 0, layer = 0, rr = 0;
-        size_t position = 0;
+        int drum = 0;
+        const std::vector<float>* sample = nullptr;
+        double position = 0, increment = 1;
         int choke = 0;
         float velocity = 0;
         uint64_t age = 0;
     };
     std::array<Voice, 64> voices {};
     std::array<int, drumCount> counters {};
+    std::array<int, drumCount> presetIndices {};
+    const FactoryBank* factory = nullptr;
     std::array<std::array<std::array<std::vector<float>, 3>, 3>, drumCount> bank;
     double sampleRate = 44100;
     uint64_t serial = 0;
@@ -127,11 +143,15 @@ private:
         {
             if (!voice.active) continue;
             const auto drum = static_cast<size_t>(voice.drum);
-            const auto& sample = bank[drum][static_cast<size_t>(voice.layer)][static_cast<size_t>(voice.rr)];
+            const auto& sample = *voice.sample;
             for (int s = 0; s < count; ++s)
             {
-                if (voice.position >= sample.size()) { voice.active = false; break; }
-                float value = sample[voice.position++] * voice.velocity;
+                const auto position = static_cast<size_t>(voice.position);
+                if (position >= sample.size()) { voice.active = false; break; }
+                const auto next = position+1 < sample.size() ? sample[position+1] : 0.0f;
+                const auto fraction = static_cast<float>(voice.position-static_cast<double>(position));
+                float value = (sample[position]+(next-sample[position])*fraction)*voice.velocity;
+                voice.position += voice.increment;
                 if (voice.choke > 0)
                 {
                     value *= static_cast<float>(voice.choke) / static_cast<float>(std::max(1, static_cast<int>(sampleRate * .005)));

@@ -42,16 +42,10 @@ private:
     RaBubanjProcessor& processor;
     int busIndex = -1, selectedBand = 0;
     bool masterPanel = false;
-    std::array<juce::TextButton, rabubanj::eqBandCount> bands;
     juce::TextButton bypass { "BYPASS" }, reset { "RESET" };
-    juce::ToggleButton enabled { "Band on" };
     juce::ComboBox type;
-    juce::Slider frequency, gain, q;
     Graph graph { *this };
-    using SliderAttachment = juce::AudioProcessorValueTreeState::SliderAttachment;
-    using ButtonAttachment = juce::AudioProcessorValueTreeState::ButtonAttachment;
-    std::unique_ptr<SliderAttachment> frequencyAttachment, gainAttachment, qAttachment;
-    std::unique_ptr<ButtonAttachment> enabledAttachment, bypassAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> bypassAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> typeAttachment;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(EqPanel)
 };

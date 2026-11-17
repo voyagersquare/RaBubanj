@@ -51,7 +51,7 @@ private:
     juce::Reverb reverb;
     juce::SmoothedValue<float> masterGain, returnGain;
     std::array<juce::SmoothedValue<float>, rabubanj::drumCount> gains, pans, sends, dryLevels;
-    std::array<std::atomic<float>*, rabubanj::drumCount> gainParams {}, panParams {}, muteParams {}, sendParams {};
+    std::array<std::atomic<float>*, rabubanj::drumCount> gainParams {}, panParams {}, muteParams {}, sendParams {}, presetParams {};
     std::array<std::atomic<float>*, rabubanj::drumCount + 1> soloParams {};
     std::array<EqParameters, rabubanj::eqBusCount> eqParams;
     std::array<rabubanj::ParametricEq, rabubanj::eqBusCount> equalisers;

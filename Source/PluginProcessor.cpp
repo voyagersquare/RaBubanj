@@ -17,6 +17,10 @@ juce::AudioProcessorValueTreeState::ParameterLayout RaBubanjProcessor::makeParam
         addBool("mute" + id, name + " Mute");
         addFloat("send" + id, name + " Reverb Send", { 0.0f, 1.0f, .001f }, .25f);
         addBool("solo" + id, name + " Solo");
+        juce::StringArray presetNames;
+        for (int preset = 0; preset < rabubanj::factoryPresetCount; ++preset)
+            presetNames.add(juce::String(preset+1).paddedLeft('0', 2)+" "+rabubanj::factoryPresets[static_cast<size_t>(d)][static_cast<size_t>(preset)].name);
+        layout.add(std::make_unique<juce::AudioParameterChoice>(juce::ParameterID { "preset"+id, 1 }, name+" Factory Preset", presetNames, 0));
     }
     addFloat("master", "Master Level", { -60.0f, 6.0f, .1f }, -8);
     // Retain the 0.1 room ID and its linear amplitude domain for DAW compatibility.
@@ -55,6 +59,7 @@ RaBubanjProcessor::RaBubanjProcessor()
         panParams[i] = parameters.getRawParameterValue("pan" + id);
         muteParams[i] = parameters.getRawParameterValue("mute" + id);
         sendParams[i] = parameters.getRawParameterValue("send" + id);
+        presetParams[i] = parameters.getRawParameterValue("preset" + id);
     }
     for (int i = 0; i <= rabubanj::reverbBus; ++i) soloParams[static_cast<size_t>(i)] = parameters.getRawParameterValue("solo" + juce::String(i));
     for (int bus = 0; bus < rabubanj::eqBusCount; ++bus)
@@ -132,6 +137,7 @@ void RaBubanjProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
     buffer.clear();
     if (buffer.getNumChannels() < 2 || buffer.getNumSamples() == 0) { midi.clear(); return; }
     const int samples = buffer.getNumSamples();
+    for (int drum = 0; drum < rabubanj::drumCount; ++drum) engine.setPreset(drum, static_cast<int>(presetParams[static_cast<size_t>(drum)]->load()));
     bool anySolo = false;
     for (auto* solo : soloParams) anySolo = anySolo || solo->load() >= .5f;
     const bool returnSolo = soloParams[8]->load() >= .5f;
@@ -214,7 +220,7 @@ void RaBubanjProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
 void RaBubanjProcessor::getStateInformation(juce::MemoryBlock& destination)
 {
     auto state = parameters.copyState();
-    state.setProperty("schemaVersion", 2, nullptr); state.setProperty("selectedChannel", selectedChannel.load(), nullptr);
+    state.setProperty("schemaVersion", 3, nullptr); state.setProperty("selectedChannel", selectedChannel.load(), nullptr);
     if (auto xml = state.createXml()) copyXmlToBinary(*xml, destination);
 }
 void RaBubanjProcessor::setStateInformation(const void* data, int size)

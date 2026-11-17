@@ -4,13 +4,6 @@ using namespace rabubanj::ui;
 EqPanel::EqPanel(RaBubanjProcessor& p, int bus, bool isMaster) : processor(p), masterPanel(isMaster)
 {
     setName(isMaster ? "Global EQ" : "Channel EQ");
-    for (int b = 0; b < rabubanj::eqBandCount; ++b)
-    {
-        auto& button = bands[static_cast<size_t>(b)]; button.setButtonText(juce::String(b + 1));
-        button.setColour(juce::TextButton::buttonOnColourId, bandColours[static_cast<size_t>(b)]);
-        button.setColour(juce::TextButton::textColourOnId, dark);
-        button.onClick = [this, b] { selectBand(b); }; addAndMakeVisible(button);
-    }
     bypass.setClickingTogglesState(true); bypass.setTooltip("Bypass all six bands of this EQ");
     reset.setTooltip("Reset this EQ only; other channels are unchanged");
     reset.onClick = [this]
@@ -23,34 +16,23 @@ EqPanel::EqPanel(RaBubanjProcessor& p, int bus, bool isMaster) : processor(p), m
                 }
     };
     for (auto* button : { &bypass, &reset }) addAndMakeVisible(*button);
-    addAndMakeVisible(enabled); addAndMakeVisible(type); addAndMakeVisible(graph);
-    for (int i = 0; i < 6; ++i) type.addItem(rabubanj::eqTypeNames[static_cast<size_t>(i)], i + 1);
-    type.setName("EQ filter type"); type.setTooltip("Bell, shelves, 12 dB/oct cuts or notch");
-    for (auto* control : { &frequency, &gain, &q })
-    {
-        slider(*control, juce::Slider::LinearHorizontal, 80);
-        control->setTextBoxStyle(juce::Slider::TextBoxLeft, false, 78, 23);
-        addAndMakeVisible(*control);
-    }
-    frequency.setTextValueSuffix(" Hz"); frequency.setName("EQ frequency"); frequency.setNumDecimalPlacesToDisplay(1);
-    gain.setTextValueSuffix(" dB"); gain.setName("EQ gain"); gain.setNumDecimalPlacesToDisplay(2);
-    q.setTextValueSuffix(" Q"); q.setName("EQ Q"); q.setNumDecimalPlacesToDisplay(2);
+    addAndMakeVisible(type); addAndMakeVisible(graph);
+    for (int i = 0; i < 6; ++i) type.addItem(rabubanj::eqTypeNames[static_cast<size_t>(i)], i+1);
+    type.setName("EQ filter type"); type.setTooltip("Filter type of the selected graph node");
     setBus(bus);
 }
 EqPanel::~EqPanel() = default;
 void EqPanel::setBus(int bus)
 {
     if (busIndex == bus) return;
-    graph.cancelGesture();
-    busIndex = juce::jlimit(0, rabubanj::masterBus, bus);
+    graph.cancelGesture(); busIndex = juce::jlimit(0, rabubanj::masterBus, bus);
     bypassAttachment.reset();
-    bypassAttachment = std::make_unique<ButtonAttachment>(processor.parameters, "eqBypass" + juce::String(busIndex), bypass);
+    bypassAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(processor.parameters, "eqBypass"+juce::String(busIndex), bypass);
     bindBand(); repaint();
 }
 void EqPanel::selectBand(int b)
 {
-    graph.cancelGesture();
-    selectedBand = juce::jlimit(0, rabubanj::eqBandCount - 1, b); bindBand(); graph.repaint();
+    graph.cancelGesture(); selectedBand = juce::jlimit(0, rabubanj::eqBandCount-1, b); bindBand(); graph.repaint();
 }
 juce::RangedAudioParameter* EqPanel::parameter(const char* field) const
 {
@@ -62,25 +44,18 @@ void EqPanel::setBandValue(const char* field, float value)
 }
 void EqPanel::bindBand()
 {
-    frequencyAttachment.reset(); gainAttachment.reset(); qAttachment.reset(); enabledAttachment.reset(); typeAttachment.reset();
-    auto id = [&](const char* field) { return juce::String(rabubanj::eqParameterId(busIndex, selectedBand, field)); };
-    frequencyAttachment = std::make_unique<SliderAttachment>(processor.parameters, id("freq"), frequency);
-    gainAttachment = std::make_unique<SliderAttachment>(processor.parameters, id("gain"), gain);
-    qAttachment = std::make_unique<SliderAttachment>(processor.parameters, id("q"), q);
-    enabledAttachment = std::make_unique<ButtonAttachment>(processor.parameters, id("on"), enabled);
-    typeAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(processor.parameters, id("type"), type);
+    typeAttachment.reset();
+    typeAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(processor.parameters,
+        juce::String(rabubanj::eqParameterId(busIndex, selectedBand, "type")), type);
     refresh();
 }
 void EqPanel::refresh()
 {
     const auto settings = processor.getEqSettings(busIndex);
-    for (size_t i = 0; i < bands.size(); ++i)
-    {
-        bands[i].setToggleState(static_cast<int>(i) == selectedBand, juce::dontSendNotification);
-        bands[i].setAlpha(settings.bands[i].enabled ? 1.0f : .45f);
-    }
-    const auto shape = settings.bands[static_cast<size_t>(selectedBand)].type;
-    gain.setEnabled(shape < 3); // Gain has no meaning for cuts and notch.
+    const auto& band = settings.bands[static_cast<size_t>(selectedBand)];
+    graph.setTooltip("Band "+juce::String(selectedBand+1)+": "+juce::String(band.frequency, 1)+" Hz / "+juce::String(band.gain, 2)
+        +" dB / Q "+juce::String(band.q, 2)+(band.enabled ? " / ON" : " / OFF")
+        +". Drag: frequency/gain; wheel: Q; right-click: on/off; double-click: reset gain.");
     graph.repaint(); repaint();
 }
 void EqPanel::paint(juce::Graphics& g)
@@ -88,25 +63,17 @@ void EqPanel::paint(juce::Graphics& g)
     raisedPanel(g, getLocalBounds().toFloat(), panel, .85f);
     g.setColour(masterPanel ? gold : cyan); g.fillRect(0, 0, getWidth(), 2);
     const juce::String name = busIndex < 8 ? rabubanj::names[static_cast<size_t>(busIndex)] : "Reverb";
-    text(g, masterPanel ? "GLOBAL EQ  /  STEREO MASTER" : "CHANNEL EQ  /  " + name.toUpperCase(), { 12, 5, getWidth()-24, 24 }, 12, ink);
+    text(g, masterPanel ? "GLOBAL EQ  /  STEREO MASTER" : "CHANNEL EQ  /  "+name.toUpperCase(), { 12, 5, getWidth()-24, 24 }, 12, ink);
     if (getWidth() > 500) text(g, "6-BAND PARAMETRIC", { getWidth()-200, 5, 188, 24 }, 10, muted, juce::Justification::centredRight);
 }
 void EqPanel::resized()
 {
     auto area = getLocalBounds().reduced(10, 6); area.removeFromTop(25);
     auto row = area.removeFromTop(23);
-    for (auto& b : bands) { b.setBounds(row.removeFromLeft(23)); row.removeFromLeft(4); }
     reset.setBounds(row.removeFromRight(48)); row.removeFromRight(5); bypass.setBounds(row.removeFromRight(64));
     area.removeFromTop(6);
-    auto bottom = area.removeFromBottom(63); graph.setBounds(area);
-    bottom.removeFromTop(5);
-    auto types = bottom.removeFromTop(23);
-    type.setBounds(types.removeFromLeft(juce::jmin(145, getWidth()/3))); types.removeFromLeft(8);
-    enabled.setBounds(types.removeFromLeft(80));
-    bottom.removeFromTop(6);
-    const int width = bottom.getWidth()/3;
-    frequency.setBounds(bottom.removeFromLeft(width)); gain.setBounds(bottom.removeFromLeft(width)); q.setBounds(bottom);
-    for (auto* s : { &frequency, &gain, &q }) s->setTextBoxStyle(juce::Slider::TextBoxLeft, false, juce::jmin(92, s->getWidth()-26), 23);
+    auto bottom = area.removeFromBottom(29); graph.setBounds(area);
+    bottom.removeFromTop(5); type.setBounds(bottom.removeFromLeft(juce::jmin(145, getWidth()/3)));
 }
 
 EqPanel::Graph::Graph(EqPanel& panelToUse) : owner(panelToUse)
@@ -182,8 +149,14 @@ void EqPanel::Graph::paint(juce::Graphics& g)
 }
 void EqPanel::Graph::mouseDown(const juce::MouseEvent& e)
 {
-    if (!e.mods.isLeftButtonDown()) return;
+    if (!e.mods.isLeftButtonDown() && !e.mods.isRightButtonDown()) return;
     owner.selectBand(nearest(e.position));
+    if (e.mods.isRightButtonDown() || e.mods.isAltDown())
+    {
+        auto* enabled = owner.parameter("on"); enabled->beginChangeGesture();
+        owner.setBandValue("on", enabled->getValue() >= .5f ? 0.0f : 1.0f); enabled->endChangeGesture();
+        owner.refresh(); return;
+    }
     owner.parameter("freq")->beginChangeGesture(); owner.parameter("gain")->beginChangeGesture(); dragging = true;
 }
 void EqPanel::Graph::moveNode(juce::Point<float> p)

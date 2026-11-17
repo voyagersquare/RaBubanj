@@ -15,12 +15,14 @@ private:
     RaBubanjProcessor& processor;
     const int bus;
     juce::String channelName;
-    juce::TextButton select, eq { "EQ" }, mute { "M" }, solo { "S" }, audition;
+    juce::TextButton select, mute { "M" }, solo { "S" };
+    juce::ComboBox preset;
     juce::Slider gain, pan, send;
     using SliderAttachment = juce::AudioProcessorValueTreeState::SliderAttachment;
     using ButtonAttachment = juce::AudioProcessorValueTreeState::ButtonAttachment;
     std::unique_ptr<SliderAttachment> gainAttachment, panAttachment, sendAttachment;
     std::unique_ptr<ButtonAttachment> muteAttachment, soloAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> presetAttachment;
     juce::Rectangle<int> faderArea, meterArea;
     uint32_t lastHit = 0;
     float flash = 0;
@@ -33,6 +35,10 @@ public:
     void drawButtonBackground(juce::Graphics&, juce::Button&, const juce::Colour&, bool, bool) override;
     void drawRotarySlider(juce::Graphics&, int, int, int, int, float, float, float, juce::Slider&) override;
     void drawLinearSlider(juce::Graphics&, int, int, int, int, float, float, float, juce::Slider::SliderStyle, juce::Slider&) override;
+    juce::Font getComboBoxFont(juce::ComboBox& box) override
+    {
+        return juce::Font(juce::FontOptions(box.getName().contains("factory preset") ? 11.0f : 14.0f));
+    }
     juce::Label* createSliderTextBox(juce::Slider& s) override
     {
         auto* label = juce::LookAndFeel_V4::createSliderTextBox(s);
