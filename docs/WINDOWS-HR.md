@@ -1,28 +1,41 @@
-# RaBubanj 0.1 — Windows x64
+# RaBubanj 0.2 — Windows x64, bez instalera
 
-## Pokretanje bez instalera
+1. Preuzmi ZIP `RaBubanj-0.2.0-Windows-x64` iz uspješnog GitHub Actions builda i raspakiraj ga.
+2. Zatvori DAW i kopiraj cijelu mapu **RaBubanj.vst3** u `C:\Program Files\Common Files\VST3\`. Zamijeni prethodnu verziju cijelim paketom. Nemoj izdvajati samo datoteku iz unutrašnjosti VST3 mape.
+3. Otvori 64-bitni DAW i ponovno skeniraj VST3 instrumente. Dodaj RaBubanj na instrument/MIDI traku i uključi monitoring.
+4. Sviraj MIDI note ili klikni male **HIT** gumbe pri dnu kanala. `RaBubanj.exe` služi za samostalno sviranje; nije installer. U njemu odaberi audio i MIDI uređaj.
 
-1. Preuzmi ZIP `RaBubanj-0.1.0-Windows-x64` iz uspješnog GitHub Actions builda i raspakiraj ga.
-2. Zatvori DAW pa kopiraj cijelu mapu **RaBubanj.vst3** u `C:\Program Files\Common Files\VST3\`. Windows može tražiti administratorsko dopuštenje za kopiranje u tu mapu. Nemoj izdvajati samo datoteku iz unutrašnjosti VST3 paketa.
-3. Otvori svoj 64-bitni DAW i ponovno skeniraj VST3 plugine.
-4. Dodaj **RaBubanj** kao instrument na MIDI/instrument traku. Uključi monitoring trake i odaberi svoj MIDI ulaz.
-5. Klikni padove ili pošalji MIDI note 36, 38, 42, 46, 45, 48, 49 i 51. Nije potrebno preuzimati zvukove.
+## Kompaktni mikser
 
-Alternativa je vlastita VST3 mapa, ako je DAW podržava. `RaBubanj.exe` je samostalna aplikacija za preslušavanje i MIDI sviranje: odaberi audio izlaz i MIDI uređaj u audio postavkama aplikacije. Za aranžiranje i snimanje koristi DAW.
+- **Naziv kanala / EQ:** odabire kanal. U gornjem lijevom panelu otvara se upravo njegov EQ; Kick, Snare i ostali zadržavaju vlastite postavke.
+- **Level:** veći srebrni fader, s vrijednošću u dB. Dvoklik vraća 0 dB na drum kanalima, odnosno -8 dB na masteru.
+- **SEND:** manji fader odmah uz Level. Određuje postotak signala koji taj bubanj šalje na zajednički Reverb bus. Dvoklik vraća 25%. Send prati Level i Mute kanala.
+- **Pan:** mali horizontalni kliznik iznad fadera. Dvoklik centrira panoramu.
+- **M / S:** mute / solo. Solo zadržava reverb od odabranog instrumenta. Prethodni reverb repovi prirodno se stišavaju.
+- **Reverb kanal:** zaseban povratni fader u dB, Mute i Solo. Njegov Solo služi preslušavanju samo mokrog reverba. Klik na Reverb otvara njegov vlastiti EQ u kanalnom panelu.
+- **Reverb postavke:** Size, Damping i Width u desnom panelu. Reverb ne dodaje dodatni suhi signal.
+- **Master:** završni nivo, Mute i metar. Globalni EQ stalno je vidljiv gore desno i obrađuje cijeli stereo miks.
 
-## Kontrole
+Reverb bus je interni kanal miksera; plugin i dalje ima jedan stereo izlaz u DAW-u. Nazivi i postojeći ID plugina ostaju isti, pa se nadogradnja učitava u postojećim projektima.
 
-- **Padovi:** preslušavanje pojedinog instrumenta; crtica ispod pada pokazuje MIDI/preview udarce.
-- **Level:** glasnoća pojedinog instrumenta u dB. Dvoklik vraća 0 dB.
-- **Pan:** -1 lijevo, 0 sredina, +1 desno. Dvoklik centrira panoramu.
-- **Mute:** utišavanje instrumenta. Prethodno nastali room rep prirodno se stišava.
-- **Master:** ukupna glasnoća; početno -8 dB radi prostora za istovremene udarce.
-- **Room:** količina stereo reverba.
+## Parametarski EQ
 
-Mikser podržava automatizaciju; DAW sprema postavke s projektom. Svira na svim MIDI kanalima. Bubnjevi se odsvire do kraja bez obzira na note-off. Zatvoreni hi-hat prekida otvoreni. MIDI CC120 ili CC123 prekida sve glasove i reverb.
+Svaki drum kanal, Reverb povrat i master imaju po šest neovisnih bandova.
 
-Ova početna verzija koristi vlastite generirane zvukove s tri velocity sloja i tri varijacije. Još nema biblioteku realističnih snimljenih bubnjeva, uvoz WAV datoteka, preglednik grooveova ni zasebne audio izlaze. Plugin ne sadrži vlastiti sekvencer: ritam šalje DAW ili MIDI kontroler.
+1. Klikni kanal, zatim točku na grafu ili gumb **1–6**.
+2. Povuci točku lijevo/desno za frekvenciju i gore/dolje za gain.
+3. Kotačić miša mijenja **Q**, odnosno širinu banda. Za precizan unos koristi brojčana polja ispod grafa.
+4. U padajućem izborniku odaberi **Bell**, **Low shelf**, **High shelf**, **Low cut**, **High cut** ili **Notch**. Low/High cut imaju nagib 12 dB po oktavi. Gain nije primjenjiv na cut i notch filtre.
+5. **Band on** uključuje/isključuje pojedini band, **BYPASS** zaobilazi cijeli odabrani EQ, a **RESET** vraća njegove bandove na ravnu krivulju. Dvoklik na točku vraća gain tog banda na 0 dB.
 
-Ako nema zvuka, provjeri da je plugin na instrument traci, da je monitoring uključen i da izlaz DAW-a ide na ispravan audio uređaj. Oktavne oznake razlikuju se među DAW-ovima; koristi MIDI brojeve iz README-a. Paket je za 64-bitni Windows i 64-bitni VST3 host; nije VST2 ni 32-bitni plugin.
+Raspon je 20 Hz–20 kHz, ±24 dB i Q 0,15–18. Graf prikazuje frekvencijski odziv filtara koji stvarno obrađuju audio. Ova verzija nema spektralni analizator, dinamički EQ ni linear-phase način rada.
 
-Za uklanjanje zatvori DAW i izbriši kopiranu `.vst3` mapu. Nema deinstalera ni registra koji treba čistiti.
+Svi EQ, send i mixer parametri podržavaju automatizaciju i spremaju se u DAW projektu. Pamti se i odabrani kanal. Projekti iz verzije 0.1 učitavaju se s ravnim EQ-ima i sendovima na 100%, čime zadržavaju prethodni zajednički room feed. Novi projekti počinju sa sendovima na 25%.
+
+## MIDI i zvukovi
+
+Glavne note: Kick 36, Snare 38, Closed Hat 42, Open Hat 46, Low Tom 45, High Tom 48, Crash 49, Ride 51. Oktavne oznake razlikuju se među DAW-ovima; koristi brojeve nota. Plugin prihvaća sve MIDI kanale. Note-off ne prekida one-shot; zatvoreni hi-hat prekida otvoreni. CC120/123 prekida glasove i čisti EQ/reverb rep.
+
+Kit zasad koristi vlastite generirane zvukove s velocity slojevima i round-robin varijacijama. Ako nema zvuka, provjeri monitoring, MIDI ulaz, M/S gumbe i audio izlaz DAW-a. Za snimanje i aranžiranje koristi DAW.
+
+Za uklanjanje zatvori DAW i izbriši kopiranu `.vst3` mapu. Nema instalera.

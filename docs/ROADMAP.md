@@ -4,6 +4,10 @@
 
 Windows x64 VST3 + standalone, original generated starter kit, GM MIDI, layered round robin playback, channel mixer, room, state recall and portable build pipeline.
 
+## 0.2 — compact mixer and parametric EQ
+
+Eight compact drum strips with post-fader sends, an independent wet Reverb return, master strip, channel/return/global six-band parametric EQs, interactive response graphs, mute/solo, metering and backwards project-state migration.
+
 ## Next: acoustic sample engine
 
 - Load a documented kit manifest with licensed WAV samples, velocity zones, independent round-robin pools, tuning and per-articulation envelopes.
@@ -15,7 +19,7 @@ Windows x64 VST3 + standalone, original generated starter kit, GM MIDI, layered 
 
 - Independent kick/snare articulations, hi-hat openness via CC4 and e-drum mappings.
 - Close, overhead and room microphone buses with phase-safe routing and multi-output support.
-- Per-channel EQ/compression, solo, presets and a realistic multi-sampled acoustic kit.
+- Per-channel compression, presets and a realistic multi-sampled acoustic kit.
 
 ## Then: grooves and release polish
 

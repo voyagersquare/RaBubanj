@@ -87,25 +87,16 @@ public:
             leftGain[i] = gain * std::cos(angle);
             rightGain[i] = gain * std::sin(angle);
         }
-        for (auto& voice : voices)
+        renderVoices(count, [&](size_t drum, int sample, float value)
         {
-            if (!voice.active) continue;
-            const auto d = static_cast<size_t>(voice.drum);
-            const auto& sample = bank[d][static_cast<size_t>(voice.layer)][static_cast<size_t>(voice.rr)];
-            for (int s = 0; s < count; ++s)
-            {
-                if (voice.position >= sample.size()) { voice.active = false; break; }
-                float value = sample[voice.position++] * voice.velocity;
-                if (voice.choke > 0)
-                {
-                    value *= static_cast<float>(voice.choke) / static_cast<float>(std::max(1, static_cast<int>(sampleRate * .005)));
-                    if (--voice.choke == 0) voice.active = false;
-                }
-                left[s] += value * leftGain[d];
-                right[s] += value * rightGain[d];
-                if (!voice.active) break;
-            }
-        }
+            left[sample] += value * leftGain[drum];
+            right[sample] += value * rightGain[drum];
+        });
+    }
+
+    void renderStems(const std::array<float*, drumCount>& outputs, int count) noexcept
+    {
+        renderVoices(count, [&](size_t drum, int sample, float value) { outputs[drum][sample] += value; });
     }
 
     int activeVoiceCount() const noexcept
@@ -129,6 +120,28 @@ private:
     std::array<std::array<std::array<std::vector<float>, 3>, 3>, drumCount> bank;
     double sampleRate = 44100;
     uint64_t serial = 0;
+
+    template <typename Sink> void renderVoices(int count, Sink&& sink) noexcept
+    {
+        for (auto& voice : voices)
+        {
+            if (!voice.active) continue;
+            const auto drum = static_cast<size_t>(voice.drum);
+            const auto& sample = bank[drum][static_cast<size_t>(voice.layer)][static_cast<size_t>(voice.rr)];
+            for (int s = 0; s < count; ++s)
+            {
+                if (voice.position >= sample.size()) { voice.active = false; break; }
+                float value = sample[voice.position++] * voice.velocity;
+                if (voice.choke > 0)
+                {
+                    value *= static_cast<float>(voice.choke) / static_cast<float>(std::max(1, static_cast<int>(sampleRate * .005)));
+                    if (--voice.choke == 0) voice.active = false;
+                }
+                sink(drum, s, value);
+                if (!voice.active) break;
+            }
+        }
+    }
 
     void generate(int drum, int layer, int rr)
     {
