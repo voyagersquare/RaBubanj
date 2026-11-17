@@ -1,5 +1,11 @@
 # RaBubanj
 
+**[Preuzmi RaBubanj 0.1 za Windows x64 — ZIP bez instalera](https://github.com/voyagersquare/RaBubanj/actions/runs/44145272657/artifacts/14356307396)**
+
+Raspakiraj ZIP i kopiraj cijelu mapu `RaBubanj.vst3` u `C:\Program Files\Common Files\VST3\`, zatim ponovno skeniraj plugine u DAW-u. `RaBubanj.exe` je samostalna aplikacija za sviranje i preslušavanje. [Upute na hrvatskom](docs/WINDOWS-HR.md) · [Rezultati provjera](VALIDATION.md)
+
+![RaBubanj 0.1 interface](docs/preview.png)
+
 Windows x64 VST3 drum instrument by **Voyagersquare**. Version 0.1.0 is a playable foundation for a future acoustic drum sampler, inspired by the drum-kit and mixer workflow of established drum instruments. It has its own interface and sounds.
 
 **No installer.** Download the portable artifact from a successful **Actions → Windows VST3** run. Extract the ZIP, copy the complete `RaBubanj.vst3` folder to `C:\Program Files\Common Files\VST3\`, and rescan instruments in your DAW. The included standalone EXE can be launched separately to configure audio/MIDI and audition the pads. A DAW is required for recording and sequencing.
