@@ -54,6 +54,6 @@ Sources consulted 17 November 2026. The resulting recipes are the project's own 
 
 ## Optional dry WAV previews
 
-The **RaBubanj-0.4.0-Factory-Audio** workflow artifact contains all 160 dry one-shot previews, labelled by channel, slot and name, plus this catalogue. They are mono 32 kHz / 16-bit PCM, rendered at velocity 0.92 with the first round robin. They have no channel EQ, pan, Reverb or master coloration. This optional package is for listening; the plugin generates its factory bank internally.
+The [**RaBubanj-0.4.0-Factory-Audio** download](https://github.com/voyagersquare/RaBubanj/actions/runs/44183161228/artifacts/14371589929) contains all 160 dry one-shot previews, labelled by channel, slot and name, plus this catalogue. They are mono 32 kHz / 16-bit PCM, rendered at velocity 0.92 with the first round robin. They have no channel EQ, pan, Reverb or master coloration. This optional package is for listening; the plugin generates its factory bank internally.
 
 Developers can render the same files with `factory_preset_tests <output-directory>`. Normal test mode checks every choice for distinct, finite, audible output, velocity response, bounded tails and supported host rates, plus choke and preservation of playing notes when a preset changes.
