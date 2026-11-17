@@ -2,7 +2,11 @@
 
 Windows x64 VST3 drum instrument by **Voyagersquare**, with a compact studio mixer, independent parametric EQs and a shared stereo Reverb bus.
 
-**Windows ZIP bez instalera:** preuzmi `RaBubanj-0.3.0-Windows-x64` iz uspješnog **Actions → Windows VST3** builda. [Windows instructions in Croatian](docs/WINDOWS-HR.md) · [Validation](VALIDATION.md)
+**[Preuzmi RaBubanj 0.3 za Windows x64 — ZIP bez instalera](https://github.com/voyagersquare/RaBubanj/actions/runs/44171520880/artifacts/14367593804)**
+
+**[Preuzmi 80 suhih WAV primjera](https://github.com/voyagersquare/RaBubanj/actions/runs/44171520880/artifacts/14367948141)** — izborni paket za preslušavanje. Windows build, svih pet testnih skupova i pluginval strictness 5 prolaze.
+
+ [Windows instructions in Croatian](docs/WINDOWS-HR.md) · [Validation](VALIDATION.md)
 
 Extract the ZIP, copy the entire `RaBubanj.vst3` folder into `C:\Program Files\Common Files\VST3\`, then rescan instruments in your DAW. The included `RaBubanj.exe` is a standalone application, not an installer.
 
