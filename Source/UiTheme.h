@@ -139,12 +139,12 @@ inline void text(juce::Graphics& g, const juce::String& value, juce::Rectangle<i
 {
     g.setFont(juce::FontOptions(size));
     g.setColour(juce::Colours::black.withAlpha(.92f));
-    if (size <= 13)
+    if (size <= 13 && colour.getPerceivedBrightness() > .3f)
     {
         for (auto offset : { juce::Point<int>(-1, 0), juce::Point<int>(1, 0), juce::Point<int>(0, -1), juce::Point<int>(0, 1) })
             g.drawText(value, bounds.translated(offset.x, offset.y), alignment);
     }
-    else g.drawText(value, bounds.translated(1, 2), alignment);
+    else if (size > 13) g.drawText(value, bounds.translated(1, 2), alignment);
     g.setColour(colour); g.drawText(value, bounds, alignment);
 }
 inline void slider(juce::Slider& s, juce::Slider::SliderStyle style, int textWidth = 46)
