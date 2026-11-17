@@ -1,0 +1,65 @@
+name: Windows VST3
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Configure Windows x64
+        run: cmake -S . -B build -A x64 -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded
+      - name: Build instrument and engine tests
+        run: cmake --build build --config Release --parallel 2
+      - name: Test drum engine and processor integration
+        run: ctest --test-dir build -C Release --output-on-failure
+      - name: Download pluginval 1.0.4
+        shell: pwsh
+        run: |
+          Invoke-WebRequest 'https://github.com/Tracktion/pluginval/releases/download/v1.0.4/pluginval_Windows.zip' -OutFile pluginval.zip
+          Expand-Archive pluginval.zip -DestinationPath pluginval
+      - name: Validate Windows VST3
+        shell: pwsh
+        run: |
+          $validator = (Get-ChildItem pluginval -Filter pluginval.exe -Recurse | Select-Object -First 1).FullName
+          $plugin = Join-Path $PWD 'build/RaBubanj_artefacts/Release/VST3/RaBubanj.vst3'
+          & $validator --strictness-level 5 --validate "$plugin" --output-dir "$PWD/validation" --timeout-ms 120000
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Collect portable package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force package
+          Copy-Item 'build/RaBubanj_artefacts/Release/VST3/RaBubanj.vst3' package -Recurse
+          Copy-Item 'build/RaBubanj_artefacts/Release/Standalone/RaBubanj.exe' package
+          Copy-Item docs/WINDOWS-HR.md package/PROCITAJ-ME.md
+          Copy-Item README.md, LICENSE, THIRD_PARTY.md package
+          New-Item -ItemType Directory -Force package/ThirdParty
+          Copy-Item build/_deps/juce-src/LICENSE.md package/ThirdParty/JUCE-LICENSE.md
+          Copy-Item build/_deps/juce-src/modules/juce_audio_processors/format_types/VST3_SDK/LICENSE.txt package/ThirdParty/VST3-LICENSE.txt
+          git archive --format=zip --output=package/RaBubanj-source.zip HEAD
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          tar -czf package/JUCE-source.tar.gz -C build/_deps juce-src
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Upload portable Windows x64 package
+        uses: actions/upload-artifact@v4
+        with:
+          name: RaBubanj-0.1.0-Windows-x64
+          path: package/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Upload validation logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Windows-validation-logs
+          path: validation/
+          if-no-files-found: ignore

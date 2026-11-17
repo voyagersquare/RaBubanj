@@ -1,0 +1,9 @@
+/build*/
+/.deps/
+/.venv/
+*.user
+*.suo
+.DS_Store
+*.wav
+*.zip
+
