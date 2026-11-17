@@ -1,26 +1,25 @@
-# RaBubanj 0.3.0
+# RaBubanj 0.4.0
 
 Windows x64 VST3 drum instrument by **Voyagersquare**, with a compact studio mixer, independent parametric EQs and a shared stereo Reverb bus.
 
-**[Preuzmi RaBubanj 0.3 za Windows x64 — ZIP bez instalera](https://github.com/voyagersquare/RaBubanj/actions/runs/44171520880/artifacts/14367593804)**
-
-**[Preuzmi 80 suhih WAV primjera](https://github.com/voyagersquare/RaBubanj/actions/runs/44171520880/artifacts/14367948141)** — izborni paket za preslušavanje. Windows build, svih pet testnih skupova i pluginval strictness 5 prolaze.
+Windows 0.4 packages will be linked here after native validation. No installer is used.
 
  [Windows instructions in Croatian](docs/WINDOWS-HR.md) · [Validation](VALIDATION.md)
 
 Extract the ZIP, copy the entire `RaBubanj.vst3` folder into `C:\Program Files\Common Files\VST3\`, then rescan instruments in your DAW. The included `RaBubanj.exe` is a standalone application, not an installer.
 
-![RaBubanj 0.3.0 worn dark-blue mixer, with an example Kick EQ edit](docs/preview.png)
+![RaBubanj 0.4.0 worn dark-blue mixer, with an example Kick EQ edit](docs/preview.png)
 
-## New in 0.3
+## New in 0.4
 
-- Click the drum's **channel name** to audition its selected factory sound and select its EQ. Clicking other controls selects the EQ without playing a sound.
-- **Ten factory sounds per drum channel — 80 total** — selected in the bottom-row dropdowns that replace HIT buttons. Original analogue-style boom-bap synthesis provides deep/tight kicks, varied snare shells/noise/clap layers, coloured hats, tuned toms and metallic cymbal/ride variations. [Full catalogue and research references](docs/FACTORY-PRESETS.md).
-- Removed the per-strip EQ buttons, the duplicate EQ band-number selector buttons, and the numeric frequency/gain/Q row. The removed Band On checkbox is replaced by right-clicking a graph node (Alt-click also works).
-- EQ remains graph controlled: click a node to select its band, drag for frequency/gain, scroll for Q, double-click to reset gain. Hover over the graph for the selected band's numeric values. The filter-type menu, EQ bypass and reset remain.
-- Factory choices are independently automatable and recalled in DAW projects. Changing a choice preserves already-playing tails. Slot 01 retains the pre-0.3 sound; other mix/EQ/Send settings are not changed by preset selection.
-- Optional **Factory-Audio** download contains all 80 dry WAV previews. No samples need downloading for plugin operation.
-- The worn dark-blue finish, raised panels, rotary Reverb controls and empty right-hand panel remain as in 0.2.1.
+- **SEND defaults and double-click reset are now 0%.** Older 25% defaults migrate to zero; other saved Send levels are preserved.
+- **20 original boom-bap factory sounds per drum, 160 total.** Left/right arrows replace the dropdowns and wrap through all choices. Refined snares have shell and wire layers; hats and cymbals use denser, decaying inharmonic modes and filtered noise, with smoother attacks and less harsh coloration. [Catalogue and references](docs/FACTORY-PRESETS.md).
+- **Drop an audio file onto any drum strip** to replace only that channel. Mono and stereo WAV/AIFF/FLAC/Ogg files load in the background. The filename appears below the channel name; **x** restores the current factory source. The preset arrows return to factory sounds. Imported audio is embedded in saved projects.
+- **Chromatic MIDI C1–G1 (36–43)** triggers Kick through Ride in order, including black keys. The header's MIDI button can select the old GM mapping for existing clips.
+- **KEYS: DAW** passes computer keys to the host for keyboard MIDI and recording. **KEYS: PLUGIN** auditions A W S E D F T G with this window focused, suppressing key repeats. During host recording it forwards keys to the DAW. Incoming MIDI works in either mode.
+- The worn dark-blue finish, compact mixer, raised controls, graph EQs, rotary Reverb controls and reserved right panel remain.
+
+Click a channel **name** to select its EQ and play its current source once. Other channel clicks only select its EQ. Preset arrows do not audition or change mixer/EQ settings; existing notes keep their original tails.
 
 ## Core mixer
 
@@ -30,7 +29,7 @@ Extract the ZIP, copy the entire `RaBubanj.vst3` folder into `C:\Program Files\C
 - **Six parametric bands per EQ**, each with frequency (20 Hz–20 kHz), gain (±24 dB), Q (0.15–18), type and enable. Types: Bell, Low shelf, High shelf, Low cut, High cut and Notch. Cuts are 12 dB/octave. Gain is disabled for cuts and notch.
 - Drag graph nodes for frequency/gain, scroll over a node for Q, and double-click a node to reset its gain. Graph nodes select bands and expose value tooltips. Right-click toggles a band. Each EQ has bypass and reset. The response graph uses the same filter formulas as the audio processing.
 - Reverb Size, Damping and Width controls. All mixer, send, return and EQ parameters support DAW automation and project recall. The selected channel is remembered.
-- Retains plugin identity and the existing level/pan/mute/master/room parameter IDs. Version 0.1 project states load with flat EQs and unity sends, preserving their original shared room feed and dry calibration. New kits start with 25% sends and the original 0.12 linear return level (about -18.4 dB).
+- Retains plugin identity and the existing level/pan/mute/master/room parameter IDs. Version 0.1 project states load with flat EQs and unity sends, preserving their original shared room feed and dry calibration. New kits start with 0% sends and the original 0.12 linear return level (about -18.4 dB).
 
 ### Signal path
 
@@ -45,24 +44,32 @@ The Reverb return is wet-only. A drum mute also mutes its send; previously gener
 
 ## Drum engine
 
-Eight original generated instruments, with ten choices each: kick, snare, closed/open hi-hat, low/high tom, crash and ride. Each has three velocity layers and three round-robin variations, with 64 shared voices and hi-hat choke. MIDI note-ons use their audio-buffer timestamps. Note-offs do not cut one-shots; MIDI CC120/123 resets voices, EQ state and the reverb at its exact event offset.
+Eight original generated instruments, with twenty choices each: kick, snare, closed/open hi-hat, low/high tom, crash and ride. Each has three velocity layers and three round-robin variations, with 64 shared voices and hi-hat choke. MIDI note-ons use their audio-buffer timestamps. Note-offs do not cut one-shots; MIDI CC120/123 resets voices, EQ state and the reverb at its exact event offset.
 
-The starter kit remains synthetic. Recorded acoustic libraries, WAV import, multi-microphone routing, grooves and an internal sequencer are future work. The EQ is a six-band minimum-phase processor with a frequency-response graph; it does not implement dynamic EQ, linear-phase processing or a spectrum analyser. The master retains gentle saturation for stacked hits.
+The starter kit remains synthetic. Recorded acoustic libraries, multi-microphone routing, grooves and an internal sequencer are future work. Imported files play as velocity-scaled one-shots; factory sounds provide velocity layers and round robins. The EQ is a six-band minimum-phase processor with a frequency-response graph; it does not implement dynamic EQ, linear-phase processing or a spectrum analyser. The master retains gentle saturation for stacked hits.
 
-## MIDI map
+## MIDI and computer keyboard
 
-| Instrument | Main note | Accepted aliases |
-| --- | ---: | --- |
-| Kick | 36 | 35 |
-| Snare | 38 | 37, 40 |
-| Closed hi-hat | 42 | 44 |
-| Open hi-hat | 46 | — |
-| Low tom | 45 | 41, 43 |
-| High tom | 48 | 47, 50 |
-| Crash | 49 | 52, 55, 57 |
-| Ride | 51 | 53, 59 |
+| Instrument | Ableton note | MIDI number | PLUGIN audition key |
+| --- | --- | ---: | --- |
+| Kick | C1 | 36 | A |
+| Snare | C#1 | 37 | W |
+| Closed hi-hat | D1 | 38 | S |
+| Open hi-hat | D#1 | 39 | E |
+| Low tom | E1 | 40 | D |
+| High tom | F1 | 41 | F |
+| Crash | F#1 | 42 | T |
+| Ride | G1 | 43 | G |
 
-Aliases share the corresponding sound; they are not independent articulations. MIDI note numbers are authoritative because octave labels differ between hosts.
+All MIDI channels are accepted. Octave labels vary between hosts; MIDI numbers are authoritative. In Ableton, enable the computer MIDI keyboard, arm/monitor the instrument track and set its keyboard octave so the first key sends C1 (36). Use **KEYS: DAW** when recording; local PLUGIN audition does not write MIDI notes into the host. Text editing and Ctrl/Cmd/Alt shortcuts are not intercepted.
+
+**MIDI: GM** restores main notes 36/38/42/46/45/48/49/51 and the original aliases. Default mapping is chromatic even when opening older projects, so select GM explicitly for old GM clips.
+
+## Sample import
+
+Drop one file from the DAW browser or the operating system onto the target drum channel. Standard file paths and `file://` URI payloads are accepted. Proprietary clips and internal browser objects that expose no local audio file cannot be decoded; export/consolidate them to an audio file first. Files may be mono or stereo, 8–384 kHz, up to 30 seconds, with a 32 MB encoded-file and decoded-PCM limit. Playback follows the host sample rate and preserves stereo.
+
+Imports retain the channel's level, pan, send and EQ. Failed new imports leave the previous sound intact; the row shows the error in its tooltip. The **x** button cancels loading or clears the custom source. Source data is embedded in the DAW state for portable recall, increasing project size. If restored data is missing/corrupt, that channel stays silent and shows an error until a replacement is dropped or **x** returns to the factory source. Samples load asynchronously; wait for the filename before playing after a project opens. Stereo files use the channel pan as left/right balance.
 
 ## Build on Windows
 
@@ -91,7 +98,7 @@ cmake --build build-tests
 ctest --test-dir build-tests --output-on-failure
 ```
 
-A full plugin build also runs processor and mixer/editor integration suites. They check factory selection and state, channel-name audition and graph-only EQ editing, as well as send routing and fader/mute/solo interaction, independent channel/return/master EQ audio, state recall and 0.1 migration, channel selection, graph dragging/wheel/reset, parameter attachments and control bounds at 1120 × 740, 1280 × 820 and 1800 × 1160. `mixer_tests <absolute-directory>` additionally renders UI previews; `factory_preset_tests <absolute-directory>` exports the 80 dry WAV previews. pluginval validates the native Windows VST3 before the workflow uploads its ZIP.
+A full plugin build also runs processor, mixer/editor and sample import/recall integration suites. They check file/URI drops, stereo resampling, embedded project recall after deleting original files, failed imports, concurrent source changes and cancellation, chromatic/GM MIDI, keyboard repeat suppression, factory arrows and state, channel-name audition and graph-only EQ editing, as well as send routing and fader/mute/solo interaction, independent channel/return/master EQ audio, state recall and 0.1 migration, channel selection, graph dragging/wheel/reset, parameter attachments and control bounds at 1120 × 740, 1280 × 820 and 1800 × 1160. `mixer_tests <absolute-directory>` additionally renders UI previews; `factory_preset_tests <absolute-directory>` exports the 160 dry WAV previews. pluginval validates the native Windows VST3 before the workflow uploads its ZIP.
 
 ## License
 

@@ -48,22 +48,22 @@ int main(int argc, char** argv)
     {
         const std::filesystem::path directory(argv[1]); std::filesystem::create_directories(directory);
         engine.prepare(32000);
-        for (int drum = 0; drum < 8; ++drum) for (int preset = 0; preset < 10; ++preset)
+        for (int drum = 0; drum < 8; ++drum) for (int preset = 0; preset < rabubanj::factoryPresetCount; ++preset)
         {
             std::string name = rabubanj::names[static_cast<size_t>(drum)]; std::replace(name.begin(), name.end(), ' ', '-');
             const auto number = std::string(preset < 9 ? "0" : "")+std::to_string(preset+1);
             const auto filename = name+"-"+number+"-"+rabubanj::factoryPresets[static_cast<size_t>(drum)][static_cast<size_t>(preset)].name+".wav";
             writeWav(directory/filename, render(engine, drum, preset, 32000, .92f));
         }
-        std::cout << "Rendered 80 original mono factory previews (32 kHz, 16-bit PCM).\n"; return 0;
+        std::cout << "Rendered 160 original mono factory previews (32 kHz, 16-bit PCM).\n"; return 0;
     }
     for (double rate : { 44100.0, 48000.0, 96000.0 })
     {
         engine.prepare(rate);
         for (int drum = 0; drum < 8; ++drum)
         {
-            std::array<std::vector<float>, 10> sounds;
-            for (int preset = 0; preset < 10; ++preset)
+            std::array<std::vector<float>, rabubanj::factoryPresetCount> sounds;
+            for (int preset = 0; preset < rabubanj::factoryPresetCount; ++preset)
             {
                 sounds[static_cast<size_t>(preset)] = render(engine, drum, preset, rate, .9f);
                 require(energy(sounds[static_cast<size_t>(preset)]) > .005, "every factory preset must be audible");
@@ -82,21 +82,21 @@ int main(int argc, char** argv)
             }
         }
         engine.reset(); engine.setPreset(3, 5); engine.setPreset(2, 8);
-        engine.trigger(46, .9f); engine.trigger(42, .9f);
+        engine.trigger(39, .9f); engine.trigger(38, .9f);
         std::vector<float> left(static_cast<size_t>(rate*.5)), right(left.size()); rabubanj::Mix mix;
         engine.render(left.data(), right.data(), static_cast<int>(left.size()), mix);
         require(engine.activeVoiceCount() == 0, "closed factory hats must choke open factory hats");
         rabubanj::DrumEngine reference;
-        reference.prepare(rate); reference.setPreset(6, 1); reference.trigger(49, .9f);
-        engine.reset(); engine.setPreset(6, 1); engine.trigger(49, .9f); engine.setPreset(6, 9);
+        reference.prepare(rate); reference.setPreset(6, 1); reference.trigger(42, .9f);
+        engine.reset(); engine.setPreset(6, 1); engine.trigger(42, .9f); engine.setPreset(6, 9);
         std::vector<float> changed(4096), changedRight(4096), unchanged(4096), unchangedRight(4096);
         engine.render(changed.data(), changedRight.data(), 4096, mix);
         reference.render(unchanged.data(), unchangedRight.data(), 4096, mix);
         require(changed == unchanged && changedRight == unchangedRight, "preset selection must not alter a playing tail");
         engine.setPreset(0, -100); require(engine.getPreset(0) == 0, "low invalid preset must clamp");
-        engine.setPreset(0, 100); require(engine.getPreset(0) == 9, "high invalid preset must clamp");
+        engine.setPreset(0, 100); require(engine.getPreset(0) == 19, "high invalid preset must clamp");
     }
-    require(rabubanj::FactoryBank::get().sampleBytes() < 128u*1024u*1024u, "shared factory sample storage must fit its budget");
-    std::cout << "All 80 presets: audible, distinct, finite, velocity-sensitive, bounded tails, sample rates, choke and live selection passed.\n";
+    require(rabubanj::FactoryBank::get().sampleBytes() < 256u*1024u*1024u, "shared factory sample storage must fit its budget");
+    std::cout << "All 160 presets: audible, distinct, finite, velocity-sensitive, bounded tails, sample rates, choke and live selection passed.\n";
     std::cout << "Shared factory PCM bytes: " << rabubanj::FactoryBank::get().sampleBytes() << '\n';
 }

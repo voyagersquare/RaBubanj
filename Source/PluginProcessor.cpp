@@ -15,13 +15,16 @@ juce::AudioProcessorValueTreeState::ParameterLayout RaBubanjProcessor::makeParam
         const rabubanj::Mix defaults;
         addFloat("pan" + id, name + " Pan", { -1.0f, 1.0f, .01f }, defaults.pan[static_cast<size_t>(d)]);
         addBool("mute" + id, name + " Mute");
-        addFloat("send" + id, name + " Reverb Send", { 0.0f, 1.0f, .001f }, .25f);
+        addFloat("send" + id, name + " Reverb Send", { 0.0f, 1.0f, .001f }, 0.0f);
         addBool("solo" + id, name + " Solo");
         juce::StringArray presetNames;
-        for (int preset = 0; preset < rabubanj::factoryPresetCount; ++preset)
+        for (int preset = 0; preset < 10; ++preset)
             presetNames.add(juce::String(preset+1).paddedLeft('0', 2)+" "+rabubanj::factoryPresets[static_cast<size_t>(d)][static_cast<size_t>(preset)].name);
         layout.add(std::make_unique<juce::AudioParameterChoice>(juce::ParameterID { "preset"+id, 1 }, name+" Factory Preset", presetNames, 0));
+        addBool("presetBank"+id, name+" Factory Bank 11-20");
     }
+    layout.add(std::make_unique<juce::AudioParameterChoice>(juce::ParameterID { "midiMap", 1 }, "MIDI Map",
+        juce::StringArray { "Chromatic C1-G1", "GM Legacy" }, 0));
     addFloat("master", "Master Level", { -60.0f, 6.0f, .1f }, -8);
     // Retain the 0.1 room ID and its linear amplitude domain for DAW compatibility.
     addFloat("room", "Reverb Return", { 0.0f, 1.0f, .0001f }, .12f);
@@ -60,6 +63,7 @@ RaBubanjProcessor::RaBubanjProcessor()
         muteParams[i] = parameters.getRawParameterValue("mute" + id);
         sendParams[i] = parameters.getRawParameterValue("send" + id);
         presetParams[i] = parameters.getRawParameterValue("preset" + id);
+        presetBankParams[i] = parameters.getRawParameterValue("presetBank" + id);
     }
     for (int i = 0; i <= rabubanj::reverbBus; ++i) soloParams[static_cast<size_t>(i)] = parameters.getRawParameterValue("solo" + juce::String(i));
     for (int bus = 0; bus < rabubanj::eqBusCount; ++bus)
@@ -72,9 +76,33 @@ RaBubanjProcessor::RaBubanjProcessor()
             eq.bands[static_cast<size_t>(band)] = { get("freq"), get("gain"), get("q"), get("type"), get("on") };
         }
     }
+    midiMapParam = parameters.getRawParameterValue("midiMap");
+    sampleLoader.onChange = [this] { triggerAsyncUpdate(); };
     masterParam = parameters.getRawParameterValue("master"); roomParam = parameters.getRawParameterValue("room");
     reverbMuteParam = parameters.getRawParameterValue("reverbMute"); masterMuteParam = parameters.getRawParameterValue("masterMute");
     sizeParam = parameters.getRawParameterValue("roomSize"); dampingParam = parameters.getRawParameterValue("damping"); widthParam = parameters.getRawParameterValue("width");
+}
+
+RaBubanjProcessor::~RaBubanjProcessor()
+{
+    sampleLoader.shutdown(); cancelPendingUpdate(); engine.reset();
+}
+int RaBubanjProcessor::getPreset(int drum) const noexcept
+{
+    const auto i = static_cast<size_t>(drum);
+    return juce::jlimit(0, 9, static_cast<int>(presetParams[i]->load()))+(presetBankParams[i]->load() >= .5f ? 10 : 0);
+}
+void RaBubanjProcessor::stepPreset(int drum, int direction)
+{
+    if (drum < 0 || drum >= 8) return;
+    const auto next = (getPreset(drum)+(direction < 0 ? 19 : 1))%20;
+    for (const auto& setting : { std::pair<juce::String, float>("preset"+juce::String(drum), static_cast<float>(next%10)),
+        { "presetBank"+juce::String(drum), next >= 10 ? 1.0f : 0.0f } })
+    {
+        auto* parameter = parameters.getParameter(setting.first); parameter->beginChangeGesture();
+        parameter->setValueNotifyingHost(parameter->convertTo0to1(setting.second)); parameter->endChangeGesture();
+    }
+    sampleLoader.clear(drum);
 }
 
 rabubanj::EqSettings RaBubanjProcessor::getEqSettings(int bus) const noexcept
@@ -125,11 +153,11 @@ void RaBubanjProcessor::audition(int drum) noexcept
     if (size1 > 0) padQueue[static_cast<size_t>(start1)] = drum;
     padFifo.finishedWrite(size1);
 }
-void RaBubanjProcessor::hit(int note, float velocity) noexcept
+void RaBubanjProcessor::hit(int note, float velocity) noexcept { hitDrum(engine.drumForIncomingNote(note), velocity); }
+void RaBubanjProcessor::hitDrum(int drum, float velocity) noexcept
 {
-    const auto drum = rabubanj::drumForNote(note);
-    if (drum < 0 || velocity <= 0.0f) return;
-    engine.trigger(note, velocity); hits[static_cast<size_t>(drum)].fetch_add(1, std::memory_order_relaxed);
+    if (drum < 0 || drum >= 8 || velocity <= 0.0f) return;
+    engine.triggerDrum(drum, velocity); hits[static_cast<size_t>(drum)].fetch_add(1, std::memory_order_relaxed);
 }
 void RaBubanjProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi)
 {
@@ -137,7 +165,16 @@ void RaBubanjProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
     buffer.clear();
     if (buffer.getNumChannels() < 2 || buffer.getNumSamples() == 0) { midi.clear(); return; }
     const int samples = buffer.getNumSamples();
-    for (int drum = 0; drum < rabubanj::drumCount; ++drum) engine.setPreset(drum, static_cast<int>(presetParams[static_cast<size_t>(drum)]->load()));
+    auto* snapshot = sampleLoader.beginAudioRead();
+    struct ReadScope { SampleLoader& loader; ~ReadScope() { loader.endAudioRead(); } } readScope { sampleLoader };
+    engine.setLegacyMidi(midiMapParam->load() >= .5f);
+    hostRecording.store(false);
+    if (auto* hostPlayHead = getPlayHead()) if (auto position = hostPlayHead->getPosition()) hostRecording.store(position->getIsRecording());
+    for (int drum = 0; drum < rabubanj::drumCount; ++drum)
+    {
+        engine.setPreset(drum, getPreset(drum));
+        engine.setCustomSample(drum, sampleLoader.audioSource(*snapshot, drum), sampleLoader.usesCustom(drum));
+    }
     bool anySolo = false;
     for (auto* solo : soloParams) anySolo = anySolo || solo->load() >= .5f;
     const bool returnSolo = soloParams[8]->load() >= .5f;
@@ -160,8 +197,8 @@ void RaBubanjProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
     reverb.setParameters(room);
     int start1, size1, start2, size2;
     padFifo.prepareToRead(padFifo.getNumReady(), start1, size1, start2, size2);
-    for (int i = 0; i < size1; ++i) hit(rabubanj::notes[static_cast<size_t>(padQueue[static_cast<size_t>(start1 + i)])], .85f);
-    for (int i = 0; i < size2; ++i) hit(rabubanj::notes[static_cast<size_t>(padQueue[static_cast<size_t>(start2 + i)])], .85f);
+    for (int i = 0; i < size1; ++i) hitDrum(padQueue[static_cast<size_t>(start1 + i)], .85f);
+    for (int i = 0; i < size2; ++i) hitDrum(padQueue[static_cast<size_t>(start2 + i)], .85f);
     padFifo.finishedRead(size1 + size2);
     auto* left = buffer.getWritePointer(0); auto* right = buffer.getWritePointer(1);
     std::array<float, rabubanj::eqBusCount> blockPeaks {};
@@ -170,16 +207,22 @@ void RaBubanjProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
         while (length > 0)
         {
             const int count = std::min(chunkSize, length);
-            std::array<float*, 8> outputs;
-            for (size_t d = 0; d < stems.size(); ++d) { std::fill_n(stems[d].data(), count, 0.0f); outputs[d] = stems[d].data(); }
-            engine.renderStems(outputs, count);
+            std::array<float*, 8> outputs, rightOutputs;
+            for (size_t d = 0; d < stems.size(); ++d)
+            {
+                std::fill_n(stems[d].data(), count, 0.0f); std::fill_n(rightStems[d].data(), count, 0.0f);
+                outputs[d] = stems[d].data(); rightOutputs[d] = rightStems[d].data();
+            }
+            engine.renderStereoStems(outputs, rightOutputs, count);
             std::fill_n(wetLeft.data(), count, 0.0f); std::fill_n(wetRight.data(), count, 0.0f);
             for (size_t d = 0; d < stems.size(); ++d)
                 for (int s = 0; s < count; ++s)
                 {
-                    const auto value = equalisers[d].processMono(stems[d][static_cast<size_t>(s)]) * gains[d].getNextValue();
+                    auto sourceLeft = stems[d][static_cast<size_t>(s)], sourceRight = rightStems[d][static_cast<size_t>(s)];
+                    equalisers[d].processStereo(sourceLeft, sourceRight);
+                    const auto level = gains[d].getNextValue();
                     const auto angle = (pans[d].getNextValue() + 1.0f) * juce::MathConstants<float>::pi * .25f;
-                    const auto l = value * std::cos(angle), r = value * std::sin(angle);
+                    const auto l = sourceLeft*level*std::cos(angle), r = sourceRight*level*std::sin(angle);
                     const auto send = sends[d].getNextValue();
                     wetLeft[static_cast<size_t>(s)] += l * send; wetRight[static_cast<size_t>(s)] += r * send;
                     // Preserve the 0.1 dry calibration (JUCE Reverb dryLevel=1 had a factor of 2).
@@ -220,7 +263,10 @@ void RaBubanjProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
 void RaBubanjProcessor::getStateInformation(juce::MemoryBlock& destination)
 {
     auto state = parameters.copyState();
-    state.setProperty("schemaVersion", 3, nullptr); state.setProperty("selectedChannel", selectedChannel.load(), nullptr);
+    state.setProperty("schemaVersion", 4, nullptr);
+    state.setProperty("localKeys", localKeyboard.load(), nullptr);
+    if (auto oldSamples = state.getChildWithName("SAMPLES"); oldSamples.isValid()) state.removeChild(oldSamples, nullptr);
+    state.addChild(sampleLoader.save(), -1, nullptr); state.setProperty("selectedChannel", selectedChannel.load(), nullptr);
     if (auto xml = state.createXml()) copyXmlToBinary(*xml, destination);
 }
 void RaBubanjProcessor::setStateInformation(const void* data, int size)
@@ -229,6 +275,12 @@ void RaBubanjProcessor::setStateInformation(const void* data, int size)
         if (xml->hasTagName(parameters.state.getType()))
         {
             auto state = juce::ValueTree::fromXml(*xml);
+            if (static_cast<int>(state.getProperty("schemaVersion", 1)) < 4)
+                for (int drum = 0; drum < 8; ++drum)
+                {
+                    auto send = state.getChildWithProperty("id", "send"+juce::String(drum));
+                    if (send.isValid() && std::abs(static_cast<float>(send.getProperty("value"))-.25f) < .0001f) send.setProperty("value", 0.0f, nullptr);
+                }
             // Load older projects with unity sends, reproducing their shared room feed.
             if (static_cast<int>(state.getProperty("schemaVersion", 1)) < 2)
                 for (int d = 0; d < 8; ++d)
@@ -246,7 +298,9 @@ void RaBubanjProcessor::setStateInformation(const void* data, int size)
                         state.addChild(value, -1, nullptr);
                     }
             selectChannel(static_cast<int>(state.getProperty("selectedChannel", 0)));
+            localKeyboard.store(static_cast<bool>(state.getProperty("localKeys", false)));
             parameters.replaceState(state);
+            sampleLoader.restore(state.getChildWithName("SAMPLES"));
         }
 }
 juce::AudioProcessorEditor* RaBubanjProcessor::createEditor() { return new RaBubanjEditor(*this); }

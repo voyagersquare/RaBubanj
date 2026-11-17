@@ -16,12 +16,16 @@ Corroded and distressed dark-blue metal, raised panels/buttons and rotary Reverb
 
 Ten original factory sounds per drum channel (80 total), source selection recalled per channel, name-button audition, optional dry WAV previews and graph-only EQ editing with the duplicate selectors/buttons removed.
 
+## 0.4 — expanded sounds, chromatic input and per-channel sample import
+
+Twenty sounds per drum (160 total), refined snares/hats/cymbals, preset arrows, zero default sends, chromatic C1–G1 with optional GM mapping, DAW/local keyboard modes and asynchronous mono/stereo file drops with embedded recall.
+
 ## Next: acoustic sample engine
 
 - Load a documented kit manifest with licensed WAV samples, velocity zones, independent round-robin pools, tuning and per-articulation envelopes.
-- Decode files away from the audio callback and swap complete immutable kits at an audio-safe boundary.
+- Expand the existing per-channel background loader to load complete multi-sample kits.
 - Add loading progress, missing-file errors, library path management and user kit recall.
-- Keep initial built-in samples available as a fallback.
+- Retain explicit factory selection and missing-sample handling.
 
 ## Then: detailed kit and mixing
 

@@ -99,7 +99,14 @@ int main(int argc, char** argv)
         && std::abs(restored.parameters.getRawParameterValue("eq5b2gain")->load()+7.3f) < .001f,
         "0.2 project migration must preserve sends and EQ edits");
 
+    auto oldSends = p.parameters.copyState(); oldSends.setProperty("schemaVersion", 3, nullptr);
+    oldSends.getChildWithProperty("id", "send0").setProperty("value", .25f, nullptr);
+    juce::AudioProcessor::copyXmlToBinary(*oldSends.createXml(), state);
+    restored.setStateInformation(state.getData(), static_cast<int>(state.getSize()));
+    require(restored.parameters.getRawParameterValue("send0")->load() == 0, "old 25 percent default must migrate to zero");
+    require(std::abs(restored.parameters.getRawParameterValue("send5")->load()-.731f) < .001f, "migration must preserve other custom sends");
     RaBubanjProcessor uiProcessor;
+    for (int d = 0; d < 8; ++d) require(uiProcessor.parameters.getRawParameterValue("send"+juce::String(d))->load() == 0, "new sends must default to zero");
     std::unique_ptr<RaBubanjEditor> editor(static_cast<RaBubanjEditor*>(uiProcessor.createEditor()));
     EqPanel* channelEq = nullptr; EqPanel* globalEq = nullptr;
     for (auto* child : editor->getChildren()) if (auto* panel = dynamic_cast<EqPanel*>(child))
@@ -176,19 +183,22 @@ int main(int argc, char** argv)
         {
             if (auto* button = dynamic_cast<juce::TextButton*>(control))
                 require(!button->getName().endsWith(" EQ") && !button->getName().startsWith("Preview "), "EQ and HIT strip buttons must be removed");
-            if (auto* choice = dynamic_cast<juce::ComboBox*>(control))
-            {
-                ++presetSelectors;
-                require(choice->getNumItems() == 10, "every drum must have ten factory choices");
-                if (choice->getName() == "Kick factory preset")
+            require(dynamic_cast<juce::ComboBox*>(control) == nullptr, "factory dropdowns must be replaced by arrows");
+            if (auto* button = dynamic_cast<juce::TextButton*>(control))
+                if (button->getName().endsWith(" previous preset"))
                 {
-                    const auto hitsBefore = uiProcessor.getHitCount(0);
-                    choice->setSelectedId(7, juce::sendNotificationSync);
-                    uiProcessor.processBlock(previewAudio, previewMidi);
-                    require(uiProcessor.parameters.getRawParameterValue("preset0")->load() > 5.9f, "factory selector must update its channel parameter");
-                    require(uiProcessor.getHitCount(0) == hitsBefore, "choosing a preset must not trigger an unsolicited hit");
+                    ++presetSelectors;
+                    if (button->getName() == "Kick previous preset")
+                    {
+                        const auto before = uiProcessor.getHitCount(0); button->onClick();
+                        require(uiProcessor.getPreset(0) == 19, "left arrow must wrap from first to twentieth sound");
+                        uiProcessor.stepPreset(0, 1); require(uiProcessor.getPreset(0) == 0, "right arrow must wrap to first sound");
+                        for (int i = 0; i < 16; ++i) uiProcessor.stepPreset(0, 1);
+                        require(uiProcessor.getPreset(0) == 16, "arrows must reach the second bank of sounds");
+                        uiProcessor.processBlock(previewAudio, previewMidi);
+                        require(uiProcessor.getHitCount(0) == before, "preset arrows must not audition automatically");
+                    }
                 }
-            }
             if (control->getName() == "Select Kick")
             {
                 auto* button = dynamic_cast<juce::TextButton*>(control);
@@ -200,7 +210,7 @@ int main(int argc, char** argv)
         }
     }
     require(presetSelectors == 8, "all eight drum channels must expose their factory selector");
-    set(uiProcessor, "preset0", 0);
+    set(uiProcessor, "preset0", 0); set(uiProcessor, "presetBank0", 0);
     for (auto* child : editor->getChildren()) if (auto* strip = dynamic_cast<MixerStrip*>(child))
         for (auto* control : strip->getChildren()) if (auto* s = dynamic_cast<juce::Slider*>(control))
         {
@@ -212,6 +222,19 @@ int main(int argc, char** argv)
                     require(label->getText() == s->getTextFromValue(s->getValue()), "visible return value must use dB formatting");
             }
         }
+    require(!editor->keyPressed(juce::KeyPress('A')), "DAW keyboard mode must forward computer keys to the host");
+    uiProcessor.setLocalKeys(true);
+    for (int d = 0; d < 8; ++d)
+    {
+        const int key = std::array<int, 8> { 'A', 'W', 'S', 'E', 'D', 'F', 'T', 'G' }[static_cast<size_t>(d)];
+        const auto before = uiProcessor.getHitCount(d);
+        require(editor->keyPressed(juce::KeyPress(key)) && editor->keyPressed(juce::KeyPress(key)), "local keys must be handled");
+        uiProcessor.processBlock(previewAudio, previewMidi);
+        require(uiProcessor.getHitCount(d) == before+1, "held computer keys must audition exactly once");
+        editor->focusLost(juce::Component::focusChangedDirectly);
+    }
+    require(!editor->keyPressed(juce::KeyPress('A', juce::ModifierKeys::ctrlModifier, 0)), "keyboard shortcuts must pass through");
+    uiProcessor.setLocalKeys(false);
     for (auto size : { juce::Point<int>(1120, 740), juce::Point<int>(1280, 820), juce::Point<int>(1800, 1160) })
     {
         editor->setSize(size.x, size.y); checkBounds(*editor);

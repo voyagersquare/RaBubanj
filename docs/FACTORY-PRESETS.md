@@ -1,10 +1,10 @@
-# RaBubanj 0.3 — factory sounds and references
+# RaBubanj 0.4 — factory sounds and references
 
-Each of the eight drum channels has ten original factory sounds. Use the selector at the bottom of a channel, then click its channel-name button to audition. Choosing a preset alone does not play a hit. The name click also selects the channel EQ. Other channel clicks select its EQ without auditioning.
+Each of the eight drum channels has twenty original factory sounds. Use the left/right arrows at the bottom of a channel, then click its channel-name button to audition. Choosing a preset alone does not play a hit. The name click also selects the channel EQ. Other channel clicks select its EQ without auditioning.
 
 Preset choices affect only the source instrument; they do not overwrite channel EQ, level, pan, sends or Reverb settings. Choices are automatable and saved with the DAW project. Existing sounding notes keep their original source until they end; the next note uses the new choice.
 
-## The 80 presets
+## The 160 presets
 
 | Channel | 01 | 02 | 03 | 04 | 05 | 06 | 07 | 08 | 09 | 10 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -17,15 +17,27 @@ Preset choices affect only the source instrument; they do not overwrite channel 
 | Crash | Classic | Tape | Dust | Thin | Dark | Trash | Short | Soft | Crunch | Wash |
 | Ride | Bell | Tape | Dust | Ping | Dark | Metal | Short | Soft | Crunch | Wash |
 
+| Channel | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Kick | Break | Felt | Knuckle | DeepTap | Warm | Cabin | Brick | Velvet | Boombox | Punch |
+| Snare | Chop | Philly | Oak | Rim | Fat | Paper | Vinyl2 | Room | Dusty | Back2 |
+| Closed Hat | Silk | Brush | Bronze | Break | Pss | Mellow | Stick | Dry90 | Sandy | Hush |
+| Open Hat | Silk | Bronze | Sandy | Break | Wash2 | DryAir | Dark2 | Open90 | Smooth | Shhh |
+| Low Tom | Maple | Skin | Dry90 | Satin | Thud | Wood2 | Root | Lounge | Shell | Warm |
+| High Tom | Maple | Skin | Dry90 | Satin | Thud | Wood2 | Root | Lounge | Shell | Warm |
+| Crash | Bronze | Break | Velvet | Paper | Room | Dust90 | Brass | Air | Ribbon | Soft90 |
+| Ride | Bronze | Jazz | Soft90 | Stick | Velvet | Edge | Dry90 | Dark2 | Air | Room |
+
 ## Sound design
 
 - **Kick:** Classic Thump keeps the previous voice. Tape/Round/Sub favour a warmer low body; Knock/Hollow emphasise different shell overtones; Crunch/Dust add reduced-bandwidth grit; Damped is shorter; Slam combines a heavier transient and driven body.
+- **0.4 refinements:** Snare shell modes and a two-stage wire envelope separate body from crispness. Hat and cymbal voices combine 12–18 damped inharmonic modes with band-filtered noise. Open hats and crashes have softer rises and longer, smoother fades; their coarser presets retain colour with less harsh bit/hold processing. Slots 11–20 add warmer break, bronze, silk, wood, room and dusty variations. These are original synthesized sources, not recordings of an acoustic kit.
 - **Snare:** Back keeps the previous dry backbeat. Crack/Snap have faster attacks; Wood changes the shell modes and body/noise balance; Deep adds a lower, longer body; Clap adds delayed noise bursts; Grit is filtered and driven; Brush is softer; Wire sustains the noise layer; Ring emphasises shell resonance.
-- **Closed/Open Hat:** Tight/Short/Chop are more sharply gated; Tape/Dust/Soft have reduced brightness; Metal/Loose expose more inharmonic oscillator content; Chick adds a stronger onset; Crunch adds coarser saturation/quantisation; Vinyl/Wash favour filtered noise. Closed and pedal hats choke open hats across all preset combinations.
+- **Closed/Open Hat:** Tight/Short/Chop are more sharply gated; Tape/Dust/Soft have reduced brightness; Metal/Loose expose more inharmonic oscillator content; Chick adds a stronger onset; Crunch adds coarser saturation/quantisation; Vinyl/Wash favour filtered noise. Closed hats choke open hats across all preset combinations.
 - **Low/High Tom:** Tape/Floor/Rack/Round favour deeper bodies; Knock/Damped emphasise shorter attacks; Hollow/Tribal use stronger inharmonic shell modes; Dust/Crunch add coloration. High Tom voices occupy a complementary higher tuning range.
 - **Crash/Ride:** Tape/Dust/Dark/Soft reduce brightness; Thin/Ping/Metal emphasise selected modes and bell attack; Trash/Crunch use more aggressive coloration; Short trims the tail; Wash sustains the noise texture.
 
-Slot 01 in every channel preserves that channel's original sound from 0.2.1. Slots 02–10 are newly designed recipes. Variations change pitch envelopes, modal content, body/noise proportions, attack and decay, filtering, saturation, quantisation and sample-hold rate. These are source-level variations, not mixer presets or renamed copies.
+Slot 01 in every channel preserves that channel's original sound from 0.2.1. Slots 02–20 are designed recipes, with refined snare/hat/cymbal rendering in 0.4. Variations change pitch envelopes, modal content, body/noise proportions, attack and decay, filtering, saturation, quantisation and sample-hold rate. These are source-level variations, not mixer presets or renamed copies.
 
 Every sound has three velocity layers and three deterministic round-robin variations. New samples are generated once at 32 kHz and shared between instances; the original slot-01 voices retain native-rate generation for backwards sound compatibility. Switching choices performs no generation, decoding, locking or allocation in the processing callback. New one-shots use linear interpolation at the host sample rate. This palette deliberately targets coloured, warm, grainy drums rather than a pristine recorded acoustic kit.
 
@@ -42,6 +54,6 @@ Sources consulted 17 November 2026. The resulting recipes are the project's own 
 
 ## Optional dry WAV previews
 
-The [**RaBubanj-0.3.0-Factory-Audio** download](https://github.com/voyagersquare/RaBubanj/actions/runs/44171520880/artifacts/14367948141) contains all 80 dry one-shot previews, labelled by channel, slot and name, plus this catalogue. They are mono 32 kHz / 16-bit PCM, rendered at velocity 0.92 with the first round robin. They have no channel EQ, pan, Reverb or master coloration. They are optional; the plugin does not load these files and needs no external sample path.
+The **RaBubanj-0.4.0-Factory-Audio** workflow artifact contains all 160 dry one-shot previews, labelled by channel, slot and name, plus this catalogue. They are mono 32 kHz / 16-bit PCM, rendered at velocity 0.92 with the first round robin. They have no channel EQ, pan, Reverb or master coloration. This optional package is for listening; the plugin generates its factory bank internally.
 
 Developers can render the same files with `factory_preset_tests <output-directory>`. Normal test mode checks every choice for distinct, finite, audible output, velocity response, bounded tails and supported host rates, plus choke and preservation of playing notes when a preset changes.

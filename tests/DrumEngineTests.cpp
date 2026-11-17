@@ -58,9 +58,9 @@ int main()
         mix = {};
 
         engine.reset();
-        engine.trigger(46, 1);
+        engine.trigger(39, 1);
         engine.render(left.data(), right.data(), 512, mix);
-        engine.trigger(42, 1);
+        engine.trigger(38, 1);
         engine.render(left.data(), right.data(), static_cast<int>(rate * .21), mix);
         require(engine.activeVoiceCount() == 0, "closed hat must choke open hat");
 
@@ -89,7 +89,20 @@ int main()
         engine.render(second.data(), scratch.data(), 2048, mix);
         require(reference != second, "round robin must vary repeated hits");
     }
-    require(rabubanj::drumForNote(35) == 0 && rabubanj::drumForNote(44) == 2
-        && rabubanj::drumForNote(59) == 7, "GM aliases must map correctly");
+    // Exact stereo interpolation and tail lifetime, independent of generated factory material.
+    rabubanj::CustomSample sample; sample.sampleRate = 24000;
+    sample.left = { 0, .4f, .2f, 0 }; sample.right = { 0, -.2f, -.4f, 0 };
+    rabubanj::DrumEngine customEngine; customEngine.prepare(48000); customEngine.setCustomSample(0, &sample, true);
+    customEngine.triggerDrum(0, 1); require(sample.voiceReferences.load() == 1, "voice must retain its custom source");
+    customEngine.setCustomSample(0, nullptr, false);
+    std::array<std::array<float, 9>, 8> left {}, right {};
+    std::array<float*, 8> leftPointers {}, rightPointers {};
+    for (size_t i = 0; i < 8; ++i) { leftPointers[i] = left[i].data(); rightPointers[i] = right[i].data(); }
+    customEngine.renderStereoStems(leftPointers, rightPointers, 9);
+    require(std::abs(left[0][1]-.2f) < .00001f && std::abs(right[0][1]+.1f) < .00001f
+        && std::abs(left[0][2]-.4f) < .00001f, "custom stereo sources must interpolate at the correct source/host ratio");
+    require(sample.voiceReferences.load() == 0 && customEngine.activeVoiceCount() == 0, "completed custom tail must release its source");
+    require(rabubanj::drumForGMNote(35) == 0 && rabubanj::drumForGMNote(44) == 2
+        && rabubanj::drumForGMNote(59) == 7, "GM aliases must map correctly");
     std::cout << "All drum engine checks passed (44.1 / 48 / 96 kHz).\n";
 }

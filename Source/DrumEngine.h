@@ -5,14 +5,17 @@
 #include <cstdint>
 #include <vector>
 #include "FactoryPresets.h"
+#include "CustomSample.h"
 
 namespace rabubanj
 {
 constexpr int drumCount = 8;
 inline constexpr std::array<const char*, drumCount> names {
     "Kick", "Snare", "Closed Hat", "Open Hat", "Low Tom", "High Tom", "Crash", "Ride" };
-inline constexpr std::array<int, drumCount> notes { 36, 38, 42, 46, 45, 48, 49, 51 };
-inline int drumForNote(int note) noexcept
+inline constexpr std::array<int, drumCount> notes { 36, 37, 38, 39, 40, 41, 42, 43 };
+inline constexpr std::array<int, drumCount> gmNotes { 36, 38, 42, 46, 45, 48, 49, 51 };
+inline int drumForNote(int note) noexcept { return note >= 36 && note <= 43 ? note-36 : -1; }
+inline int drumForGMNote(int note) noexcept
 {
     switch (note)
     {
@@ -35,10 +38,18 @@ struct Mix
     std::array<bool, drumCount> mute {};
 };
 
-// Fixed voice pool; sample memory is built only in prepare(), never in render().
+// Fixed voice pool. Factory samples are prepared ahead of playback; imported sources belong to the loader worker.
 class DrumEngine
 {
 public:
+    DrumEngine() = default;
+    ~DrumEngine() { reset(); }
+    DrumEngine(const DrumEngine&) = delete;
+    DrumEngine& operator=(const DrumEngine&) = delete;
+    void setLegacyMidi(bool legacy) noexcept { legacyMidi = legacy; }
+    int drumForIncomingNote(int note) const noexcept { return legacyMidi ? drumForGMNote(note) : drumForNote(note); }
+    void setCustomSample(int drum, CustomSample* sample, bool use) noexcept
+    { customSources[static_cast<size_t>(drum)] = sample; customEnabled[static_cast<size_t>(drum)] = use; }
     void prepare(double rate)
     {
         sampleRate = rate > 0.0 ? rate : 44100.0;
@@ -52,6 +63,7 @@ public:
 
     void reset() noexcept
     {
+        for (auto& voice : voices) stopVoice(voice);
         voices = {};
         counters = {};
         serial = 0;
@@ -63,10 +75,11 @@ public:
     }
     int getPreset(int drum) const noexcept { return presetIndices[static_cast<size_t>(drum)]; }
 
-    void trigger(int note, float velocity) noexcept
+    void trigger(int note, float velocity) noexcept { triggerDrum(drumForIncomingNote(note), velocity); }
+    void triggerDrum(int drum, float velocity) noexcept
     {
-        const int drum = drumForNote(note);
-        if (drum < 0 || velocity <= 0.0f) return;
+        if (drum < 0 || drum >= drumCount || velocity <= 0.0f) return;
+        if (customEnabled[static_cast<size_t>(drum)] && customSources[static_cast<size_t>(drum)] == nullptr) return;
         velocity = std::clamp(velocity, 0.0f, 1.0f);
         if (drum == 2 || drum == 3)
             for (auto& voice : voices)
@@ -82,11 +95,19 @@ public:
         const auto layer = std::min(2, static_cast<int>(velocity * 3));
         const auto rr = counters[static_cast<size_t>(drum)]++ % 3;
         const auto preset = presetIndices[static_cast<size_t>(drum)];
+        stopVoice(*selected);
         *selected = {};
         selected->active = true; selected->drum = drum; selected->velocity = velocity; selected->age = ++serial;
         selected->sample = preset == 0 || factory == nullptr ? &bank[static_cast<size_t>(drum)][static_cast<size_t>(layer)][static_cast<size_t>(rr)]
             : &factory->sample(drum, preset, layer, rr);
         selected->increment = preset == 0 || factory == nullptr ? 1.0 : factorySampleRate/sampleRate;
+        if (customEnabled[static_cast<size_t>(drum)])
+        {
+            auto* custom = customSources[static_cast<size_t>(drum)]; custom->voiceReferences.fetch_add(1);
+            selected->custom = custom; selected->sample = &custom->left;
+            selected->right = custom->right.empty() ? nullptr : &custom->right;
+            selected->increment = custom->sampleRate/sampleRate;
+        }
     }
 
     void render(float* left, float* right, int count, const Mix& mix) noexcept
@@ -100,16 +121,21 @@ public:
             leftGain[i] = gain * std::cos(angle);
             rightGain[i] = gain * std::sin(angle);
         }
-        renderVoices(count, [&](size_t drum, int sample, float value)
+        renderVoices(count, [&](size_t drum, int sample, float l, float r)
         {
-            left[sample] += value * leftGain[drum];
-            right[sample] += value * rightGain[drum];
+            left[sample] += l * leftGain[drum];
+            right[sample] += r * rightGain[drum];
         });
     }
 
     void renderStems(const std::array<float*, drumCount>& outputs, int count) noexcept
     {
-        renderVoices(count, [&](size_t drum, int sample, float value) { outputs[drum][sample] += value; });
+        renderVoices(count, [&](size_t drum, int sample, float l, float r) { outputs[drum][sample] += (l+r)*.5f; });
+    }
+
+    void renderStereoStems(const std::array<float*, drumCount>& left, const std::array<float*, drumCount>& right, int count) noexcept
+    {
+        renderVoices(count, [&](size_t drum, int sample, float l, float r) { left[drum][sample] += l; right[drum][sample] += r; });
     }
 
     int activeVoiceCount() const noexcept
@@ -124,6 +150,8 @@ private:
         bool active = false;
         int drum = 0;
         const std::vector<float>* sample = nullptr;
+        const std::vector<float>* right = nullptr;
+        CustomSample* custom = nullptr;
         double position = 0, increment = 1;
         int choke = 0;
         float velocity = 0;
@@ -133,10 +161,18 @@ private:
     std::array<int, drumCount> counters {};
     std::array<int, drumCount> presetIndices {};
     const FactoryBank* factory = nullptr;
+    std::array<CustomSample*, drumCount> customSources {};
+    std::array<bool, drumCount> customEnabled {};
+    bool legacyMidi = false;
     std::array<std::array<std::array<std::vector<float>, 3>, 3>, drumCount> bank;
     double sampleRate = 44100;
     uint64_t serial = 0;
 
+    static void stopVoice(Voice& voice) noexcept
+    {
+        if (voice.custom != nullptr) { voice.custom->voiceReferences.fetch_sub(1); voice.custom = nullptr; }
+        voice.active = false;
+    }
     template <typename Sink> void renderVoices(int count, Sink&& sink) noexcept
     {
         for (auto& voice : voices)
@@ -147,18 +183,24 @@ private:
             for (int s = 0; s < count; ++s)
             {
                 const auto position = static_cast<size_t>(voice.position);
-                if (position >= sample.size()) { voice.active = false; break; }
-                const auto next = position+1 < sample.size() ? sample[position+1] : 0.0f;
+                if (position >= sample.size()) { stopVoice(voice); break; }
                 const auto fraction = static_cast<float>(voice.position-static_cast<double>(position));
-                float value = (sample[position]+(next-sample[position])*fraction)*voice.velocity;
+                auto interpolate = [&](const std::vector<float>& data)
+                {
+                    const auto next = position+1 < data.size() ? data[position+1] : 0.0f;
+                    return data[position]+(next-data[position])*fraction;
+                };
+                auto l = interpolate(sample)*voice.velocity;
+                auto r = voice.right == nullptr ? l : interpolate(*voice.right)*voice.velocity;
                 voice.position += voice.increment;
+                bool finished = false;
                 if (voice.choke > 0)
                 {
-                    value *= static_cast<float>(voice.choke) / static_cast<float>(std::max(1, static_cast<int>(sampleRate * .005)));
-                    if (--voice.choke == 0) voice.active = false;
+                    const auto scale = static_cast<float>(voice.choke)/static_cast<float>(std::max(1, static_cast<int>(sampleRate*.005)));
+                    l *= scale; r *= scale; finished = --voice.choke == 0;
                 }
-                sink(drum, s, value);
-                if (!voice.active) break;
+                sink(drum, s, l, r);
+                if (finished) { stopVoice(voice); break; }
             }
         }
     }

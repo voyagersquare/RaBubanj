@@ -21,7 +21,7 @@ int main()
     juce::MidiBuffer midi;
     p.processBlock(audio, midi);
     require(audio.getMagnitude(0, 512) == 0, "idle processor must be silent");
-    midi.addEvent(juce::MidiMessage::noteOn(1, 38, .9f), 123);
+    midi.addEvent(juce::MidiMessage::noteOn(1, 37, .9f), 123);
     p.processBlock(audio, midi);
     require(audio.getMagnitude(0, 123) == 0, "MIDI hit must not precede its sample offset");
     require(audio.getMagnitude(124, 388) > .01f, "MIDI hit must sound after its offset");
@@ -51,6 +51,18 @@ int main()
         require(std::abs(p.parameters.getRawParameterValue(id)->load() - restored.parameters.getRawParameterValue(id)->load()) < .001f,
             "DAW project state must recall mixer parameters");
 
+    for (int drum = 0; drum < 8; ++drum)
+    {
+        const auto before = p.getHitCount(drum);
+        midi.addEvent(juce::MidiMessage::noteOn(16, 36+drum, .7f), 31);
+        p.processBlock(audio, midi);
+        require(p.getHitCount(drum) == before+1, "chromatic notes 36-43 must trigger the eight drums on any MIDI channel");
+    }
+    setParameter(p, "midiMap", 1);
+    const auto previousSnare = p.getHitCount(1);
+    midi.addEvent(juce::MidiMessage::noteOn(1, 38, .7f), 0); p.processBlock(audio, midi);
+    require(p.getHitCount(1) == previousSnare+1, "optional GM mode must retain legacy drum clips");
+    setParameter(p, "midiMap", 0);
     p.releaseResources();
     p.prepareToPlay(96000, 512);
     for (int hit = 0; hit < 512; ++hit)
