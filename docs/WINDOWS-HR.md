@@ -1,9 +1,13 @@
-# RaBubanj 0.2 — Windows x64, bez instalera
+# RaBubanj 0.2.1 — Windows x64, bez instalera
 
-1. Preuzmi ZIP `RaBubanj-0.2.0-Windows-x64` iz uspješnog GitHub Actions builda i raspakiraj ga.
+1. Preuzmi ZIP `RaBubanj-0.2.1-Windows-x64` iz uspješnog GitHub Actions builda i raspakiraj ga.
 2. Zatvori DAW i kopiraj cijelu mapu **RaBubanj.vst3** u `C:\Program Files\Common Files\VST3\`. Zamijeni prethodnu verziju cijelim paketom. Nemoj izdvajati samo datoteku iz unutrašnjosti VST3 mape.
 3. Otvori 64-bitni DAW i ponovno skeniraj VST3 instrumente. Dodaj RaBubanj na instrument/MIDI traku i uključi monitoring.
 4. Sviraj MIDI note ili klikni male **HIT** gumbe pri dnu kanala. `RaBubanj.exe` služi za samostalno sviranje; nije installer. U njemu odaberi audio i MIDI uređaj.
+
+## Izgled 0.2.1
+
+Tamoplava metalna površina ima izražene ogrebotine, oguljenu boju, izloženi metal, nepravilne hrđave mrlje i prašinu. Paneli, gumbi i kružne kontrole imaju izdignute rubove i sjene. Uklonjeni su dodatni tekstovi iz zaglavlja i opis signalnog puta ispod reverb kontrola.
 
 ## Kompaktni mikser
 
@@ -13,7 +17,7 @@
 - **Pan:** mali horizontalni kliznik iznad fadera. Dvoklik centrira panoramu.
 - **M / S:** mute / solo. Solo zadržava reverb od odabranog instrumenta. Prethodni reverb repovi prirodno se stišavaju.
 - **Reverb kanal:** zaseban povratni fader u dB, Mute i Solo. Njegov Solo služi preslušavanju samo mokrog reverba. Klik na Reverb otvara njegov vlastiti EQ u kanalnom panelu.
-- **Reverb postavke:** Size, Damping i Width u desnom panelu. Reverb ne dodaje dodatni suhi signal.
+- **Reverb postavke:** kružni potenciometri Size, Damping i Width u lijevoj polovici podijeljenog bočnog panela. Povuci mišem gore/dolje ili lijevo/desno, odnosno upiši postotak u polje ispod potenciometra. Desna polovica za sada ostaje prazna. Reverb ne dodaje dodatni suhi signal.
 - **Master:** završni nivo, Mute i metar. Globalni EQ stalno je vidljiv gore desno i obrađuje cijeli stereo miks.
 
 Reverb bus je interni kanal miksera; plugin i dalje ima jedan stereo izlaz u DAW-u. Nazivi i postojeći ID plugina ostaju isti, pa se nadogradnja učitava u postojećim projektima.

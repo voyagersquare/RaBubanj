@@ -3,14 +3,65 @@ using namespace rabubanj::ui;
 
 MixerLookAndFeel::MixerLookAndFeel()
 {
-    setColour(juce::TextButton::buttonColourId, juce::Colour(0xff353d45));
+    setColour(juce::TextButton::buttonColourId, juce::Colour(0xff213c5a));
     setColour(juce::TextButton::buttonOnColourId, cyan);
-    setColour(juce::TextButton::textColourOffId, ink); setColour(juce::TextButton::textColourOnId, dark);
+    setColour(juce::TextButton::textColourOffId, ink); setColour(juce::TextButton::textColourOnId, ink);
     setColour(juce::Slider::backgroundColourId, dark); setColour(juce::Slider::thumbColourId, cyan);
-    setColour(juce::ComboBox::backgroundColourId, dark); setColour(juce::ComboBox::outlineColourId, juce::Colour(0xff44505a));
+    setColour(juce::ComboBox::backgroundColourId, dark); setColour(juce::ComboBox::outlineColourId, juce::Colour(0xff4a627b));
     setColour(juce::ComboBox::textColourId, ink); setColour(juce::PopupMenu::backgroundColourId, panel);
-    setColour(juce::PopupMenu::textColourId, ink); setColour(juce::ToggleButton::textColourId, muted);
+    setColour(juce::PopupMenu::textColourId, ink); setColour(juce::ToggleButton::textColourId, ink);
     setColour(juce::ToggleButton::tickColourId, cyan);
+}
+void MixerLookAndFeel::drawButtonBackground(juce::Graphics& g, juce::Button& button, const juce::Colour& colour, bool hover, bool down)
+{
+    const auto base = panel.interpolatedWith(colour, button.getToggleState() ? .38f : .15f).brighter(hover ? .15f : 0.0f);
+    const auto bounds = button.getLocalBounds().toFloat();
+    if (down)
+    {
+        insetPanel(g, bounds.reduced(1)); wear(g, bounds.reduced(2), .4f);
+    }
+    else raisedPanel(g, bounds, base, .6f);
+    if (button.getToggleState())
+    {
+        g.setColour(colour.withAlpha(.85f));
+        g.drawLine(5, 3, static_cast<float>(button.getWidth()-5), 3, 1.5f);
+    }
+}
+void MixerLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int w, int h, float position, float start, float end, juce::Slider& s)
+{
+    const auto radius = juce::jmin(static_cast<float>(w), static_cast<float>(h))*.5f-6;
+    if (radius < 2) return;
+    const auto cx = static_cast<float>(x)+static_cast<float>(w)*.5f, cy = static_cast<float>(y)+static_cast<float>(h)*.5f;
+    const auto angle = start+position*(end-start);
+    for (int tick = 0; tick <= 10; ++tick)
+    {
+        const auto a = start+static_cast<float>(tick)*(end-start)/10;
+        g.setColour(tick <= juce::roundToInt(position*10) ? gold.withAlpha(.8f) : muted.withAlpha(.4f));
+        g.drawLine(cx+std::sin(a)*(radius+2), cy-std::cos(a)*(radius+2), cx+std::sin(a)*(radius+5), cy-std::cos(a)*(radius+5), .8f);
+    }
+    g.setColour(juce::Colours::black.withAlpha(.8f)); g.fillEllipse(cx-radius-2, cy-radius+1, radius*2+5, radius*2+5);
+    g.setGradientFill(juce::ColourGradient(juce::Colour(0xff8b9ba9), cx-radius, cy-radius, juce::Colour(0xff0a1421), cx+radius, cy+radius, false));
+    g.fillEllipse(cx-radius, cy-radius, radius*2, radius*2);
+    const auto inner = radius-3;
+    g.setGradientFill(juce::ColourGradient(juce::Colour(0xff34506e), cx-inner, cy-inner, juce::Colour(0xff0a1728), cx+inner, cy+inner, false));
+    g.fillEllipse(cx-inner, cy-inner, inner*2, inner*2);
+    {
+        juce::Graphics::ScopedSaveState saved(g); juce::Path clip; clip.addEllipse(cx-inner, cy-inner, inner*2, inner*2); g.reduceClipRegion(clip);
+        wear(g, { cx-inner, cy-inner, inner*2, inner*2 }, .8f, juce::roundToInt(cx*5));
+    }
+    for (int notch = 0; notch < 28; ++notch)
+    {
+        const auto a = static_cast<float>(notch)*juce::MathConstants<float>::twoPi/28;
+        g.setColour(juce::Colours::black.withAlpha(.6f));
+        g.drawLine(cx+std::sin(a)*(inner-1), cy-std::cos(a)*(inner-1), cx+std::sin(a)*(inner-4), cy-std::cos(a)*(inner-4), .8f);
+    }
+    g.setColour(juce::Colours::black.withAlpha(.8f));
+    g.drawLine(cx+std::sin(angle)*inner*.3f+1, cy-std::cos(angle)*inner*.3f+1,
+        cx+std::sin(angle)*inner*.8f+1, cy-std::cos(angle)*inner*.8f+1, 4);
+    g.setColour(s.isEnabled() ? gold.brighter(.2f) : muted);
+    g.drawLine(cx+std::sin(angle)*inner*.3f, cy-std::cos(angle)*inner*.3f,
+        cx+std::sin(angle)*inner*.8f, cy-std::cos(angle)*inner*.8f, 2.2f);
+    g.setColour(juce::Colour(0xffb8c8d1).withAlpha(.25f)); g.drawEllipse(cx-inner, cy-inner, inner*2, inner*2, .8f);
 }
 void MixerLookAndFeel::drawLinearSlider(juce::Graphics& g, int x, int y, int w, int h, float position, float minimum, float maximum, juce::Slider::SliderStyle style, juce::Slider& s)
 {
@@ -20,11 +71,15 @@ void MixerLookAndFeel::drawLinearSlider(juce::Graphics& g, int x, int y, int w, 
     if (style == juce::Slider::LinearVertical)
     {
         const float cx = static_cast<float>(x) + static_cast<float>(w)*.5f;
+        g.setColour(juce::Colour(0xff4a6077)); g.drawLine(cx+3, static_cast<float>(y), cx+3, static_cast<float>(y+h), 1);
         g.setColour(dark); g.fillRoundedRectangle(cx-3, static_cast<float>(y), 6, static_cast<float>(h), 2);
         g.setColour(colour.withAlpha(.5f)); g.fillRect(cx-1, position, 2.0f, static_cast<float>(y+h)-position);
-        juce::Rectangle<float> thumb(cx-8, position-5, 16, 10);
+        g.setColour(juce::Colours::black.withAlpha(.8f)); g.fillRoundedRectangle(cx-8, position-3, 18, 12, 2);
+        juce::Rectangle<float> thumb(cx-8, position-6, 16, 12);
         g.setGradientFill(juce::ColourGradient(juce::Colour(0xffd0d7dc), cx, position-5, juce::Colour(0xff65727f), cx, position+5, false));
-        g.fillRoundedRectangle(thumb, 2); g.setColour(juce::Colour(0xff252b31)); g.drawHorizontalLine(juce::roundToInt(position), cx-6, cx+6);
+        g.fillRoundedRectangle(thumb, 2); g.setColour(juce::Colour(0xff243344));
+        for (int line = -1; line <= 1; ++line) g.drawHorizontalLine(juce::roundToInt(position)+line*2, cx-6, cx+6);
+        g.setColour(juce::Colour(0xffd7dcd7).withAlpha(.7f)); g.drawLine(cx-6, position-5, cx+6, position-5, .8f);
     }
     else
     {
@@ -119,9 +174,9 @@ void MixerStrip::paint(juce::Graphics& g)
 {
     const bool selected = bus == processor.getSelectedChannel() || bus == 9;
     const auto colour = bus >= 8 ? gold : cyan;
-    g.setColour(selected ? panel.brighter(.08f) : panel); g.fillRoundedRectangle(getLocalBounds().toFloat(), 3);
+    raisedPanel(g, getLocalBounds().toFloat(), selected ? panel.brighter(.1f) : panel, .9f);
     g.setColour(selected ? colour : colour.darker(.5f)); g.fillRect(0, 0, getWidth(), 3);
-    g.setColour(juce::Colour(0xff4b555f)); g.drawRoundedRectangle(getLocalBounds().toFloat().reduced(.5f), 3, .7f);
+    g.setColour(juce::Colour(0xff50637a)); g.drawRoundedRectangle(getLocalBounds().toFloat().reduced(.5f), 3, .7f);
     text(g, bus < 8 ? "PAN" : bus == 8 ? "WET RETURN" : "STEREO OUT", { 8, 63, getWidth()-16, 13 }, 8, muted, juce::Justification::centred);
     text(g, "dB", { gain.getX(), faderArea.getY()-15, gain.getWidth(), 13 }, 9, muted, juce::Justification::centred);
     if (bus < 8) text(g, "SEND", { send.getX(), faderArea.getY()-15, send.getWidth(), 13 }, 8, gold, juce::Justification::centred);
@@ -160,7 +215,7 @@ RaBubanjEditor::RaBubanjEditor(RaBubanjProcessor& p)
     }
     for (auto* control : { &size, &damping, &width })
     {
-        slider(*control, juce::Slider::LinearHorizontal, 50); control->setTextBoxStyle(juce::Slider::TextBoxRight, false, 43, 20);
+        slider(*control, juce::Slider::RotaryHorizontalVerticalDrag, 50); control->setTextBoxStyle(juce::Slider::TextBoxBelow, false, 48, 19);
         control->textFromValueFunction = [](double value) { return juce::String(juce::roundToInt(value*100)) + "%"; };
         control->valueFromTextFunction = [](const juce::String& value) { return value.getDoubleValue()*.01; };
         addAndMakeVisible(*control);
@@ -198,29 +253,30 @@ void RaBubanjEditor::resized()
         strips[static_cast<size_t>(i)]->setBounds(mixer.removeFromLeft(stripWidth).reduced(2, 0));
     }
     mixer.removeFromLeft(10); reverbArea = mixer;
-    auto controls = reverbArea.reduced(12, 10); controls.removeFromTop(56);
-    controls.removeFromTop(16); size.setBounds(controls.removeFromTop(25)); controls.removeFromTop(29);
-    damping.setBounds(controls.removeFromTop(25)); controls.removeFromTop(29); width.setBounds(controls.removeFromTop(25));
+    auto halves = reverbArea;
+    reverbControlsArea = halves.removeFromLeft(halves.getWidth()/2).withTrimmedRight(3);
+    reservedArea = halves.withTrimmedLeft(3);
+    auto controls = reverbControlsArea.reduced(8, 8); controls.removeFromTop(26);
+    const auto rowHeight = controls.getHeight()/3;
+    for (auto* control : { &size, &damping, &width })
+    {
+        auto row = controls.removeFromTop(rowHeight); row.removeFromTop(14); row.removeFromBottom(4); control->setBounds(row);
+    }
 }
 void RaBubanjEditor::paint(juce::Graphics& g)
 {
     g.fillAll(background);
-    g.setColour(juce::Colour(0xff30363e)); g.fillRect(0, 0, getWidth(), 58);
+    raisedPanel(g, getLocalBounds().toFloat(), background.brighter(.18f), 1.0f);
+    raisedPanel(g, { 4, 3, static_cast<float>(getWidth()-8), 55 }, panel, 1.0f);
     text(g, "RaBubanj", { 23, 9, 220, 35 }, 28, ink);
-    text(g, "V O Y A G E R S Q U A R E", { 223, 17, 260, 21 }, 10, cyan);
-    text(g, "STUDIO MIXER   /   8 DRUMS + REVERB   /   v0.2", { getWidth()-460, 16, 433, 24 }, 11, muted, juce::Justification::centredRight);
+    screw(g, 12, 28); screw(g, static_cast<float>(getWidth()-13), 28);
     text(g, "MIXER  /  SELECT A CHANNEL TO EDIT ITS EQ", { mixerArea.getX(), mixerArea.getY()-24, 500, 18 }, 10, muted);
-    g.setColour(panel); g.fillRoundedRectangle(reverbArea.toFloat(), 4);
-    text(g, "REVERB", reverbArea.reduced(12).removeFromTop(24), 13, gold);
-    text(g, "SHARED STEREO BUS", { reverbArea.getX()+12, reverbArea.getY()+38, reverbArea.getWidth()-24, 20 }, 9, muted);
-    text(g, "SIZE", { size.getX(), size.getY()-17, size.getWidth(), 15 }, 9);
-    text(g, "DAMPING", { damping.getX(), damping.getY()-17, damping.getWidth(), 15 }, 9);
-    text(g, "WIDTH", { width.getX(), width.getY()-17, width.getWidth(), 15 }, 9);
-    const auto x = reverbArea.getX()+12, w = reverbArea.getWidth()-24, y = width.getBottom()+25;
-    text(g, "POST-FADER SENDS", { x, y, w, 18 }, 9, cyan);
-    text(g, "Drum EQ > level / pan", { x, y+24, w, 18 }, 10);
-    text(g, "Send > reverb > return EQ", { x, y+43, w, 18 }, 10);
-    text(g, "Master EQ > stereo out", { x, y+62, w, 18 }, 10);
+    raisedPanel(g, reverbControlsArea.toFloat(), panel, 1.0f);
+    raisedPanel(g, reservedArea.toFloat(), panel.darker(.1f), 1.0f);
+    text(g, "REVERB", reverbControlsArea.reduced(8).removeFromTop(20), 11, gold, juce::Justification::centred);
+    text(g, "SIZE", { size.getX(), size.getY()-14, size.getWidth(), 13 }, 9, muted, juce::Justification::centred);
+    text(g, "DAMPING", { damping.getX(), damping.getY()-14, damping.getWidth(), 13 }, 9, muted, juce::Justification::centred);
+    text(g, "WIDTH", { width.getX(), width.getY()-14, width.getWidth(), 13 }, 9, muted, juce::Justification::centred);
     text(g, "DRAG EQ POINTS: FREQ / GAIN     WHEEL: Q     DOUBLE-CLICK: RESET GAIN", footerArea, 9, muted);
     text(g, "GM MIDI  /  GENERATED KIT", footerArea, 9, muted, juce::Justification::centredRight);
 }

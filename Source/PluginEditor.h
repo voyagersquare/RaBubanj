@@ -30,6 +30,8 @@ class MixerLookAndFeel final : public juce::LookAndFeel_V4
 {
 public:
     MixerLookAndFeel();
+    void drawButtonBackground(juce::Graphics&, juce::Button&, const juce::Colour&, bool, bool) override;
+    void drawRotarySlider(juce::Graphics&, int, int, int, int, float, float, float, juce::Slider&) override;
     void drawLinearSlider(juce::Graphics&, int, int, int, int, float, float, float, juce::Slider::SliderStyle, juce::Slider&) override;
     juce::Label* createSliderTextBox(juce::Slider& s) override
     {
@@ -56,6 +58,6 @@ private:
     std::array<std::unique_ptr<MixerStrip>, rabubanj::eqBusCount> strips;
     juce::Slider size, damping, width;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> sizeAttachment, dampingAttachment, widthAttachment;
-    juce::Rectangle<int> eqArea, mixerArea, reverbArea, footerArea;
+    juce::Rectangle<int> eqArea, mixerArea, reverbArea, reverbControlsArea, reservedArea, footerArea;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(RaBubanjEditor)
 };

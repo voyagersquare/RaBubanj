@@ -85,7 +85,7 @@ void EqPanel::refresh()
 }
 void EqPanel::paint(juce::Graphics& g)
 {
-    g.setColour(panel); g.fillRoundedRectangle(getLocalBounds().toFloat(), 5);
+    raisedPanel(g, getLocalBounds().toFloat(), panel, .85f);
     g.setColour(masterPanel ? gold : cyan); g.fillRect(0, 0, getWidth(), 2);
     const juce::String name = busIndex < 8 ? rabubanj::names[static_cast<size_t>(busIndex)] : "Reverb";
     text(g, masterPanel ? "GLOBAL EQ  /  STEREO MASTER" : "CHANNEL EQ  /  " + name.toUpperCase(), { 12, 5, getWidth()-24, 24 }, 12, ink);
@@ -135,20 +135,20 @@ int EqPanel::Graph::nearest(juce::Point<float> position) const
 void EqPanel::Graph::paint(juce::Graphics& g)
 {
     const auto bounds = getLocalBounds().toFloat(); const auto r = plot();
-    g.setColour(dark); g.fillRoundedRectangle(bounds, 3);
+    insetPanel(g, bounds);
     const auto settings = owner.processor.getEqSettings(owner.busIndex);
     const auto rate = owner.processor.getDisplaySampleRate();
     auto xFor = [&](float f) { return r.getX() + r.getWidth()*std::log10(f/20.0f)/3.0f; };
     for (int db : { -24, -12, 0, 12, 24 })
     {
         const auto y = r.getCentreY() - static_cast<float>(db)/48.0f*r.getHeight();
-        g.setColour(db == 0 ? juce::Colour(0xff4c5861) : juce::Colour(0xff30373e)); g.drawHorizontalLine(juce::roundToInt(y), r.getX(), r.getRight());
+        g.setColour(db == 0 ? juce::Colour(0xff506479) : juce::Colour(0xff293c50)); g.drawHorizontalLine(juce::roundToInt(y), r.getX(), r.getRight());
         text(g, juce::String(db), { 0, juce::roundToInt(y)-6, 23, 12 }, 9, muted, juce::Justification::centredRight);
     }
     for (float f : { 20.0f, 50.0f, 100.0f, 200.0f, 500.0f, 1000.0f, 2000.0f, 5000.0f, 10000.0f, 20000.0f })
     {
         if (getWidth() < 450 && (f == 50 || f == 200 || f == 2000 || f == 20000)) continue;
-        const auto x = xFor(f); g.setColour(juce::Colour(0xff30373e)); g.drawVerticalLine(juce::roundToInt(x), r.getY(), r.getBottom());
+        const auto x = xFor(f); g.setColour(juce::Colour(0xff293c50)); g.drawVerticalLine(juce::roundToInt(x), r.getY(), r.getBottom());
         text(g, f >= 1000 ? juce::String(f/1000, 0)+"k" : juce::String(f, 0), { juce::roundToInt(x)-17, juce::roundToInt(r.getBottom())+3, 34, 12 }, 9, muted, juce::Justification::centred);
     }
     auto response = [&](bool individual)

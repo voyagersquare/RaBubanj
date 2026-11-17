@@ -1,18 +1,23 @@
-# RaBubanj 0.2
+# RaBubanj 0.2.1
 
 Windows x64 VST3 drum instrument by **Voyagersquare**, with a compact studio mixer, independent parametric EQs and a shared stereo Reverb bus.
 
-**[Preuzmi RaBubanj 0.2 za Windows x64 — ZIP bez instalera](https://github.com/voyagersquare/RaBubanj/actions/runs/44154266647/artifacts/14361310301)**
-
-Native Windows builds, all four test suites and pluginval strictness 5 pass. [Windows instructions in Croatian](docs/WINDOWS-HR.md) · [Validation](VALIDATION.md)
+**Windows ZIP bez instalera:** preuzmi `RaBubanj-0.2.1-Windows-x64` iz uspješnog **Actions → Windows VST3** builda. [Windows instructions in Croatian](docs/WINDOWS-HR.md) · [Validation](VALIDATION.md)
 
 Extract the ZIP, copy the entire `RaBubanj.vst3` folder into `C:\Program Files\Common Files\VST3\`, then rescan instruments in your DAW. The included `RaBubanj.exe` is a standalone application, not an installer.
 
-![RaBubanj 0.2 studio mixer, with an example Kick EQ edit](docs/preview.png)
+![RaBubanj 0.2.1 worn dark-blue mixer, with an example Kick EQ edit](docs/preview.png)
 
-## New in 0.2
+## New in 0.2.1
 
-- Compact grey mixer with cyan channel headers, silver faders, channel meters, pan, mute, solo and small HIT preview buttons. Eight drum strips, one Reverb return and a stereo master leave room for further mixer controls.
+- A heavily worn dark-blue metal finish with scratches, chipped paint, irregular rust, exposed metal and dust, raised panel edges, recessed fader slots and tactile buttons.
+- Reverb Size, Damping and Width are circular rotary knobs in the left half of the divided side panel. The right half is an empty panel reserved for future controls.
+- Removed the header brand/version captions and the routing explanation at the bottom of the Reverb panel.
+- The six-band EQs, post-fader sends, parameter IDs, saved project format and audio routing remain compatible with 0.2.
+
+## Included since 0.2
+
+- Compact mixer with cyan channel headers, silver faders, channel meters, pan, mute, solo and small HIT preview buttons. Eight drum strips, one Reverb return and a stereo master leave room for further mixer controls.
 - Each drum has its own **post-fader Reverb Send next to the level fader**. Send values are displayed as percentages; the Reverb return has its own dB fader, mute and wet-only solo.
 - Click a channel name, its EQ button or its controls to display that channel's EQ in the large upper panel. Reverb has its own return EQ. The independent global master EQ stays visible on the upper right.
 - **Six parametric bands per EQ**, each with frequency (20 Hz–20 kHz), gain (±24 dB), Q (0.15–18), type and enable. Types: Bell, Low shelf, High shelf, Low cut, High cut and Notch. Cuts are 12 dB/octave. Gain is disabled for cuts and notch.

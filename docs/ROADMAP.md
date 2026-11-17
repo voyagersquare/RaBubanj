@@ -8,6 +8,10 @@ Windows x64 VST3 + standalone, original generated starter kit, GM MIDI, layered 
 
 Eight compact drum strips with post-fader sends, an independent wet Reverb return, master strip, channel/return/global six-band parametric EQs, interactive response graphs, mute/solo, metering and backwards project-state migration.
 
+## 0.2.1 — worn hardware interface
+
+Corroded and distressed dark-blue metal, raised panels/buttons and rotary Reverb controls in one half of the split side panel; the other half is reserved. Header and Reverb routing captions removed.
+
 ## Next: acoustic sample engine
 
 - Load a documented kit manifest with licensed WAV samples, velocity zones, independent round-robin pools, tuning and per-articulation envelopes.
