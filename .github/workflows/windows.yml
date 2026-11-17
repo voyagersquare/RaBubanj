@@ -32,8 +32,12 @@ jobs:
         run: |
           $validator = (Get-ChildItem pluginval -Filter pluginval.exe -Recurse | Select-Object -First 1).FullName
           $plugin = Join-Path $PWD 'build/RaBubanj_artefacts/Release/VST3/RaBubanj.vst3'
-          & $validator --strictness-level 5 --validate "$plugin" --output-dir "$PWD/validation" --timeout-ms 120000
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          New-Item -ItemType Directory -Force validation
+          $arguments = @('--strictness-level', '5', '--validate', "`"$plugin`"", '--output-dir', "`"$PWD/validation`"", '--timeout-ms', '120000')
+          $process = Start-Process -FilePath $validator -ArgumentList $arguments -Wait -PassThru -NoNewWindow -RedirectStandardOutput "$PWD/validation/stdout.txt" -RedirectStandardError "$PWD/validation/stderr.txt"
+          Get-Content validation/stdout.txt
+          Get-Content validation/stderr.txt
+          if ($process.ExitCode -ne 0) { throw "pluginval failed with exit code $($process.ExitCode)" }
       - name: Collect portable package
         shell: pwsh
         run: |
