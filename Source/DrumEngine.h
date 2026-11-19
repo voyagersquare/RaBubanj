@@ -12,6 +12,7 @@ namespace rabubanj
 constexpr int drumCount = 8;
 inline constexpr std::array<const char*, drumCount> names {
     "Kick", "Snare", "Closed Hat", "Open Hat", "Low Tom", "High Tom", "Crash", "Ride" };
+inline constexpr std::array<const char*, drumCount> padNames { "PAD 1", "PAD 2", "PAD 3", "PAD 4", "PAD 5", "PAD 6", "PAD 7", "PAD 8" };
 inline constexpr std::array<int, drumCount> notes { 36, 37, 38, 39, 40, 41, 42, 43 };
 inline constexpr std::array<int, drumCount> gmNotes { 36, 38, 42, 46, 45, 48, 49, 51 };
 inline int drumForNote(int note) noexcept { return note >= 36 && note <= 43 ? note-36 : -1; }

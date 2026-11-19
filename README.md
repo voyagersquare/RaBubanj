@@ -1,16 +1,27 @@
-# RaBubanj 0.6.0
+# RaBubanj 0.7.0
 
 Windows x64 VST3 and standalone drum sample instrument by Voyagersquare, with a solid ochre console-style mixer, per-channel processing and a shared stereo Reverb. Portable ZIP, without an installer.
 
-**[Preuzmi RaBubanj 0.6 za Windows x64 — ZIP bez instalera](https://github.com/voyagersquare/RaBubanj/actions/runs/44504345108/artifacts/14518203461)**
-
-Windows build, svih sedam testnih skupova i pluginval strictness 5 prolaze.
+Windows 0.7 package links will be added after native validation.
 
 [Windows instructions in Croatian](docs/WINDOWS-HR.md) · [Validation](VALIDATION.md)
 
-![RaBubanj 0.6 ochre mixer and spectrum displays](docs/preview.png)
+![RaBubanj 0.7 PAD mixer and spectrum displays](docs/preview.png)
 
-## New in 0.6
+## New in 0.7
+
+- The eight sound strips are **PAD 1–PAD 8**, including channel EQ and the selected Pitch/Drive/Comp panel. Existing source assignments, sample filenames and parameter IDs are retained. Pad names and control legends use larger bold type; Reverb/master return labels span two lines for readability.
+- **STEP SEQ** opens a dedicated floating child window inside the plugin. It has **32 sixteenth-note steps × 8 rows**, with PAD labels on the right. One pattern is two bars in 4/4.
+- Choose **SLABA**, **SREDNJA** or **JAKA** (MIDI velocities **48 / 88 / 127**), then **right-click** to write steps. **Left-click** erases; hold and drag left to erase multiple cells. Fast drags also erase intervening cells.
+- **SEQ ON** follows DAW tempo, playback position and Play/Stop. The playhead is derived from host PPQ on each block, including seeks and host loop boundaries. **Space stays with the DAW transport** in both mixer and sequencer views. There is no competing local clock or local Play button.
+- Drag **DRAG MIDI** onto a DAW MIDI track to create a two-bar MIDI clip. The file preserves step positions, the three velocities and the active chromatic/GM mapping. Switch **SEQ OFF** when playing that exported clip to avoid playing both the internal pattern and the clip.
+- Pattern, brush strength and sequencer enable are saved with DAW state. Older projects restore a blank pattern. New instances also start blank.
+
+![Sequencer demonstration pattern](docs/sequencer.png)
+
+The sequencer uses standard host transport information and requires an active DAW audio engine with the instrument track monitored. Standalone playback still supports pad audition and external MIDI, but does not supply a DAW transport for the internal sequencer. One-shot and Reverb tails can decay after Stop; no new sequencer hits are generated while stopped. MIDI export is file drag-and-drop, not live MIDI output routing. Exports use one type-0 track, 960 PPQ, channel 10, a 1/32-note gate and an explicit 8-beat end marker. Export files remain in the OS temporary `RaBubanj-MIDI` folder so the host can read them after the drop.
+
+## Console and EQ workflow
 
 - Solid ochre enamel replaces the scratched/rusted texture. Command legends are white; EQ gain/spectrum scales and the response curve use warm gold tones.
 - More pronounced bevels and shadows around EQ panels. Rotary controls have ribbed light-plastic bodies, coloured caps and position marks inspired by the supplied SSL console reference. Faders and switches have raised console-style hardware details. Artwork is drawn by the project; no manufacturer assets or logos are bundled.
@@ -20,7 +31,7 @@ Windows build, svih sedam testnih skupova i pluginval strictness 5 prolaze.
 
 ## Controls
 
-- **Channel names show live level meters.** Clicking Kick, Snare or another channel selects its EQ and processing controls, without playing a sound. Level meters also remain beside the faders.
+- **Channel names show live level meters.** Clicking PAD 1, PAD 2 or another channel selects its EQ and processing controls, without playing a sound. Level meters also remain beside the faders.
 - The **PLAY** button at the bottom of each drum strip auditions that channel's current sample once. It lights **yellow** while pressed, with a short visible pulse for quick clicks. Factory menus and arrows have been removed.
 - Imported filenames stay below each channel name. Drop a mono/stereo WAV, AIFF, FLAC or Ogg file onto a drum strip to replace just that sound. The **x** button removes the imported source. Samples load in the background and their original bytes are embedded in saved DAW projects.
 - Both EQ graphs show a **live spectrum** behind the editable response curve. The channel display follows the selected channel after its EQ, before the fader; the master display measures the final stereo output. The left scale shows EQ gain (±24 dB); the right scale shows spectrum level (−90 to 0 dBFS). Analysis uses both stereo channels, including opposite-phase audio.
@@ -49,16 +60,16 @@ A drum mute also mutes its send. Reverb tails already generated decay naturally.
 
 ## MIDI and keyboard
 
-| Instrument | Ableton note | MIDI number | PLUGIN audition key |
+| Pad | Ableton note | MIDI number | PLUGIN audition key |
 | --- | --- | ---: | --- |
-| Kick | C1 | 36 | A |
-| Snare | C#1 | 37 | W |
-| Closed hi-hat | D1 | 38 | S |
-| Open hi-hat | D#1 | 39 | E |
-| Low tom | E1 | 40 | D |
-| High tom | F1 | 41 | F |
-| Crash | F#1 | 42 | T |
-| Ride | G1 | 43 | G |
+| PAD 1 | C1 | 36 | A |
+| PAD 2 | C#1 | 37 | W |
+| PAD 3 | D1 | 38 | S |
+| PAD 4 | D#1 | 39 | E |
+| PAD 5 | E1 | 40 | D |
+| PAD 6 | F1 | 41 | F |
+| PAD 7 | F#1 | 42 | T |
+| PAD 8 | G1 | 43 | G |
 
 All MIDI channels are accepted. Octave labels vary by host; note numbers are authoritative. **MIDI: GM** selects the legacy mapping for older clips. For computer keyboard recording, enable the DAW's computer MIDI keyboard, arm/monitor the track, choose the C1 octave and keep **KEYS: DAW**. **KEYS: PLUGIN** auditions locally with the window focused; it does not record MIDI in the host. Key repeat is suppressed; shortcuts, text editing and keys during host recording pass through.
 
@@ -91,9 +102,9 @@ GitHub Actions builds both targets, runs the DSP tests, and validates the VST3 w
 
 ## Tests
 
-A full build runs seven suites: drum engine/pitch, parametric EQ, legacy source regression, processor MIDI/state, mixer/editor, sample import/recall, and channel colour/spectrum. The last suite checks neutral bypass, compressor calibration and stereo linking, saturation harmonics, exact pitch-rate conversion, FFT frequency/dBFS calibration, anti-phase stereo, decay, concurrent buffers, real processor taps and state recall. UI tests cover name meters without triggering, yellow PLAY buttons, curve/gain menu actions and cancellation, per-channel knob binding and minimum/default/maximum bounds.
+A full build runs nine suites: drum engine/pitch, parametric EQ, legacy source regression, processor MIDI/state, mixer/editor, sample import/recall, channel colour/spectrum, sequencer timing and sequencer/MIDI/editor integration. The colour/spectrum suite checks neutral bypass, compressor calibration and stereo linking, saturation harmonics, exact pitch-rate conversion, FFT frequency/dBFS calibration, anti-phase stereo, decay, concurrent buffers, real processor taps and state recall. UI tests cover name meters without triggering, yellow PLAY buttons, curve/gain menu actions and cancellation, per-channel knob binding and minimum/default/maximum bounds.
 
-`mixer_tests <absolute-directory>` exports actual JUCE editor snapshots. Native Windows CI also runs pluginval strictness 5 before packaging.
+`mixer_tests <absolute-directory>` exports actual JUCE editor snapshots. `sequencer_integration_tests <absolute-directory>` exports sequencer and window previews using a demonstration pattern and simulated host transport. Sequencer coverage includes fractional-BPM/block-boundary accuracy, loops inside a block, start/stop, seeks, pre-roll, same-offset panic, MIDI file parsing, mouse painting/erasing, state recall and Space forwarding. Native Windows CI also runs pluginval strictness 5 before packaging.
 
 ## License
 

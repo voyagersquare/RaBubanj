@@ -33,9 +33,9 @@ inline void screw(juce::Graphics& g, float x, float y)
     g.setGradientFill(juce::ColourGradient(juce::Colour(0xffb8bab1), x-3, y-3, juce::Colour(0xff575c56), x+3, y+3, false));
     g.fillEllipse(x-3, y-3, 6, 6); g.setColour(juce::Colour(0xff252823)); g.drawLine(x-2, y+1, x+2, y-1, 1);
 }
-inline void text(juce::Graphics& g, const juce::String& value, juce::Rectangle<int> bounds, float size = 11, juce::Colour colour = muted, int alignment = juce::Justification::centredLeft)
+inline void text(juce::Graphics& g, const juce::String& value, juce::Rectangle<int> bounds, float size = 11, juce::Colour colour = muted, int alignment = juce::Justification::centredLeft, bool bold = false)
 {
-    g.setFont(juce::FontOptions(size));
+    const auto font = juce::Font(juce::FontOptions(size)); g.setFont(bold ? font.boldened() : font);
     g.setColour(juce::Colours::black.withAlpha(.55f)); g.drawText(value, bounds.translated(0, 1), alignment);
     g.setColour(colour); g.drawText(value, bounds, alignment);
 }

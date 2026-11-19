@@ -13,6 +13,16 @@ MixerLookAndFeel::MixerLookAndFeel()
     setColour(juce::TextEditor::backgroundColourId, dark); setColour(juce::TextEditor::textColourId, ink);
     setColour(juce::TooltipWindow::backgroundColourId, menuFace); setColour(juce::TooltipWindow::textColourId, juce::Colour(0xffeee2be));
 }
+juce::Button* MixerLookAndFeel::createDocumentWindowButton(int type)
+{
+    auto* button = new juce::TextButton(type == juce::DocumentWindow::closeButton ? "x" : type == juce::DocumentWindow::minimiseButton ? "-" : "+");
+    button->setName("Window control"); button->setWantsKeyboardFocus(false); return button;
+}
+void MixerLookAndFeel::drawDocumentWindowTitleBar(juce::DocumentWindow& window, juce::Graphics& g, int width, int height, int titleX, int titleWidth, const juce::Image*, bool)
+{
+    g.fillAll(menuFace); g.setColour(gold.darker(.35f)); g.drawRect(0, 0, width, height, 1);
+    text(g, window.getName(), { titleX, 0, titleWidth, height }, 15, ink, juce::Justification::centred, true);
+}
 void MixerLookAndFeel::drawButtonBackground(juce::Graphics& g, juce::Button& button, const juce::Colour& colour, bool hover, bool down)
 {
     const bool previewLit = button.getName().startsWith("Preview ") && (down || static_cast<bool>(button.getProperties()["previewLit"]));
@@ -109,7 +119,7 @@ void MixerLookAndFeel::drawLinearSlider(juce::Graphics& g, int x, int y, int w, 
 }
 
 MixerStrip::MixerStrip(RaBubanjProcessor& p, int busToUse) : processor(p), bus(busToUse),
-    channelName(bus < 8 ? rabubanj::names[static_cast<size_t>(bus)] : bus == 8 ? "Reverb" : "Master")
+    channelName(bus < 8 ? rabubanj::padNames[static_cast<size_t>(bus)] : bus == 8 ? "Reverb" : "Master")
 {
     setName(channelName + " channel"); addMouseListener(this, true);
     select.setButtonText(channelName); select.setName("Select " + channelName);
@@ -210,7 +220,12 @@ void MixerStrip::paint(juce::Graphics& g)
     if (dragging) { g.setColour(cyan.withAlpha(.18f)); g.fillRect(getLocalBounds()); g.setColour(cyan); g.drawRect(getLocalBounds().reduced(2), 2); }
     g.setColour(selected ? colour : colour.darker(.5f)); g.fillRect(0, 0, getWidth(), 3);
     g.setColour(juce::Colour(0xff6d5412)); g.drawRoundedRectangle(getLocalBounds().toFloat().reduced(.5f), 3, .7f);
-    text(g, bus < 8 ? "PAN" : bus == 8 ? "WET RETURN" : "STEREO OUT", { 8, 63, getWidth()-16, 13 }, 8, muted, juce::Justification::centred);
+    if (bus < 8) text(g, "PAN", { 8, 61, getWidth()-16, 16 }, 11, ink, juce::Justification::centred, true);
+    else
+    {
+        text(g, bus == 8 ? "WET" : "STEREO", { 5, 56, getWidth()-10, 15 }, 11, ink, juce::Justification::centred, true);
+        text(g, bus == 8 ? "RETURN" : "OUT", { 5, 71, getWidth()-10, 15 }, 11, ink, juce::Justification::centred, true);
+    }
     text(g, "dB", { gain.getX(), faderArea.getY()-15, gain.getWidth(), 13 }, 9, muted, juce::Justification::centred);
     if (bus < 8) text(g, "SEND", { send.getX(), faderArea.getY()-15, send.getWidth(), 13 }, 8, ink, juce::Justification::centred);
     g.setColour(dark); g.fillRect(meterArea);
@@ -273,6 +288,7 @@ RaBubanjEditor::RaBubanjEditor(RaBubanjProcessor& p)
 {
     processor.setAnalyserActive(true);
     setLookAndFeel(&look); setWantsKeyboardFocus(true); addAndMakeVisible(channelEq); addAndMakeVisible(globalEq);
+    sequenceButton.setName("Open step sequencer"); sequenceButton.setWantsKeyboardFocus(false); sequenceButton.onClick = [this] { showSequencer(); }; addAndMakeVisible(sequenceButton);
     keyboardMode.setName("Computer keyboard mode"); midiMode.setName("MIDI note mapping");
     keyboardMode.setTooltip("DAW: let the host handle keyboard MIDI. PLUGIN: audition A W S E D F T G while this window has focus (outside recording).");
     midiMode.setTooltip("Chromatic: C1 to G1 (MIDI 36-43). GM: use the older General MIDI drum mapping.");
@@ -318,7 +334,7 @@ RaBubanjEditor::RaBubanjEditor(RaBubanjProcessor& p)
     bindChannelControls();
     setResizable(true, true); setResizeLimits(1120, 740, 1800, 1160); setSize(1280, 820); timerCallback(); startTimerHz(30);
 }
-RaBubanjEditor::~RaBubanjEditor() { processor.setAnalyserActive(false); stopTimer(); setLookAndFeel(nullptr); }
+RaBubanjEditor::~RaBubanjEditor() { sequenceWindow.reset(); processor.setAnalyserActive(false); stopTimer(); setLookAndFeel(nullptr); }
 void RaBubanjEditor::selectChannel(int bus)
 {
     if (bus < 9) { processor.selectChannel(bus); channelEq.setBus(bus); }
@@ -345,8 +361,16 @@ void RaBubanjEditor::bindChannelControls()
     }
     pitch.updateText(); drive.updateText(); compression.updateText();
 }
+void RaBubanjEditor::showSequencer()
+{
+    if (!sequenceWindow) { sequenceWindow = std::make_unique<SequencerWindow>(processor); sequenceWindow->setLookAndFeel(&look); sequenceWindow->setTitleBarButtonsRequired(0, false); sequenceWindow->setTitleBarButtonsRequired(juce::DocumentWindow::closeButton, false); addChildComponent(*sequenceWindow); }
+    sequenceWindow->setBounds((getWidth()-juce::jmin(getWidth()-24, 1080))/2, (getHeight()-490)/2, juce::jmin(getWidth()-24, 1080), 490);
+    sequenceWindow->setVisible(true); sequenceWindow->toFront(false); if (isShowing()) grabKeyboardFocus();
+}
 void RaBubanjEditor::resized()
 {
+    sequenceButton.setBounds(getWidth()-465, 23, 166, 24);
+    if (sequenceWindow) sequenceWindow->setBounds((getWidth()-juce::jmin(getWidth()-24, 1080))/2, (getHeight()-490)/2, juce::jmin(getWidth()-24, 1080), 490);
     midiMode.setBounds(getWidth()-285, 23, 135, 24); keyboardMode.setBounds(getWidth()-141, 23, 119, 24);
     auto area = getLocalBounds().reduced(22, 16); area.removeFromTop(61);
     eqArea = area.removeFromTop(juce::jlimit(270, 335, getHeight()*36/100));
@@ -364,16 +388,16 @@ void RaBubanjEditor::resized()
     auto halves = reverbArea;
     reverbControlsArea = halves.removeFromLeft(halves.getWidth()/2).withTrimmedRight(3);
     reservedArea = halves.withTrimmedLeft(3);
-    auto controls = reverbControlsArea.reduced(8, 8); controls.removeFromTop(26);
+    auto controls = reverbControlsArea.reduced(8, 8); controls.removeFromTop(30);
     const auto rowHeight = controls.getHeight()/3;
     for (auto* control : { &size, &damping, &width })
     {
-        auto row = controls.removeFromTop(rowHeight); row.removeFromTop(14); row.removeFromBottom(4); control->setBounds(row);
+        auto row = controls.removeFromTop(rowHeight); row.removeFromTop(20); row.removeFromBottom(4); control->setBounds(row);
     }
-    controls = reservedArea.reduced(8, 8); controls.removeFromTop(26);
+    controls = reservedArea.reduced(8, 8); controls.removeFromTop(30);
     for (auto* control : { &pitch, &drive, &compression })
     {
-        auto row = controls.removeFromTop(rowHeight); row.removeFromTop(14); row.removeFromBottom(4); control->setBounds(row);
+        auto row = controls.removeFromTop(rowHeight); row.removeFromTop(20); row.removeFromBottom(4); control->setBounds(row);
     }
 }
 void RaBubanjEditor::paint(juce::Graphics& g)
@@ -386,14 +410,14 @@ void RaBubanjEditor::paint(juce::Graphics& g)
     text(g, "MIXER  /  SELECT A CHANNEL TO EDIT ITS EQ", { mixerArea.getX(), mixerArea.getY()-24, 500, 18 }, 10, muted);
     raisedPanel(g, reverbControlsArea.toFloat(), panel, 1.0f);
     raisedPanel(g, reservedArea.toFloat(), panel.darker(.1f), 1.0f);
-    text(g, "REVERB", reverbControlsArea.reduced(8).removeFromTop(20), 11, ink, juce::Justification::centred);
-    text(g, "SIZE", { size.getX(), size.getY()-14, size.getWidth(), 13 }, 9, muted, juce::Justification::centred);
-    text(g, "DAMPING", { damping.getX(), damping.getY()-14, damping.getWidth(), 13 }, 9, muted, juce::Justification::centred);
-    const auto colourTitle = colourBus >= 0 && colourBus < 8 ? juce::String(rabubanj::names[static_cast<size_t>(colourBus)]).toUpperCase() : "DRUM FX";
-    text(g, colourTitle, reservedArea.reduced(5).removeFromTop(20), 10, ink, juce::Justification::centred);
+    text(g, "REVERB", reverbControlsArea.reduced(6).removeFromTop(23), 14, ink, juce::Justification::centred, true);
+    text(g, "SIZE", { size.getX(), size.getY()-19, size.getWidth(), 18 }, 12, ink, juce::Justification::centred, true);
+    text(g, "DAMPING", { damping.getX(), damping.getY()-19, damping.getWidth(), 18 }, 12, ink, juce::Justification::centred, true);
+    const auto colourTitle = colourBus >= 0 && colourBus < 8 ? juce::String(rabubanj::padNames[static_cast<size_t>(colourBus)]).toUpperCase() : "DRUM FX";
+    text(g, colourTitle, reservedArea.reduced(5).removeFromTop(23), 14, ink, juce::Justification::centred, true);
     for (const auto& item : { std::pair<juce::Slider*, const char*>(&pitch, "PITCH"), { &drive, "DRIVE" }, { &compression, "COMP" } })
-        text(g, item.second, { item.first->getX(), item.first->getY()-14, item.first->getWidth(), 13 }, 9, muted, juce::Justification::centred);
-    text(g, "WIDTH", { width.getX(), width.getY()-14, width.getWidth(), 13 }, 9, muted, juce::Justification::centred);
+        text(g, item.second, { item.first->getX(), item.first->getY()-19, item.first->getWidth(), 18 }, 12, ink, juce::Justification::centred, true);
+    text(g, "WIDTH", { width.getX(), width.getY()-19, width.getWidth(), 18 }, 12, ink, juce::Justification::centred, true);
     text(g, "DRAG EQ: FREQ / GAIN    WHEEL: Q    RIGHT-CLICK: SHAPE / GAIN", footerArea, 9, muted);
     text(g, "C1-G1 MIDI  /  SAMPLE PLAYER", footerArea, 9, muted, juce::Justification::centredRight);
 }
@@ -408,6 +432,7 @@ void RaBubanjEditor::timerCallback()
 static constexpr std::array<int, 8> auditionKeys { 'A', 'W', 'S', 'E', 'D', 'F', 'T', 'G' };
 bool RaBubanjEditor::keyPressed(const juce::KeyPress& key)
 {
+    if (key.getKeyCode() == juce::KeyPress::spaceKey) return false;
     if (!processor.localKeysEnabled() || processor.isHostRecording() || key.getModifiers().isCommandDown()
         || key.getModifiers().isCtrlDown() || key.getModifiers().isAltDown()
         || dynamic_cast<juce::TextEditor*>(juce::Component::getCurrentlyFocusedComponent()) != nullptr) return false;

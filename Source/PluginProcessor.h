@@ -5,6 +5,7 @@
 #include "ParametricEq.h"
 #include "ChannelColour.h"
 #include "SpectrumAnalyser.h"
+#include "StepSequencer.h"
 
 class RaBubanjProcessor final : public juce::AudioProcessor, private juce::AsyncUpdater
 {
@@ -31,6 +32,16 @@ public:
     void getStateInformation(juce::MemoryBlock&) override;
     void setStateInformation(const void*, int) override;
     void audition(int drum) noexcept;
+    rabubanj::StepPattern& getPattern() noexcept { return pattern; }
+    const rabubanj::StepPattern& getPattern() const noexcept { return pattern; }
+    int getSequenceBrush() const noexcept { return sequenceBrush.load(); }
+    void setSequenceBrush(int value) { sequenceBrush.store(juce::jlimit(1, 3, value)); sequenceEdited(); }
+    void sequenceEdited() { updateHostDisplay(ChangeDetails{}.withNonParameterStateChanged(true)); }
+    bool writeSequenceMidi(const juce::File&) const;
+    int getPlayingStep() const noexcept { return playingStep.load(); }
+    bool isSequenceHostPlaying() const noexcept { return sequenceHostPlaying.load(); }
+    bool hasSequenceHostPosition() const noexcept { return sequenceHostValid.load(); }
+    double getHostBpm() const noexcept { return hostBpm.load(); }
     void setAnalyserActive(bool active) noexcept { analyserActive.store(active); }
     rabubanj::SpectrumTap& getSpectrumTap(int bus) noexcept { return *spectrumTaps[static_cast<size_t>(bus)]; }
     void importSample(int drum, const juce::File& file) { sampleLoader.load(drum, file); }
@@ -61,6 +72,11 @@ private:
     void hit(int note, float velocity) noexcept;
     void hitDrum(int drum, float velocity) noexcept;
     void resetAudio() noexcept;
+    rabubanj::StepPattern pattern;
+    std::atomic<int> sequenceBrush { 3 }, playingStep { -1 };
+    std::atomic<bool> sequenceHostPlaying { false }, sequenceHostValid { false };
+    std::atomic<double> hostBpm { 120 };
+    std::atomic<float>* sequenceEnabled = nullptr;
     SampleLoader sampleLoader;
     rabubanj::DrumEngine engine;
     juce::Reverb reverb;

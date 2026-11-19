@@ -28,6 +28,10 @@ Channel-name level meters without audition, yellow bottom PLAY pads replacing fa
 
 Solid ochre finish, white command legends, stronger EQ bevels and console-inspired physical controls. Node context menus replace EQ type dropdowns and expose shape/gain commands with a dark themed palette.
 
+## 0.7 — pads and host-synced step sequencer
+
+PAD 1–8 names and larger bold legends, 32×8 sequencer child window, three velocity brushes, write/erase gestures, host PPQ/tempo/transport and loop following, embedded pattern recall, and MIDI pattern file drag-and-drop.
+
 ## Next: acoustic sample engine
 
 - Load a documented kit manifest with licensed WAV samples, velocity zones, independent round-robin pools, tuning and per-articulation envelopes.
@@ -43,7 +47,7 @@ Solid ochre finish, white command legends, stronger EQ bevels and console-inspir
 
 ## Then: grooves and release polish
 
-- Licensed MIDI grooves, host transport sync and MIDI drag-and-drop.
+- Licensed MIDI groove library and additional pattern editing tools.
 - Audition representative DAWs on real Windows audio hardware, including device changes and project reloads.
 - Signing and a versioned release download; an installer is deliberately outside the initial scope.
 

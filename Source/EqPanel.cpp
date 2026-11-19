@@ -114,7 +114,7 @@ void EqPanel::paint(juce::Graphics& g)
 {
     raisedPanel(g, getLocalBounds().toFloat(), panel, 1.9f);
     g.setColour(masterPanel ? gold : cyan); g.fillRect(0, 0, getWidth(), 2);
-    const juce::String name = busIndex < 8 ? rabubanj::names[static_cast<size_t>(busIndex)] : "Reverb";
+    const juce::String name = busIndex < 8 ? rabubanj::padNames[static_cast<size_t>(busIndex)] : "Reverb";
     text(g, masterPanel ? "GLOBAL EQ  /  STEREO MASTER" : "CHANNEL EQ  /  "+name.toUpperCase(), { 12, 5, getWidth()-24, 24 }, 12, ink);
     if (getWidth() > 500) text(g, "6-BAND PARAMETRIC", { getWidth()-200, 5, 188, 24 }, 10, muted, juce::Justification::centredRight);
 }

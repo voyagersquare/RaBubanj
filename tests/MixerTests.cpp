@@ -117,7 +117,7 @@ int main(int argc, char** argv)
     for (int channel = 0; channel < 9; ++channel)
     {
         juce::TextButton* select = nullptr;
-        const auto name = channel < 8 ? juce::String(rabubanj::names[static_cast<size_t>(channel)]) : "Reverb";
+        const auto name = channel < 8 ? juce::String(rabubanj::padNames[static_cast<size_t>(channel)]) : "Reverb";
         for (auto* child : editor->getChildren()) if (auto* strip = dynamic_cast<MixerStrip*>(child))
             for (auto* control : strip->getChildren()) if (control->getName() == "Select " + name) select = dynamic_cast<juce::TextButton*>(control);
         require(select != nullptr, "channel selection control must exist"); select->onClick();
@@ -236,7 +236,7 @@ int main(int argc, char** argv)
                 {
                     ++previewButtons;
                     const auto name = button->getName().substring(8); int drum = -1;
-                    for (int d = 0; d < 8; ++d) if (name == rabubanj::names[static_cast<size_t>(d)]) drum = d;
+                    for (int d = 0; d < 8; ++d) if (name == rabubanj::padNames[static_cast<size_t>(d)]) drum = d;
                     require(drum >= 0, "preview button must belong to a drum");
                     const auto before = uiProcessor.getHitCount(drum); button->onClick(); uiProcessor.processBlock(previewAudio, previewMidi);
                     require(uiProcessor.getHitCount(drum) == before+1, "bottom PLAY must trigger its current sample once");
@@ -245,7 +245,7 @@ int main(int argc, char** argv)
                         require(static_cast<float>(header->getProperties()["channelLevel"]) > 0, "name button must receive the sounding channel level");
                     require(static_cast<bool>(button->getProperties()["previewLit"]), "pressed PLAY must light yellow");
                 }
-                if (button->getName() == "Select Kick")
+                if (button->getName() == "Select PAD 1")
                 {
                     const auto before = uiProcessor.getHitCount(0); button->onClick(); uiProcessor.processBlock(previewAudio, previewMidi);
                     require(uiProcessor.getHitCount(0) == before && uiProcessor.getSelectedChannel() == 0, "name button must select EQ without triggering audio");
@@ -273,7 +273,7 @@ int main(int argc, char** argv)
     for (auto* child : editor->getChildren()) if (auto* strip = dynamic_cast<MixerStrip*>(child))
         for (auto* control : strip->getChildren()) if (auto* s = dynamic_cast<juce::Slider*>(control))
         {
-            if (s->getName() == "Kick reverb send") require(s->getTextFromValue(.25) == "25%", "Send must display and parse percent units");
+            if (s->getName() == "PAD 1 reverb send") require(s->getTextFromValue(.25) == "25%", "Send must display and parse percent units");
             if (s->getName() == "Reverb level")
             {
                 require(s->getTextFromValue(.1) == "-20.0", "Reverb return fader must display dB");
@@ -304,7 +304,7 @@ int main(int argc, char** argv)
     if (argc > 1)
     {
         for (auto* child : editor->getChildren()) if (auto* strip = dynamic_cast<MixerStrip*>(child))
-            for (auto* control : strip->getChildren()) if (control->getName() == "Preview Kick") static_cast<juce::TextButton*>(control)->onClick();
+            for (auto* control : strip->getChildren()) if (control->getName() == "Preview PAD 1") static_cast<juce::TextButton*>(control)->onClick();
         for (int i = 0; i < 8; ++i) uiProcessor.processBlock(previewAudio, previewMidi);
     }
     channelEq->refresh(); globalEq->refresh();

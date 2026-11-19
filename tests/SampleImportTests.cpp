@@ -58,7 +58,7 @@ int main()
     std::unique_ptr<RaBubanjEditor> editor(static_cast<RaBubanjEditor*>(p.createEditor()));
     MixerStrip* kick = nullptr; MixerStrip* snare = nullptr; MixerStrip* reverb = nullptr;
     for (auto* child : editor->getChildren()) if (auto* strip = dynamic_cast<MixerStrip*>(child))
-    { if (strip->getName() == "Kick channel") kick = strip; if (strip->getName() == "Snare channel") snare = strip; if (strip->getName() == "Reverb channel") reverb = strip; }
+    { if (strip->getName() == "PAD 1 channel") kick = strip; if (strip->getName() == "PAD 2 channel") snare = strip; if (strip->getName() == "Reverb channel") reverb = strip; }
     require(kick && snare && reverb, "drop targets must exist");
     const juce::StringArray paths { mono.getFullPathName() };
     require(kick->isInterestedInFileDrag(paths) && !reverb->isInterestedInFileDrag(paths), "only drum strips accept sample drops");

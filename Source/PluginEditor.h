@@ -1,5 +1,6 @@
 #pragma once
 #include "EqPanel.h"
+#include "SequencerEditor.h"
 
 class MixerStrip final : public juce::Component, public juce::FileDragAndDropTarget, public juce::TextDragAndDropTarget
 {
@@ -43,6 +44,8 @@ class MixerLookAndFeel final : public juce::LookAndFeel_V4
 public:
     MixerLookAndFeel();
     int getSliderThumbRadius(juce::Slider& s) override { return s.getSliderStyle() == juce::Slider::LinearVertical ? 12 : 6; }
+    juce::Button* createDocumentWindowButton(int) override;
+    void drawDocumentWindowTitleBar(juce::DocumentWindow&, juce::Graphics&, int, int, int, int, const juce::Image*, bool) override;
     void drawButtonBackground(juce::Graphics&, juce::Button&, const juce::Colour&, bool, bool) override;
     void drawRotarySlider(juce::Graphics&, int, int, int, int, float, float, float, juce::Slider&) override;
     void drawLinearSlider(juce::Graphics&, int, int, int, int, float, float, float, juce::Slider::SliderStyle, juce::Slider&) override;
@@ -55,7 +58,7 @@ public:
         auto* label = juce::LookAndFeel_V4::createSliderTextBox(s);
         label->setFont(juce::FontOptions(11.0f)); label->setBorderSize(juce::BorderSize<int>(0, 1, 0, 1)); return label;
     }
-    juce::Font getTextButtonFont(juce::TextButton&, int height) override { return juce::Font(juce::FontOptions(juce::jmin(12.0f, static_cast<float>(height)*.52f))); }
+    juce::Font getTextButtonFont(juce::TextButton& button, int height) override { return juce::Font(juce::FontOptions(juce::jmin(button.getName().startsWith("Select ") ? 15.0f : 13.0f, static_cast<float>(height)*.58f))).boldened(); }
 };
 
 class RaBubanjEditor final : public juce::AudioProcessorEditor, private juce::Timer
@@ -66,6 +69,7 @@ public:
     void paint(juce::Graphics&) override;
     void resized() override;
     void selectChannel(int bus);
+    void showSequencer();
     bool keyPressed(const juce::KeyPress&) override;
     bool keyStateChanged(bool) override;
     void focusLost(FocusChangeType) override;
@@ -81,7 +85,8 @@ private:
     int colourBus = -1;
     using SliderAttachment = juce::AudioProcessorValueTreeState::SliderAttachment;
     std::unique_ptr<SliderAttachment> pitchAttachment, driveAttachment, compAttachment;
-    juce::TextButton keyboardMode, midiMode;
+    juce::TextButton keyboardMode, midiMode, sequenceButton { "STEP SEQ" };
+    std::unique_ptr<SequencerWindow> sequenceWindow;
     std::array<bool, 8> heldKeys {};
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> sizeAttachment, dampingAttachment, widthAttachment;
     juce::Rectangle<int> eqArea, mixerArea, reverbArea, reverbControlsArea, reservedArea, footerArea;

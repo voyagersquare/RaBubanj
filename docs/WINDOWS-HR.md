@@ -1,9 +1,25 @@
-# RaBubanj 0.6.0 — Windows x64, bez instalera
+# RaBubanj 0.7.0 — Windows x64, bez instalera
 
-1. Preuzmi ZIP `RaBubanj-0.6.0-Windows-x64` iz uspješnog GitHub Actions builda i raspakiraj ga.
+1. Preuzmi ZIP `RaBubanj-0.7.0-Windows-x64` iz uspješnog GitHub Actions builda i raspakiraj ga.
 2. Zatvori DAW i kopiraj cijelu mapu **RaBubanj.vst3** u `C:\Program Files\Common Files\VST3\`. Zamijeni cijeli prethodni paket.
 3. Ponovno skeniraj VST3 instrumente u 64-bitnom DAW-u, dodaj RaBubanj na MIDI traku i uključi arm/monitoring.
 4. `RaBubanj.exe` je samostalna aplikacija, bez instalera; u njoj odaberi audio i MIDI uređaj.
+
+## PAD nazivi i veći natpisi
+
+Osam zvučnih kanala sada su **PAD 1–PAD 8**. Isti nazivi prikazuju se u kanalnom EQ-u i uz PITCH/DRIVE/COMP. Zaokruženi natpisi imaju veći, podebljani font. Prijašnji zvukovi i svi uvezeni semplovi ostaju na svojim kanalima.
+
+## Step sekvencer
+
+1. Klikni **STEP SEQ** u zaglavlju. Otvara se pomični prozor unutar plugina, s **32 koraka i 8 redova**. Desno su PAD 1–PAD 8. Koraci su šesnaestinke; cijeli obrazac traje dva takta u 4/4.
+2. Odaberi **SLABA / SREDNJA / JAKA** (MIDI velocity **48 / 88 / 127**).
+3. **Desni klik upisuje korak. Lijevi klik briše.** Drži lijevu tipku i povlači za brisanje više koraka. I pri brzom povlačenju brišu se koraci između dvaju položaja miša.
+4. Ostavi **SEQ ON** i pokreni DAW razmaknicom. Sekvencer prati njegov tempo, položaj pjesme, Play/Stop i loop. Razmaknica se prosljeđuje DAW-u; nema zasebnog lokalnog sata ni Play tipke. Instrument traka mora imati uključen monitoring/arm i aktivan audio engine.
+5. Povuci **DRAG MIDI** na MIDI traku u DAW-u. Izvezeni klip ima ista mjesta i jačine udaraca te trenutačni MIDI raspored. Pri sviranju izvezenog klipa postavi **SEQ OFF** da ne sviraju istodobno i klip i interni obrazac.
+
+Obrazac, jačina za upis i SEQ ON/OFF spremaju se u projekt. Nova instanca i stari projekti bez sekvencera počinju praznim obrascem. Zatvaranje prozora ne briše obrazac i ne isključuje ga. Stop zaustavlja nove udarce; repovi semplova i reverba mogu prirodno odjeknuti.
+
+MIDI izvoz je standardna datoteka jednog tracka, 960 PPQ, kanal 10, duljine osam beatova. Privremene MIDI datoteke ostaju u OS temp mapi `RaBubanj-MIDI` da ih DAW može naknadno pročitati. Samostalni EXE nema DAW transport za sinkronizaciju sekvencera, ali zadržava preslušavanje padova i MIDI ulaz.
 
 ## Oker konzola i EQ izbornik
 
@@ -15,7 +31,7 @@ Jednobojna oker površina zamjenjuje prijašnju hrđu i ogrebotine. Nazivi koman
 
 ## PITCH, DRIVE i COMP
 
-U panelu uz Reverb nalaze se tri kružna gumba za trenutačno odabrani drum kanal. Klikni Kick za njegove postavke, Snare za njegove i tako redom. Svaki od osam kanala pamti zasebne vrijednosti, uz automatizaciju i spremanje u DAW projektu.
+U panelu uz Reverb nalaze se tri kružna gumba za trenutačno odabrani drum kanal. Klikni PAD 1 za njegove postavke, PAD 2 za njegove i tako redom. Svaki od osam kanala pamti zasebne vrijednosti, uz automatizaciju i spremanje u DAW projektu.
 
 - **PITCH:** −24 do +24 polutona, početno 0. Mijenja visinu, brzinu i trajanje sampla. Promjene tijekom sviranja su zaglađene.
 - **DRIVE:** 0–100% zasićenja, početno 0%. Obrada koristi antialiasing kako bi se smanjila oštrina visokih harmonika.
@@ -45,7 +61,7 @@ Svi mikser, EQ i novi procesorski parametri spremaju se u projekt. Stari projekt
 
 ## MIDI i zvukovi
 
-Zadani raspored prati sve tipke redom, uključujući crne: **C1 Kick (36), C#1 Snare (37), D1 Closed Hat (38), D#1 Open Hat (39), E1 Low Tom (40), F1 High Tom (41), F#1 Crash (42), G1 Ride (43)**. Ovo su Abletonove oznake oktave; u drugim DAW-ovima prati brojeve nota. Prihvaćaju se svi MIDI kanali. Za stare GM klipove klikni gumb **MIDI: C1-G1** u zaglavlju da prijeđe na **MIDI: GM** (stari raspored 36/38/42/46/45/48/49/51 i njegove alias note).
+Zadani raspored prati sve tipke redom: **C1 PAD 1 (36), C#1 PAD 2 (37), D1 PAD 3 (38), D#1 PAD 4 (39), E1 PAD 5 (40), F1 PAD 6 (41), F#1 PAD 7 (42), G1 PAD 8 (43)**. Ovo su Abletonove oznake oktave; u drugim DAW-ovima prati brojeve nota. Prihvaćaju se svi MIDI kanali. Za stare GM klipove klikni gumb **MIDI: C1-G1** u zaglavlju da prijeđe na **MIDI: GM** (stari raspored 36/38/42/46/45/48/49/51 i njegove alias note).
 
 Za sviranje računalnom tipkovnicom u Abletonu uključi njegov computer MIDI keyboard, arm/monitoring trake i postavi početnu oktavu na C1. Na pluginu ostavi **KEYS: DAW** kako bi DAW primao tipke i mogao snimati MIDI. **KEYS: PLUGIN** služi lokalnom preslušavanju tipkama **A W S E D F T G**, redom kroz osam instrumenata, dok prozor ima fokus. Držanje tipke ne ponavlja udarce. Lokalno preslušavanje ne zapisuje MIDI u DAW; tijekom snimanja tipke se prosljeđuju hostu. MIDI kontroler radi u oba načina.
 
