@@ -32,6 +32,10 @@ Solid ochre finish, white command legends, stronger EQ bevels and console-inspir
 
 PAD 1–8 names and larger bold legends, 32×8 sequencer child window, three velocity brushes, write/erase gestures, host PPQ/tempo/transport and loop following, embedded pattern recall, and MIDI pattern file drag-and-drop.
 
+## 0.8 — four patterns and click velocity cycling
+
+Four independent patterns selected from a dropdown, four velocity levels cycled with left-click, right-click/right-drag erasing and PAD labels moved to the left. Old single-pattern projects retain their notes and velocities in Pattern 1.
+
 ## Next: acoustic sample engine
 
 - Load a documented kit manifest with licensed WAV samples, velocity zones, independent round-robin pools, tuning and per-articulation envelopes.

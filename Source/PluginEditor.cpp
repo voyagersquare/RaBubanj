@@ -7,6 +7,8 @@ MixerLookAndFeel::MixerLookAndFeel()
     setColour(juce::TextButton::buttonOnColourId, cyan);
     setColour(juce::TextButton::textColourOffId, ink); setColour(juce::TextButton::textColourOnId, ink);
     setColour(juce::Slider::backgroundColourId, dark); setColour(juce::Slider::thumbColourId, cyan);
+    setColour(juce::ComboBox::backgroundColourId, menuFace); setColour(juce::ComboBox::textColourId, ink);
+    setColour(juce::ComboBox::outlineColourId, axis); setColour(juce::ComboBox::arrowColourId, gold);
     setColour(juce::PopupMenu::backgroundColourId, menuFace); setColour(juce::PopupMenu::textColourId, axis);
     setColour(juce::PopupMenu::highlightedBackgroundColourId, juce::Colour(0xff795e1a));
     setColour(juce::PopupMenu::highlightedTextColourId, ink);

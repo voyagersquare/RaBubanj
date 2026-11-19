@@ -32,12 +32,13 @@ public:
     void getStateInformation(juce::MemoryBlock&) override;
     void setStateInformation(const void*, int) override;
     void audition(int drum) noexcept;
-    rabubanj::StepPattern& getPattern() noexcept { return pattern; }
-    const rabubanj::StepPattern& getPattern() const noexcept { return pattern; }
-    int getSequenceBrush() const noexcept { return sequenceBrush.load(); }
-    void setSequenceBrush(int value) { sequenceBrush.store(juce::jlimit(1, 3, value)); sequenceEdited(); }
+    rabubanj::StepPattern& getPattern() noexcept { return getPattern(getSelectedPattern()); }
+    const rabubanj::StepPattern& getPattern() const noexcept { return getPattern(getSelectedPattern()); }
+    rabubanj::StepPattern& getPattern(int index) noexcept { return patterns[static_cast<size_t>(juce::jlimit(0, 3, index))]; }
+    const rabubanj::StepPattern& getPattern(int index) const noexcept { return patterns[static_cast<size_t>(juce::jlimit(0, 3, index))]; }
+    int getSelectedPattern() const noexcept { return juce::jlimit(0, 3, static_cast<int>(sequencePattern->load())); }
     void sequenceEdited() { updateHostDisplay(ChangeDetails{}.withNonParameterStateChanged(true)); }
-    bool writeSequenceMidi(const juce::File&) const;
+    bool writeSequenceMidi(const juce::File&, int patternIndex = -1) const;
     int getPlayingStep() const noexcept { return playingStep.load(); }
     bool isSequenceHostPlaying() const noexcept { return sequenceHostPlaying.load(); }
     bool hasSequenceHostPosition() const noexcept { return sequenceHostValid.load(); }
@@ -72,11 +73,12 @@ private:
     void hit(int note, float velocity) noexcept;
     void hitDrum(int drum, float velocity) noexcept;
     void resetAudio() noexcept;
-    rabubanj::StepPattern pattern;
-    std::atomic<int> sequenceBrush { 3 }, playingStep { -1 };
+    std::array<rabubanj::StepPattern, 4> patterns;
+    std::atomic<int> playingStep { -1 };
     std::atomic<bool> sequenceHostPlaying { false }, sequenceHostValid { false };
     std::atomic<double> hostBpm { 120 };
     std::atomic<float>* sequenceEnabled = nullptr;
+    std::atomic<float>* sequencePattern = nullptr;
     SampleLoader sampleLoader;
     rabubanj::DrumEngine engine;
     juce::Reverb reverb;

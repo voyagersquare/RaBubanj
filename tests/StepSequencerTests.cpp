@@ -8,7 +8,10 @@ int main()
     rabubanj::StepPattern pattern;
     require(pattern.get(0, 0) == 0 && pattern.set(0, 0, 3) && !pattern.set(0, 0, 3), "pattern edits must be bounded and idempotent");
     require(!pattern.set(-1, 0, 1) && !pattern.set(0, 32, 1), "invalid cells must be ignored");
-    pattern.set(7, 31, 100); require(pattern.snapshot()[255] == 3, "strength must clamp to three levels");
+    pattern.set(7, 31, 100); require(pattern.snapshot()[255] == 4, "strength must clamp to four levels");
+    pattern.set(1, 1, 0);
+    for (int expected : { 4, 3, 2, 1, 4 }) require(pattern.cycle(1, 1) == expected, "left-click velocity cycle must wrap without erasing");
+    require(pattern.cycle(-1, 0) == 0, "invalid cycle coordinates must be ignored");
     for (double rate : { 44100.0, 48000.0, 96000.0 }) for (double bpm : { 61.1, 93.0, 127.35, 199.99 }) for (int block : { 37, 511, 1024 })
     {
         const auto spq = rate*60/bpm; const auto total = static_cast<int>(std::floor(spq*16));
@@ -37,5 +40,5 @@ int main()
     host.ppq = -.25; rabubanj::SequenceCursor negative(host, 48000, 7000); require(negative.next(e) && e.offset == 0 && e.step == 31 && negative.next(e) && e.offset == 6000 && e.step == 0, "negative pre-roll must retain modulo phase");
     host.playing = false; rabubanj::SequenceCursor stopped(host, 48000, 1024); require(!stopped.next(e) && stopped.currentStep() == -1, "stopped DAW must not schedule notes");
     host.valid = false; host.playing = true; rabubanj::SequenceCursor missing(host, 48000, 1024); require(!missing.next(e), "missing host position must not run a free clock");
-    std::cout << "32-step phase, three velocities, fractional tempo/block boundaries, loop wrapping, seek, pre-roll and stopped transport passed.\n";
+    std::cout << "32-step phase, four velocities, fractional tempo/block boundaries, loop wrapping, seek, pre-roll and stopped transport passed.\n";
 }

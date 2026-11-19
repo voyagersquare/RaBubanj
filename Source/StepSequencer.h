@@ -11,18 +11,25 @@ class StepPattern
 public:
     static constexpr int rows = 8, steps = 32;
     using Snapshot = std::array<uint8_t, rows*steps>;
-    inline static constexpr std::array<int, 4> velocities { 0, 48, 88, 127 };
+    inline static constexpr std::array<int, 5> velocities { 0, 32, 48, 88, 127 };
     uint8_t get(int row, int step) const noexcept { return valid(row, step) ? cells[static_cast<size_t>(row*steps+step)].load() : 0; }
     bool set(int row, int step, int strength) noexcept
     {
         if (!valid(row, step)) return false;
-        const auto value = static_cast<uint8_t>(std::clamp(strength, 0, 3));
+        const auto value = static_cast<uint8_t>(std::clamp(strength, 0, 4));
         return cells[static_cast<size_t>(row*steps+step)].exchange(value) != value;
+    }
+    int cycle(int row, int step) noexcept
+    {
+        if (!valid(row, step)) return 0;
+        auto& cell = cells[static_cast<size_t>(row*steps+step)]; auto current = cell.load(); uint8_t next;
+        do { next = current <= 1 ? 4 : static_cast<uint8_t>(current-1); } while (!cell.compare_exchange_weak(current, next));
+        return next;
     }
     Snapshot snapshot() const noexcept
     { Snapshot result {}; for (size_t i = 0; i < result.size(); ++i) result[i] = cells[i].load(); return result; }
     void replace(const Snapshot& pattern) noexcept
-    { for (size_t i = 0; i < pattern.size(); ++i) cells[i].store(std::min<uint8_t>(3, pattern[i])); }
+    { for (size_t i = 0; i < pattern.size(); ++i) cells[i].store(std::min<uint8_t>(4, pattern[i])); }
 private:
     static bool valid(int row, int step) noexcept { return row >= 0 && row < rows && step >= 0 && step < steps; }
     std::array<std::atomic<uint8_t>, rows*steps> cells {};

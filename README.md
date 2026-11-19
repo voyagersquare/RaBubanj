@@ -1,27 +1,28 @@
-# RaBubanj 0.7.0
+# RaBubanj 0.8.0
 
 Windows x64 VST3 and standalone drum sample instrument by Voyagersquare, with a solid ochre console-style mixer, per-channel processing and a shared stereo Reverb. Portable ZIP, without an installer.
 
-**[Preuzmi RaBubanj 0.7 za Windows x64 — ZIP bez instalera](https://github.com/voyagersquare/RaBubanj/actions/runs/44511975184/artifacts/14524047762)**
-
-Windows build, svih devet testnih skupova i pluginval strictness 5 prolaze.
+Windows 0.8 package links will be added after native validation.
 
 [Windows instructions in Croatian](docs/WINDOWS-HR.md) · [Validation](VALIDATION.md)
 
-![RaBubanj 0.7 PAD mixer and spectrum displays](docs/preview.png)
+![RaBubanj 0.8 PAD mixer and spectrum displays](docs/preview.png)
 
-## New in 0.7
+## Step sequencer 0.8
 
-- The eight sound strips are **PAD 1–PAD 8**, including channel EQ and the selected Pitch/Drive/Comp panel. Existing source assignments, sample filenames and parameter IDs are retained. Pad names and control legends use larger bold type; Reverb/master return labels span two lines for readability.
-- **STEP SEQ** opens a dedicated floating child window inside the plugin. It has **32 sixteenth-note steps × 8 rows**, with PAD labels on the right. One pattern is two bars in 4/4.
-- Choose **SLABA**, **SREDNJA** or **JAKA** (MIDI velocities **48 / 88 / 127**), then **right-click** to write steps. **Left-click** erases; hold and drag left to erase multiple cells. Fast drags also erase intervening cells.
-- **SEQ ON** follows DAW tempo, playback position and Play/Stop. The playhead is derived from host PPQ on each block, including seeks and host loop boundaries. **Space stays with the DAW transport** in both mixer and sequencer views. There is no competing local clock or local Play button.
-- Drag **DRAG MIDI** onto a DAW MIDI track to create a two-bar MIDI clip. The file preserves step positions, the three velocities and the active chromatic/GM mapping. Switch **SEQ OFF** when playing that exported clip to avoid playing both the internal pattern and the clip.
-- Pattern, brush strength and sequencer enable are saved with DAW state. Older projects restore a blank pattern. New instances also start blank.
+- **STEP SEQ** opens a floating child window with **32 sixteenth-note steps × 8 rows**. **PAD 1–PAD 8 labels are on the left.** One pattern is two bars in 4/4.
+- **Left-click** an empty cell to write the strongest hit. Repeated clicks on the same cell cycle **127 → 88 → 48 → 32 → 127**. Right-click is the only erase action; cycling never deletes a note.
+- **Right-click** erases. Hold and drag the right button to erase several cells, including intervening cells during fast drags. Left-drag does not cycle or paint additional cells.
+- The SLABA/SREDNJA/JAKA brush buttons are removed. Cell bar height and brightness show the four strengths.
+- The **Pattern 1–Pattern 4 dropdown** chooses one of four independent patterns. Selection changes playback at the next audio block while retaining DAW phase. All four patterns and the selected pattern are saved in the project.
+- **SEQ ON** follows DAW tempo, playback position, Play/Stop and host loops. **Space stays with the DAW transport.** There is no competing local clock.
+- Drag **DRAG MIDI** into a DAW MIDI track to export the **selected pattern**, including all four velocities and the current chromatic/GM note mapping. Switch **SEQ OFF** when playing the exported clip to avoid doubled hits.
 
 ![Sequencer demonstration pattern](docs/sequencer.png)
 
-The sequencer uses standard host transport information and requires an active DAW audio engine with the instrument track monitored. Standalone playback still supports pad audition and external MIDI, but does not supply a DAW transport for the internal sequencer. One-shot and Reverb tails can decay after Stop; no new sequencer hits are generated while stopped. MIDI export is file drag-and-drop, not live MIDI output routing. Exports use one type-0 track, 960 PPQ, channel 10, a 1/32-note gate and an explicit 8-beat end marker. Export files remain in the OS temporary `RaBubanj-MIDI` folder so the host can read them after the drop.
+New instances have four blank patterns. Loading a 0.7 project moves its old pattern into **Pattern 1**, preserving the actual MIDI velocities 48/88/127; Patterns 2–4 remain blank. Projects from before the sequencer restore all patterns blank. Closing the sequencer window does not erase or disable the pattern.
+
+The sequencer requires an active DAW audio engine and a monitored instrument track. Standalone supports pad audition/external MIDI but supplies no DAW transport for the sequencer. One-shot and Reverb tails may decay after Stop. MIDI export uses one type-0 track, 960 PPQ, channel 10, a 1/32-note gate and an explicit 8-beat end marker. Export files remain in the OS temporary `RaBubanj-MIDI` folder for deferred host reading.
 
 ## Console and EQ workflow
 
@@ -106,7 +107,7 @@ GitHub Actions builds both targets, runs the DSP tests, and validates the VST3 w
 
 A full build runs nine suites: drum engine/pitch, parametric EQ, legacy source regression, processor MIDI/state, mixer/editor, sample import/recall, channel colour/spectrum, sequencer timing and sequencer/MIDI/editor integration. The colour/spectrum suite checks neutral bypass, compressor calibration and stereo linking, saturation harmonics, exact pitch-rate conversion, FFT frequency/dBFS calibration, anti-phase stereo, decay, concurrent buffers, real processor taps and state recall. UI tests cover name meters without triggering, yellow PLAY buttons, curve/gain menu actions and cancellation, per-channel knob binding and minimum/default/maximum bounds.
 
-`mixer_tests <absolute-directory>` exports actual JUCE editor snapshots. `sequencer_integration_tests <absolute-directory>` exports sequencer and window previews using a demonstration pattern and simulated host transport. Sequencer coverage includes fractional-BPM/block-boundary accuracy, loops inside a block, start/stop, seeks, pre-roll, same-offset panic, MIDI file parsing, mouse painting/erasing, state recall and Space forwarding. Native Windows CI also runs pluginval strictness 5 before packaging.
+`mixer_tests <absolute-directory>` exports actual JUCE editor snapshots. `sequencer_integration_tests <absolute-directory>` exports sequencer and window previews using a demonstration pattern and simulated host transport. Sequencer coverage includes fractional-BPM/block-boundary accuracy, loops inside a block, start/stop, seeks, pre-roll, same-offset panic, MIDI file parsing, click velocity cycling, right-drag erasing, four-pattern recall/migration and Space forwarding. Native Windows CI also runs pluginval strictness 5 before packaging.
 
 ## License
 

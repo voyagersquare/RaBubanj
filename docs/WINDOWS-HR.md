@@ -1,6 +1,6 @@
-# RaBubanj 0.7.0 — Windows x64, bez instalera
+# RaBubanj 0.8.0 — Windows x64, bez instalera
 
-1. Preuzmi ZIP `RaBubanj-0.7.0-Windows-x64` iz uspješnog GitHub Actions builda i raspakiraj ga.
+1. Preuzmi ZIP `RaBubanj-0.8.0-Windows-x64` iz uspješnog GitHub Actions builda i raspakiraj ga.
 2. Zatvori DAW i kopiraj cijelu mapu **RaBubanj.vst3** u `C:\Program Files\Common Files\VST3\`. Zamijeni cijeli prethodni paket.
 3. Ponovno skeniraj VST3 instrumente u 64-bitnom DAW-u, dodaj RaBubanj na MIDI traku i uključi arm/monitoring.
 4. `RaBubanj.exe` je samostalna aplikacija, bez instalera; u njoj odaberi audio i MIDI uređaj.
@@ -11,15 +11,16 @@ Osam zvučnih kanala sada su **PAD 1–PAD 8**. Isti nazivi prikazuju se u kanal
 
 ## Step sekvencer
 
-1. Klikni **STEP SEQ** u zaglavlju. Otvara se pomični prozor unutar plugina, s **32 koraka i 8 redova**. Desno su PAD 1–PAD 8. Koraci su šesnaestinke; cijeli obrazac traje dva takta u 4/4.
-2. Odaberi **SLABA / SREDNJA / JAKA** (MIDI velocity **48 / 88 / 127**).
-3. **Desni klik upisuje korak. Lijevi klik briše.** Drži lijevu tipku i povlači za brisanje više koraka. I pri brzom povlačenju brišu se koraci između dvaju položaja miša.
-4. Ostavi **SEQ ON** i pokreni DAW razmaknicom. Sekvencer prati njegov tempo, položaj pjesme, Play/Stop i loop. Razmaknica se prosljeđuje DAW-u; nema zasebnog lokalnog sata ni Play tipke. Instrument traka mora imati uključen monitoring/arm i aktivan audio engine.
-5. Povuci **DRAG MIDI** na MIDI traku u DAW-u. Izvezeni klip ima ista mjesta i jačine udaraca te trenutačni MIDI raspored. Pri sviranju izvezenog klipa postavi **SEQ OFF** da ne sviraju istodobno i klip i interni obrazac.
+1. Klikni **STEP SEQ**. Prozor ima **32 koraka i 8 redova**, s oznakama **PAD 1–PAD 8 lijevo**. Koraci su šesnaestinke; obrazac traje dva takta u 4/4.
+2. U padajućem izborniku odaberi **Pattern 1, Pattern 2, Pattern 3 ili Pattern 4**. Svaki pamti zasebne korake. Promjena se čuje od sljedećeg audio bloka i zadržava položaj prema DAW-u.
+3. **Lijevi klik upisuje najjači udarac.** Na istoj noti drugi klik daje srednji, treći slabiji, četvrti najslabiji, a peti ponovno najjači udarac: **127 → 88 → 48 → 32 → 127**. Jačina se vidi po visini i svjetlini ispunjenog polja. Gumbi SLABA/SREDNJA/JAKA su uklonjeni.
+4. **Desni klik briše korak.** Drži desnu tipku i povlači za brisanje više koraka. Brzo povlačenje briše i korake između položaja miša. Lijevo povlačenje ne upisuje dodatne note.
+5. Uz **SEQ ON**, DAW razmaknicom pokrećeš kao i prije. Sekvencer prati njegov tempo, položaj, Play/Stop i loop. Uključi monitoring/arm instrument trake i audio engine DAW-a.
+6. Povuci **DRAG MIDI** na MIDI traku za izvoz odabranog patterna. Izvezeni klip zadržava sve četiri jačine i trenutačni MIDI raspored. Pri sviranju izvezenog klipa postavi **SEQ OFF** da ne sviraju istodobno klip i interni obrazac.
 
-Obrazac, jačina za upis i SEQ ON/OFF spremaju se u projekt. Nova instanca i stari projekti bez sekvencera počinju praznim obrascem. Zatvaranje prozora ne briše obrazac i ne isključuje ga. Stop zaustavlja nove udarce; repovi semplova i reverba mogu prirodno odjeknuti.
+Sva četiri patterna, odabrani pattern i SEQ ON/OFF spremaju se u projekt. Novi plugin počinje četirima praznim patternima. Pri otvaranju projekta iz 0.7 njegov obrazac prelazi u Pattern 1 uz očuvane stare jačine 48/88/127, dok ostali ostaju prazni. Stariji projekti bez sekvencera također se otvaraju prazni. Zatvaranje prozora ne briše obrazac niti ga isključuje. Stop zaustavlja nove udarce; repovi semplova i reverba mogu prirodno odjeknuti.
 
-MIDI izvoz je standardna datoteka jednog tracka, 960 PPQ, kanal 10, duljine osam beatova. Privremene MIDI datoteke ostaju u OS temp mapi `RaBubanj-MIDI` da ih DAW može naknadno pročitati. Samostalni EXE nema DAW transport za sinkronizaciju sekvencera, ali zadržava preslušavanje padova i MIDI ulaz.
+MIDI izvoz je datoteka jednog tracka, 960 PPQ, kanal 10, duljine osam beatova. Privremene datoteke ostaju u OS temp mapi `RaBubanj-MIDI`. Samostalni EXE nema DAW transport za sekvencer, ali zadržava preslušavanje padova i vanjski MIDI ulaz.
 
 ## Oker konzola i EQ izbornik
 

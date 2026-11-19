@@ -56,6 +56,8 @@ juce::AudioProcessorValueTreeState::ParameterLayout RaBubanjProcessor::makeParam
         addFloat("comp"+id, name+" Compression", { 0.0f, 1.0f, .001f }, 0);
     }
     addBool("seqEnabled", "Step Sequencer Enabled", true);
+    layout.add(std::make_unique<juce::AudioParameterChoice>(juce::ParameterID { "seqPattern", 1 }, "Sequencer Pattern",
+        juce::StringArray { "Pattern 1", "Pattern 2", "Pattern 3", "Pattern 4" }, 0));
     return layout;
 }
 
@@ -89,6 +91,7 @@ RaBubanjProcessor::RaBubanjProcessor()
     }
     for (auto& tap : spectrumTaps) tap = std::make_unique<rabubanj::SpectrumTap>();
     sequenceEnabled = parameters.getRawParameterValue("seqEnabled");
+    sequencePattern = parameters.getRawParameterValue("seqPattern");
     midiMapParam = parameters.getRawParameterValue("midiMap");
     sampleLoader.onChange = [this] { triggerAsyncUpdate(); };
     masterParam = parameters.getRawParameterValue("master"); roomParam = parameters.getRawParameterValue("room");
@@ -184,7 +187,7 @@ void RaBubanjProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
     if (std::isfinite(transport.bpm) && transport.bpm >= 1 && transport.bpm <= 1000) hostBpm.store(transport.bpm);
     if (sequenceEnabled->load() < .5f) transport.playing = false;
     rabubanj::SequenceCursor sequence(transport, displaySampleRate.load(), samples);
-    playingStep.store(sequence.currentStep()); const auto steps = pattern.snapshot();
+    playingStep.store(sequence.currentStep()); const auto steps = getPattern().snapshot();
     rabubanj::SequenceCursor::Event nextStep; bool haveStep = sequence.next(nextStep);
     for (int drum = 0; drum < rabubanj::drumCount; ++drum)
     {
@@ -302,14 +305,18 @@ void RaBubanjProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
 void RaBubanjProcessor::getStateInformation(juce::MemoryBlock& destination)
 {
     auto state = parameters.copyState();
-    state.setProperty("schemaVersion", 6, nullptr);
+    state.setProperty("schemaVersion", 7, nullptr);
     state.setProperty("localKeys", localKeyboard.load(), nullptr);
     if (auto oldSamples = state.getChildWithName("SAMPLES"); oldSamples.isValid()) state.removeChild(oldSamples, nullptr);
     state.addChild(sampleLoader.save(), -1, nullptr); state.setProperty("selectedChannel", selectedChannel.load(), nullptr);
     if (auto old = state.getChildWithName("SEQUENCER"); old.isValid()) state.removeChild(old, nullptr);
-    juce::ValueTree sequenceState("SEQUENCER"); juce::String cells;
-    for (auto cell : pattern.snapshot()) cells += juce::String(static_cast<int>(cell));
-    sequenceState.setProperty("cells", cells, nullptr); sequenceState.setProperty("brush", sequenceBrush.load(), nullptr);
+    juce::ValueTree sequenceState("SEQUENCER");
+    for (int index = 0; index < 4; ++index)
+    {
+        juce::ValueTree item("PATTERN"); juce::String cells;
+        for (auto cell : getPattern(index).snapshot()) cells += juce::String(static_cast<int>(cell));
+        item.setProperty("index", index, nullptr); item.setProperty("cells", cells, nullptr); sequenceState.addChild(item, -1, nullptr);
+    }
     state.addChild(sequenceState, -1, nullptr);
     if (auto xml = state.createXml()) copyXmlToBinary(*xml, destination);
 }
@@ -345,20 +352,36 @@ void RaBubanjProcessor::setStateInformation(const void* data, int size)
             localKeyboard.store(static_cast<bool>(state.getProperty("localKeys", false)));
             parameters.replaceState(state);
             sampleLoader.restore(state.getChildWithName("SAMPLES"));
-            const auto sequenceState = state.getChildWithName("SEQUENCER"); const auto cells = sequenceState.getProperty("cells").toString();
-            rabubanj::StepPattern::Snapshot restoredSteps {};
-            if (cells.length() == 256) for (int i = 0; i < 256; ++i)
-            { const auto c = cells[i]; restoredSteps[static_cast<size_t>(i)] = static_cast<uint8_t>(c >= '0' && c <= '3' ? c-'0' : 0); }
-            pattern.replace(restoredSteps); sequenceBrush.store(juce::jlimit(1, 3, static_cast<int>(sequenceState.getProperty("brush", 3))));
+            const auto sequenceState = state.getChildWithName("SEQUENCER");
+            for (auto& pattern : patterns) pattern.replace({});
+            auto readCells = [](const juce::String& cells, bool legacy)
+            {
+                rabubanj::StepPattern::Snapshot result {};
+                if (cells.length() == 256) for (int i = 0; i < 256; ++i)
+                {
+                    const auto c = cells[i];
+                    if (c >= '0' && c <= (legacy ? '3' : '4'))
+                    { const auto value = static_cast<uint8_t>(c-'0'); result[static_cast<size_t>(i)] = legacy && value > 0 ? static_cast<uint8_t>(value+1) : value; }
+                }
+                return result;
+            };
+            if (static_cast<int>(state.getProperty("schemaVersion", 1)) < 7)
+                getPattern(0).replace(readCells(sequenceState.getProperty("cells").toString(), true));
+            else for (const auto& item : sequenceState)
+            {
+                const auto index = static_cast<int>(item.getProperty("index", -1));
+                if (index >= 0 && index < 4) getPattern(index).replace(readCells(item.getProperty("cells").toString(), false));
+            }
         }
 }
-bool RaBubanjProcessor::writeSequenceMidi(const juce::File& file) const
+bool RaBubanjProcessor::writeSequenceMidi(const juce::File& file, int patternIndex) const
 {
     juce::MidiMessageSequence track;
-    track.addEvent(juce::MidiMessage::textMetaEvent(3, "RaBubanj / 32 steps"), 0);
+    const auto selected = patternIndex < 0 ? getSelectedPattern() : juce::jlimit(0, 3, patternIndex);
+    track.addEvent(juce::MidiMessage::textMetaEvent(3, "RaBubanj / Pattern "+juce::String(selected+1)+" / 32 steps"), 0);
     track.addEvent(juce::MidiMessage::tempoMetaEvent(juce::roundToInt(60000000.0/getHostBpm())), 0);
     track.addEvent(juce::MidiMessage::timeSignatureMetaEvent(4, 4), 0);
-    const auto cells = pattern.snapshot(); const bool gm = midiMapParam->load() >= .5f;
+    const auto cells = getPattern(selected).snapshot(); const bool gm = midiMapParam->load() >= .5f;
     for (int row = 0; row < 8; ++row) for (int step = 0; step < 32; ++step)
     {
         const auto strength = cells[static_cast<size_t>(row*32+step)]; if (strength == 0) continue;

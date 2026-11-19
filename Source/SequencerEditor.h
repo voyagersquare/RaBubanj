@@ -17,7 +17,7 @@ private:
     void stroke(juce::Point<int>);
     RaBubanjProcessor& processor;
     juce::Point<int> last { -1, -1 };
-    int editValue = 0;
+    int editPattern = 0;
     bool drawing = false, changed = false;
 };
 class MidiPatternDrag final : public juce::TextButton
@@ -43,9 +43,10 @@ private:
     RaBubanjProcessor& processor;
     StepGrid grid;
     juce::TextButton enabled { "SEQ ON" };
-    std::array<juce::TextButton, 3> velocity;
+    juce::ComboBox patternChoice;
     MidiPatternDrag midiDrag;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> enabledAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> patternAttachment;
 };
 // Child window keeps keyboard focus within the VST3 view so unhandled Space reaches the host.
 class SequencerWindow final : public juce::DocumentWindow

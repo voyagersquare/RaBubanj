@@ -51,7 +51,7 @@ public:
     void drawLinearSlider(juce::Graphics&, int, int, int, int, float, float, float, juce::Slider::SliderStyle, juce::Slider&) override;
     juce::Font getComboBoxFont(juce::ComboBox&) override
     {
-        return juce::Font(juce::FontOptions(14.0f));
+        return juce::Font(juce::FontOptions(14.0f)).boldened();
     }
     juce::Label* createSliderTextBox(juce::Slider& s) override
     {
