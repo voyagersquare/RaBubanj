@@ -28,7 +28,7 @@ void MixerLookAndFeel::drawDocumentWindowTitleBar(juce::DocumentWindow& window, 
 void MixerLookAndFeel::drawButtonBackground(juce::Graphics& g, juce::Button& button, const juce::Colour& colour, bool hover, bool down)
 {
     const bool previewLit = button.getName().startsWith("Preview ") && (down || static_cast<bool>(button.getProperties()["previewLit"]));
-    auto base = button.getName() == "Close sequencer" ? juce::Colour(hover ? 0xffec5951 : 0xffbd3832) : previewLit ? juce::Colour(0xffffd454) : juce::Colour(0xff444841).brighter(hover ? .13f : 0.0f);
+    auto base = button.getName().startsWith("Close ") ? juce::Colour(hover ? 0xffec5951 : 0xffbd3832) : previewLit ? juce::Colour(0xffffd454) : juce::Colour(0xff444841).brighter(hover ? .13f : 0.0f);
     if (!previewLit && button.getToggleState()) base = base.interpolatedWith(colour, .35f);
     const auto bounds = button.getLocalBounds().toFloat();
     g.setColour(juce::Colour(0xff302c20)); g.fillRoundedRectangle(bounds, 2);

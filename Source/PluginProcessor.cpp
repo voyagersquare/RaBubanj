@@ -186,9 +186,10 @@ void RaBubanjProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
     sequenceHostPlaying.store(transport.playing); sequenceHostValid.store(transport.valid);
     if (std::isfinite(transport.bpm) && transport.bpm >= 1 && transport.bpm <= 1000) hostBpm.store(transport.bpm);
     if (sequenceEnabled->load() < .5f) transport.playing = false;
-    rabubanj::SequenceCursor sequence(transport, displaySampleRate.load(), samples);
-    playingStep.store(sequence.currentStep()); const auto steps = getPattern().snapshot();
-    rabubanj::SequenceCursor::Event nextStep; bool haveStep = sequence.next(nextStep);
+    rabubanj::SequenceCursor playhead(transport, displaySampleRate.load(), samples);
+    playingStep.store(playhead.currentStep()); const auto steps = getPattern().timedSnapshot();
+    rabubanj::NoteSequenceCursor sequence(transport, displaySampleRate.load(), samples, steps);
+    rabubanj::NoteSequenceCursor::Event nextStep; bool haveStep = sequence.next(nextStep);
     for (int drum = 0; drum < rabubanj::drumCount; ++drum)
     {
         engine.setPreset(drum, legacySource(drum));
@@ -284,11 +285,7 @@ void RaBubanjProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
         while (haveStep && nextStep.offset < end)
         {
             renderSegment(cursor, nextStep.offset-cursor); cursor = nextStep.offset;
-            for (int row = 0; row < 8; ++row)
-            {
-                const auto strength = steps[static_cast<size_t>(row*32+nextStep.step)];
-                if (strength > 0) hitDrum(row, static_cast<float>(rabubanj::StepPattern::velocities[strength])/127);
-            }
+            hitDrum(nextStep.row, static_cast<float>(rabubanj::StepPattern::velocities[static_cast<size_t>(nextStep.strength)])/127);
             haveStep = sequence.next(nextStep);
         }
     };
@@ -308,7 +305,7 @@ void RaBubanjProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
 void RaBubanjProcessor::getStateInformation(juce::MemoryBlock& destination)
 {
     auto state = parameters.copyState();
-    state.setProperty("schemaVersion", 7, nullptr);
+    state.setProperty("schemaVersion", 8, nullptr);
     state.setProperty("localKeys", localKeyboard.load(), nullptr);
     if (auto oldSamples = state.getChildWithName("SAMPLES"); oldSamples.isValid()) state.removeChild(oldSamples, nullptr);
     state.addChild(sampleLoader.save(), -1, nullptr); state.setProperty("selectedChannel", selectedChannel.load(), nullptr);
@@ -316,9 +313,9 @@ void RaBubanjProcessor::getStateInformation(juce::MemoryBlock& destination)
     juce::ValueTree sequenceState("SEQUENCER");
     for (int index = 0; index < 4; ++index)
     {
-        juce::ValueTree item("PATTERN"); juce::String cells;
-        for (auto cell : getPattern(index).snapshot()) cells += juce::String(static_cast<int>(cell));
-        item.setProperty("index", index, nullptr); item.setProperty("cells", cells, nullptr); sequenceState.addChild(item, -1, nullptr);
+        juce::ValueTree item("PATTERN"); juce::String cells; juce::StringArray timing;
+        for (auto cell : getPattern(index).timedSnapshot()) { cells += juce::String(static_cast<int>(cell.strength)); timing.add(juce::String(static_cast<int>(cell.timing))); }
+        item.setProperty("index", index, nullptr); item.setProperty("cells", cells, nullptr); item.setProperty("timing", timing.joinIntoString(","), nullptr); sequenceState.addChild(item, -1, nullptr);
     }
     state.addChild(sequenceState, -1, nullptr);
     if (auto xml = state.createXml()) copyXmlToBinary(*xml, destination);
@@ -373,7 +370,15 @@ void RaBubanjProcessor::setStateInformation(const void* data, int size)
             else for (const auto& item : sequenceState)
             {
                 const auto index = static_cast<int>(item.getProperty("index", -1));
-                if (index >= 0 && index < 4) getPattern(index).replace(readCells(item.getProperty("cells").toString(), false));
+                if (index >= 0 && index < 4)
+                {
+                    auto& pattern = getPattern(index); pattern.replace(readCells(item.getProperty("cells").toString(), false));
+                    if (static_cast<int>(state.getProperty("schemaVersion", 1)) >= 8)
+                    {
+                        const auto timing = juce::StringArray::fromTokens(item.getProperty("timing").toString(), ",", "");
+                        if (timing.size() == 256) for (int cell = 0; cell < 256; ++cell) pattern.setTiming(cell/32, cell%32, timing[cell].getIntValue());
+                    }
+                }
             }
         }
 }
@@ -384,13 +389,14 @@ bool RaBubanjProcessor::writeSequenceMidi(const juce::File& file, int patternInd
     track.addEvent(juce::MidiMessage::textMetaEvent(3, "RaBubanj / Pattern "+juce::String(selected+1)+" / 32 steps"), 0);
     track.addEvent(juce::MidiMessage::tempoMetaEvent(juce::roundToInt(60000000.0/getHostBpm())), 0);
     track.addEvent(juce::MidiMessage::timeSignatureMetaEvent(4, 4), 0);
-    const auto cells = getPattern(selected).snapshot(); const bool gm = midiMapParam->load() >= .5f;
+    const auto cells = getPattern(selected).timedSnapshot(); const bool gm = midiMapParam->load() >= .5f;
     for (int row = 0; row < 8; ++row) for (int step = 0; step < 32; ++step)
     {
-        const auto strength = cells[static_cast<size_t>(row*32+step)]; if (strength == 0) continue;
+        const auto cell = cells[static_cast<size_t>(row*32+step)]; const auto strength = cell.strength; if (strength == 0) continue;
         const auto note = (gm ? rabubanj::gmNotes : rabubanj::notes)[static_cast<size_t>(row)];
-        track.addEvent(juce::MidiMessage::noteOn(10, note, static_cast<juce::uint8>(rabubanj::StepPattern::velocities[strength])), step*240);
-        track.addEvent(juce::MidiMessage::noteOff(10, note), step*240+120);
+        auto time = step*240+static_cast<double>(cell.timing)*2.4; if (time < 0) time += 7680;
+        track.addEvent(juce::MidiMessage::noteOn(10, note, static_cast<juce::uint8>(rabubanj::StepPattern::velocities[strength])), time);
+        track.addEvent(juce::MidiMessage::noteOff(10, note), std::min(7680.0, time+120));
     }
     track.addEvent(juce::MidiMessage::endOfTrack(), 7680); track.updateMatchedPairs();
     juce::MidiFile midi; midi.setTicksPerQuarterNote(960); midi.addTrack(track);

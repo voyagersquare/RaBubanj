@@ -1,29 +1,34 @@
-# RaBubanj 0.9.0
+# RaBubanj 0.10.0
 
 Windows x64 VST3 and standalone drum sample instrument by Voyagersquare, with a solid ochre console-style mixer, per-channel processing and a shared stereo Reverb. Portable ZIP, without an installer.
 
-[Download Windows x64 ZIP](https://github.com/voyagersquare/RaBubanj/actions/runs/44522898276/artifacts/14528842411) · [Passed Windows build and validation](https://github.com/voyagersquare/RaBubanj/actions/runs/44522898276). Artifacts are retained for 30 days and may require GitHub sign-in.
+Windows 0.10 package links will be added after native validation.
 
 [Windows instructions in Croatian](docs/WINDOWS-HR.md) · [Validation](VALIDATION.md)
 
-![RaBubanj 0.9 PAD mixer and spectrum displays](docs/preview.png)
+![RaBubanj 0.10 PAD mixer and spectrum displays](docs/preview.png)
 
-## Step sequencer 0.9
+## Step sequencer 0.10
 
 - **STEP SEQ** toggles a floating child window; click it again or the **red X** to hide the window. It has **32 sixteenth-note steps × 8 rows**. **PAD 1–PAD 8 labels are on the left.** One pattern is two bars in 4/4.
 - **Left-click** an empty cell to write the strongest hit. Repeated clicks on the same cell cycle **127 → 88 → 48 → 32 → 127**. Right-click is the only erase action; cycling never deletes a note.
-- **Right-click** erases. Hold and drag the right button to erase several cells, including intervening cells during fast drags. Left-drag does not cycle or paint additional cells.
+- **Right-click** erases. Hold and drag the right button to erase several cells, including intervening cells during fast drags. **Hold and drag left** to write strongest notes into empty cells, including intervening cells in fast strokes. Existing notes keep their velocity and timing; revisiting them does not cycle them.
+- **Hold a note for 650 ms without moving** to open its dark **TIMING** slider. Choose **−50% to +50% of a sixteenth-note step**; negative is earlier, positive is later, and 0% is on the grid. The readout also shows milliseconds at the current DAW tempo. Double-click the slider to reset to 0. A long press preserves note velocity; a long press on an empty cell creates a strong note. Click the grid or X to dismiss. A small cyan/orange mark identifies shifted notes.
 - Click a **PAD label on the left** to select and audition its current sample once. The selected PAD label is brighter and updates the main channel selection. Clicking grid cells keeps the existing four-strength editing workflow.
 - A larger window includes a **live selected-pad waveform** below the grid. It shows approximately one second of stereo peak envelopes after Pitch/Drive/Comp/EQ, before level/pan. Both stereo sides are included, so opposite-phase audio remains visible. Select another PAD label to clear the view and follow that sound; incoming MIDI, pad audition and sequence hits all appear. Imported sample filenames remain on the mixer strips.
 - Alternating four-step groups have a brighter light background for clearer beat divisions.
 - The SLABA/SREDNJA/JAKA brush buttons are removed. Cell bar height and brightness show the four strengths.
-- The **Pattern 1–Pattern 4 dropdown** chooses one of four independent patterns. Selection changes playback at the next audio block while retaining DAW phase. All four patterns and the selected pattern are saved in the project.
+- The **Pattern 1–Pattern 4 dropdown** chooses one of four independent patterns. Selection changes playback at the next audio block while retaining DAW phase. All four patterns, their per-note timing offsets and the selected pattern are saved in the project.
 - **SEQ ON** follows DAW tempo, playback position, Play/Stop and host loops. **Space stays with the DAW transport.** There is no competing local clock.
-- Drag **DRAG MIDI** into a DAW MIDI track to export the **selected pattern**, including all four velocities and the current chromatic/GM note mapping. Switch **SEQ OFF** when playing the exported clip to avoid doubled hits.
+- Drag **DRAG MIDI** into a DAW MIDI track to export the **selected pattern**, including all four velocities, individual timing shifts and the current chromatic/GM note mapping. Switch **SEQ OFF** when playing the exported clip to avoid doubled hits.
 
 ![Sequencer demonstration pattern](docs/sequencer.png)
 
-New instances have four blank patterns. Loading a 0.7 project moves its old pattern into **Pattern 1**, preserving the actual MIDI velocities 48/88/127; Patterns 2–4 remain blank. Projects from before the sequencer restore all patterns blank. Closing the sequencer window does not erase or disable the pattern.
+[Per-note timing slider preview](docs/note-timing.png).
+
+New instances have four blank patterns. Loading a 0.7 project moves its old pattern into **Pattern 1**, preserving the actual MIDI velocities 48/88/127; Patterns 2–4 remain blank. Projects from before the sequencer restore all patterns blank. 0.8/0.9 projects retain all four patterns with zero timing offsets. Closing the sequencer window does not erase or disable the pattern.
+
+Timing shifts follow tempo as a percentage of one step. At 120 BPM the range is ±62.5 ms. Early notes at step 1 wrap to the end of the two-bar pattern; they cannot sound before the DAW starts. Host-loop boundary notes are shifted around the host loop itself, including shorter/non-grid loops. An exported MIDI clip wraps early step-1 notes to its end and keeps its exact eight-beat length.
 
 The sequencer requires an active DAW audio engine and a monitored instrument track. Standalone supports pad audition/external MIDI but supplies no DAW transport for the sequencer. One-shot and Reverb tails may decay after Stop. MIDI export uses one type-0 track, 960 PPQ, channel 10, a 1/32-note gate and an explicit 8-beat end marker. Export files remain in the OS temporary `RaBubanj-MIDI` folder for deferred host reading.
 
@@ -110,7 +115,7 @@ GitHub Actions builds both targets, runs the DSP tests, and validates the VST3 w
 
 A full build runs nine suites: drum engine/pitch, parametric EQ, legacy source regression, processor MIDI/state, mixer/editor, sample import/recall, channel colour/spectrum, sequencer timing and sequencer/MIDI/editor integration. The colour/spectrum suite checks neutral bypass, compressor calibration and stereo linking, saturation harmonics, exact pitch-rate conversion, FFT frequency/dBFS calibration, anti-phase stereo, decay, concurrent buffers, real processor taps and state recall. UI tests cover name meters without triggering, yellow PLAY buttons, curve/gain menu actions and cancellation, per-channel knob binding and minimum/default/maximum bounds.
 
-`mixer_tests <absolute-directory>` exports actual JUCE editor snapshots. `sequencer_integration_tests <absolute-directory>` exports sequencer and window previews using a demonstration pattern and simulated host transport. Sequencer coverage includes fractional-BPM/block-boundary accuracy, loops inside a block, start/stop, seeks, pre-roll, same-offset panic, MIDI file parsing, click velocity cycling, right-drag erasing, four-pattern recall/migration and Space forwarding. Native Windows CI also runs pluginval strictness 5 before packaging.
+`mixer_tests <absolute-directory>` exports actual JUCE editor snapshots. `sequencer_integration_tests <absolute-directory>` exports sequencer and window previews using a demonstration pattern and simulated host transport. Sequencer coverage includes fractional-BPM/block-boundary accuracy, loops inside a block, start/stop, seeks, pre-roll, same-offset panic, MIDI file parsing, click velocity cycling, left-drag painting, stationary long-press timing, early/late audio offsets and MIDI export, right-drag erasing, four-pattern recall/migration and Space forwarding. Native Windows CI also runs pluginval strictness 5 before packaging.
 
 ## License
 

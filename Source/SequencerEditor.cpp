@@ -1,5 +1,26 @@
 #include "SequencerEditor.h"
 using namespace rabubanj::ui;
+NoteTimingEditor::NoteTimingEditor(RaBubanjProcessor& p, int pattern, int r, int s)
+    : patternIndex(pattern), processor(p), row(r), step(s)
+{
+    setName("Note timing editor"); setWantsKeyboardFocus(false);
+    rabubanj::ui::slider(timing, juce::Slider::LinearHorizontal, 210); timing.setName("Note timing");
+    timing.setRange(-50, 50, 1); timing.setWantsKeyboardFocus(false); timing.setTextBoxStyle(juce::Slider::TextBoxBelow, true, 210, 22);
+    timing.setDoubleClickReturnValue(true, 0); timing.setValue(p.getPattern(patternIndex).getTiming(row, step), juce::dontSendNotification);
+    timing.textFromValueFunction = [this](double v) { return (v > 0 ? "+" : "")+juce::String(v, 0)+"%  /  "+juce::String(v*150/processor.getHostBpm(), 1)+" ms"; };
+    timing.onValueChange = [this] { if (processor.getPattern(patternIndex).setTiming(row, step, juce::roundToInt(timing.getValue()))) processor.sequenceEdited(); if (auto* parent = getParentComponent()) parent->repaint(); };
+    timing.updateText(); addAndMakeVisible(timing);
+    close.setName("Close note timing"); close.setWantsKeyboardFocus(false); close.onClick = [this] { setVisible(false); }; addAndMakeVisible(close); setSize(310, 136);
+}
+void NoteTimingEditor::refresh() { timing.updateText(); }
+void NoteTimingEditor::resized() { close.setBounds(getWidth()-31, 5, 25, 22); timing.setBounds(16, 52, getWidth()-32, 55); }
+void NoteTimingEditor::paint(juce::Graphics& g)
+{
+    raisedPanel(g, getLocalBounds().toFloat(), menuFace);
+    text(g, juce::String(rabubanj::padNames[static_cast<size_t>(row)])+" / STEP "+juce::String(step+1), { 12, 7, getWidth()-50, 22 }, 14, ink, juce::Justification::centredLeft, true);
+    text(g, "EARLIER                    TIMING                    LATER", { 16, 34, getWidth()-32, 20 }, 11, axis, juce::Justification::centred, true);
+    text(g, "DOUBLE-CLICK SLIDER: RESET TO GRID", { 10, 111, getWidth()-20, 18 }, 10, axis, juce::Justification::centred, true);
+}
 StepGrid::StepGrid(RaBubanjProcessor& p) : processor(p) { setName("32 step grid"); setWantsKeyboardFocus(false); }
 juce::Rectangle<float> StepGrid::plot() const { return getLocalBounds().toFloat().reduced(8, 4).withTrimmedLeft(86).withTrimmedTop(27); }
 juce::Rectangle<float> StepGrid::cellBounds(int row, int step) const
@@ -23,7 +44,9 @@ void StepGrid::stroke(juce::Point<int> cell)
     auto error = dx+dy;
     for (;;)
     {
-        changed = processor.getPattern(editPattern).set(previous.y, previous.x, 0) || changed;
+        auto& pattern = processor.getPattern(editPattern);
+        if (erasing) changed = pattern.set(previous.y, previous.x, 0) || changed;
+        else if (pattern.get(previous.y, previous.x) == 0) changed = pattern.set(previous.y, previous.x, 4) || changed;
         if (previous == cell) break;
         const auto twice = error*2;
         if (twice >= dy) { error += dy; previous.x += sx; }
@@ -34,22 +57,52 @@ void StepGrid::stroke(juce::Point<int> cell)
 void StepGrid::mouseDown(const juce::MouseEvent& e)
 {
     if (!e.mods.isLeftButtonDown() && !e.mods.isRightButtonDown()) return;
+    stopTimer(); timingEditor.reset(); leftPending = longOpened = drawing = changed = false; last = { -1, -1 };
     if (e.mods.isLeftButtonDown()) for (int row = 0; row < 8; ++row) if (padBounds(row).contains(e.position))
     { selectedPad = row; processor.selectChannel(row); processor.audition(row); repaint(); return; }
-    last = { -1, -1 }; changed = false; editPattern = processor.getSelectedPattern();
-    const auto cell = cellAt(e.position, false);
-    drawing = cell.x >= 0 && e.mods.isRightButtonDown();
-    if (drawing) stroke(cell);
-    else if (cell.x >= 0 && e.mods.isLeftButtonDown())
-    { processor.getPattern(editPattern).cycle(cell.y, cell.x); changed = true; repaint(); }
+    editPattern = processor.getSelectedPattern(); pressedCell = cellAt(e.position, false);
+    if (pressedCell.x < 0) return;
+    erasing = e.mods.isRightButtonDown(); drawing = erasing;
+    if (erasing) stroke(pressedCell);
+    else { leftPending = true; downPosition = e.position; downTime = e.eventTime; startTimer(650); }
 }
-void StepGrid::mouseDrag(const juce::MouseEvent& e) { if (drawing) stroke(cellAt(e.position, true)); }
-void StepGrid::mouseUp(const juce::MouseEvent&)
-{ if (changed) processor.sequenceEdited(); drawing = changed = false; last = { -1, -1 }; }
+void StepGrid::mouseDrag(const juce::MouseEvent& e)
+{
+    if (longOpened) return;
+    if (leftPending && e.position.getDistanceFrom(downPosition) >= 4)
+    { stopTimer(); leftPending = false; drawing = true; stroke(pressedCell); }
+    if (drawing) stroke(cellAt(e.position, true));
+}
+void StepGrid::timerCallback() { stopTimer(); if (leftPending) openTimingEditor(); }
+void StepGrid::openTimingEditor()
+{
+    if (processor.getSelectedPattern() != editPattern) { leftPending = false; return; }
+    auto& pattern = processor.getPattern(editPattern);
+    if (pattern.get(pressedCell.y, pressedCell.x) == 0) changed = pattern.set(pressedCell.y, pressedCell.x, 4) || changed;
+    timingEditor = std::make_unique<NoteTimingEditor>(processor, editPattern, pressedCell.y, pressedCell.x);
+    const auto anchor = cellBounds(pressedCell.y, pressedCell.x);
+    timingEditor->setTopLeftPosition(juce::jlimit(4, juce::jmax(4, getWidth()-314), juce::roundToInt(anchor.getCentreX())-155),
+        juce::jlimit(4, juce::jmax(4, getHeight()-140), juce::roundToInt(anchor.getBottom())));
+    addAndMakeVisible(*timingEditor); timingEditor->toFront(false); longOpened = true; leftPending = false; repaint();
+}
+void StepGrid::mouseUp(const juce::MouseEvent& e)
+{
+    stopTimer();
+    if (leftPending && (e.eventTime-downTime).inMilliseconds() >= 650) openTimingEditor();
+    if (leftPending) { processor.getPattern(editPattern).cycle(pressedCell.y, pressedCell.x); changed = true; }
+    if (changed) processor.sequenceEdited();
+    drawing = changed = leftPending = false; last = { -1, -1 }; repaint();
+}
+void StepGrid::refresh()
+{
+    if (timingEditor && timingEditor->patternIndex != processor.getSelectedPattern()) timingEditor.reset();
+    if (timingEditor) timingEditor->refresh();
+    repaint();
+}
 void StepGrid::paint(juce::Graphics& g)
 {
     insetPanel(g, getLocalBounds().toFloat()); const auto r = plot(); const auto playing = processor.getPlayingStep();
-    const auto cells = processor.getPattern().snapshot();
+    const auto cells = processor.getPattern().timedSnapshot();
     for (int step = 0; step < 32; ++step)
     {
         const auto box = cellBounds(0, step);
@@ -58,13 +111,18 @@ void StepGrid::paint(juce::Graphics& g)
         for (int row = 0; row < 8; ++row)
         {
             auto cell = cellBounds(row, step).reduced(2, 3);
-            const auto value = cells[static_cast<size_t>(row*32+step)];
+            const auto point = cells[static_cast<size_t>(row*32+step)]; const auto value = point.strength;
             g.setColour(step/4%2 == 0 ? juce::Colour(0xff62563a) : juce::Colour(0xff302e24)); g.fillRoundedRectangle(cell, 2);
             if (value > 0)
             {
                 const std::array<juce::Colour, 4> colours { juce::Colour(0xff786c49), juce::Colour(0xffa28b4a), juce::Colour(0xffcdb057), juce::Colour(0xffffd46b) };
                 g.setColour(colours[static_cast<size_t>(value-1)]);
                 auto fill = cell.reduced(2); fill.removeFromTop(fill.getHeight()*(1-static_cast<float>(value)/4)); g.fillRoundedRectangle(fill, 1);
+            }
+            if (value > 0 && point.timing != 0)
+            {
+                const auto x = cell.getCentreX()+static_cast<float>(point.timing)*cell.getWidth()*.007f;
+                g.setColour(point.timing < 0 ? cyan : juce::Colour(0xffed9b59)); g.fillEllipse(x-2, cell.getY()+2, 4, 4);
             }
             g.setColour(step == playing ? gold : juce::Colour(0xff6e5b2b)); g.drawRoundedRectangle(cell, 2, step == playing ? 1.4f : .7f);
         }
@@ -114,7 +172,7 @@ void SequencerPanel::refresh()
 {
     enabled.setButtonText(enabled.getToggleState() ? "SEQ ON" : "SEQ OFF");
 
-    waveform.update(grid.getSelectedPad(), isShowing()); grid.repaint(); repaint();
+    waveform.update(grid.getSelectedPad(), isShowing()); grid.refresh(); repaint();
 }
 void SequencerPanel::resized()
 {
@@ -130,7 +188,7 @@ void SequencerPanel::paint(juce::Graphics& g)
     raisedPanel(g, getLocalBounds().toFloat(), panel);
     const auto status = !processor.hasSequenceHostPosition() ? "WAITING FOR DAW" : processor.isSequenceHostPlaying() ? "DAW PLAY" : "DAW STOP";
     text(g, juce::String(status)+"  /  "+juce::String(processor.getHostBpm(), 2)+" BPM  /  1/16  /  2 BARS", { 20, 43, getWidth()-40, 24 }, 12, ink, juce::Justification::centredLeft, true);
-    text(g, "LEFT: WRITE / CYCLE 4 VELOCITIES    RIGHT: ERASE    HOLD + DRAG RIGHT: ERASE MULTIPLE", { 20, getHeight()-34, getWidth()-40, 24 }, 11, ink, juce::Justification::centredLeft, true);
+    text(g, "LEFT: CLICK / CYCLE VELOCITY   DRAG: WRITE   HOLD: NOTE TIMING   RIGHT / DRAG: ERASE", { 20, getHeight()-34, getWidth()-40, 24 }, 11, ink, juce::Justification::centredLeft, true);
 }
 void PadWaveform::update(int pad, bool active)
 {

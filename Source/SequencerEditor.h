@@ -2,10 +2,26 @@
 #include "PluginProcessor.h"
 #include "UiTheme.h"
 
-class StepGrid final : public juce::Component
+class NoteTimingEditor final : public juce::Component
+{
+public:
+    NoteTimingEditor(RaBubanjProcessor&, int pattern, int row, int step);
+    void resized() override;
+    void paint(juce::Graphics&) override;
+    void refresh();
+    int patternIndex;
+private:
+    RaBubanjProcessor& processor;
+    int row, step;
+    juce::Slider timing;
+    juce::TextButton close { "X" };
+};
+class StepGrid final : public juce::Component, private juce::Timer
 {
 public:
     explicit StepGrid(RaBubanjProcessor&);
+    ~StepGrid() override { stopTimer(); }
+    void refresh();
     void paint(juce::Graphics&) override;
     void mouseDown(const juce::MouseEvent&) override;
     void mouseDrag(const juce::MouseEvent&) override;
@@ -17,11 +33,17 @@ private:
     juce::Rectangle<float> plot() const;
     juce::Point<int> cellAt(juce::Point<float>, bool clamp) const;
     void stroke(juce::Point<int>);
+    void timerCallback() override;
+    void openTimingEditor();
     RaBubanjProcessor& processor;
     juce::Point<int> last { -1, -1 };
     int selectedPad = 0;
     int editPattern = 0;
-    bool drawing = false, changed = false;
+    juce::Point<int> pressedCell { -1, -1 };
+    juce::Point<float> downPosition;
+    juce::Time downTime;
+    bool drawing = false, erasing = false, leftPending = false, longOpened = false, changed = false;
+    std::unique_ptr<NoteTimingEditor> timingEditor;
 };
 class PadWaveform final : public juce::Component
 {

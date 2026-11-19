@@ -60,3 +60,8 @@ Reference products inform the workflow only. Artwork, sample recordings and impl
 ## 0.9 — sequencer controls and live waveform
 
 Explicit close/toggle controls with a red X, PAD-label audition and selection, brighter beat groups and a larger panel with a dedicated live selected-pad stereo waveform feed.
+
+
+## 0.10 — paint notes and per-note microtiming
+
+Left-drag writing retains click velocity cycling and right-drag erasing. Stationary long press opens a per-note early/late timing slider, with atomic velocity/timing state, host-loop-aware playback, project recall and shifted MIDI export.

@@ -35,10 +35,12 @@ int main(int argc, char** argv)
         set(p, "seqPattern", static_cast<float>(index)); p.processBlock(audio, midi);
         for (int row = 0; row < 8; ++row) require(p.getHitCount(row) == before[static_cast<size_t>(row)]+(row == index ? 1u : 0u), "only the selected pattern may generate notes");
     }
+    for (int index = 0; index < 4; ++index) p.getPattern(index).setTiming(index, 0, index*25-50);
     set(p, "seqPattern", 2); juce::MemoryBlock state; p.getStateInformation(state);
     RaBubanjProcessor restored; restored.setStateInformation(state.getData(), static_cast<int>(state.getSize()));
     require(restored.getSelectedPattern() == 2, "selected pattern must recall");
     for (int index = 0; index < 4; ++index) require(restored.getPattern(index).snapshot() == p.getPattern(index).snapshot(), "all four patterns must recall independently");
+    for (int index = 0; index < 4; ++index) require(restored.getPattern(index).getTiming(index, 0) == index*25-50, "all four patterns must recall independent signed timing offsets");
     auto old = p.parameters.copyState(); old.setProperty("schemaVersion", 5, nullptr);
     for (const auto* id : { "seqEnabled", "seqPattern" }) if (auto child = old.getChildWithProperty("id", id); child.isValid()) old.removeChild(child, nullptr);
     juce::AudioProcessor::copyXmlToBinary(*old.createXml(), state); restored.setStateInformation(state.getData(), static_cast<int>(state.getSize()));
@@ -50,6 +52,12 @@ int main(int argc, char** argv)
     require(restored.getSelectedPattern() == 0 && restored.getPattern(0).get(0, 0) == 2 && restored.getPattern(0).get(1, 1) == 3 && restored.getPattern(0).get(7, 31) == 4,
         "0.7 patterns must migrate into Pattern 1 while preserving their velocity values");
     for (int index = 1; index < 4; ++index) for (auto cell : restored.getPattern(index).snapshot()) require(cell == 0, "legacy migration must leave the other three patterns empty");
+    // Schema-7 banks migrate without changing notes and receive zero timing offsets.
+    auto seven = p.parameters.copyState(); seven.setProperty("schemaVersion", 7, nullptr); juce::ValueTree banks("SEQUENCER");
+    juce::ValueTree bank("PATTERN"); bank.setProperty("index", 2, nullptr); juce::String sevenCells; for (int i = 0; i < 256; ++i) sevenCells += i == 51 ? "3" : "0";
+    bank.setProperty("cells", sevenCells, nullptr); banks.addChild(bank, -1, nullptr); seven.addChild(banks, -1, nullptr);
+    juce::AudioProcessor::copyXmlToBinary(*seven.createXml(), state); restored.setStateInformation(state.getData(), static_cast<int>(state.getSize()));
+    require(restored.getPattern(2).get(1, 19) == 3 && restored.getPattern(2).getTiming(1, 19) == 0, "0.8/0.9 banks must retain notes with neutral timing");
     set(p, "seqPattern", 0); p.getPattern().replace({});
     p.getPattern().set(0, 0, 4); p.getPattern().set(2, 8, 3); p.getPattern().set(4, 16, 2); p.getPattern().set(7, 31, 1);
     set(p, "midiMap", 0); head.bpm = 93; head.playing = false; p.processBlock(audio, midi);
@@ -78,14 +86,31 @@ int main(int argc, char** argv)
     { auto input = file.createInputStream(); juce::MidiFile data; require(input && data.readFrom(*input), "alternate MIDI file must parse"); int notes = 0;
       for (int i = 0; i < data.getTrack(0)->getNumEvents(); ++i) { const auto& message = data.getTrack(0)->getEventPointer(i)->message; if (message.isNoteOn()) { ++notes; require(message.getNoteNumber() == 49 && std::abs(message.getTimeStamp()-2640) < .001, "MIDI drag must export only the selected pattern"); } }
       require(notes == 1, "unselected patterns must not leak into MIDI export"); }
+    p.getPattern(1).setTiming(6, 11, -25); require(p.writeSequenceMidi(file), "shifted pattern must export");
+    { auto input = file.createInputStream(); juce::MidiFile data; require(input && data.readFrom(*input), "shifted MIDI must parse");
+      for (int i = 0; i < data.getTrack(0)->getNumEvents(); ++i) { const auto& message = data.getTrack(0)->getEventPointer(i)->message; if (message.isNoteOn()) require(message.getTimeStamp() == 2580, "early MIDI note must export sixty ticks earlier"); } }
+    p.getPattern(1).replace({}); p.getPattern(1).set(0, 0, 4); p.getPattern(1).setTiming(0, 0, -50);
+    require(p.writeSequenceMidi(file), "early first note must export");
+    { auto input = file.createInputStream(); juce::MidiFile data; require(input && data.readFrom(*input), "wrapped MIDI must parse");
+      for (int i = 0; i < data.getTrack(0)->getNumEvents(); ++i) { const auto& message = data.getTrack(0)->getEventPointer(i)->message; if (message.isNoteOn()) require(message.getTimeStamp() == 7560, "early first note must wrap to the end of the two-bar MIDI clip"); }
+      require(data.getTrack(0)->getEndTime() == 7680, "shifted MIDI must keep its eight-beat length"); }
     require(file.deleteFile(), "temporary MIDI must clean up"); set(p, "seqPattern", 0);
+    // Verify the actual processor/audio onset, not just the pure timing iterator.
+    p.getPattern().replace({}); p.getPattern().set(1, 1, 4); head.bpm = 120; head.playing = true;
+    for (int shift : { -40, 40 })
+    {
+        p.getPattern().setTiming(1, 1, shift); head.ppq = shift < 0 ? .14 : .34;
+        p.releaseResources(); p.prepareToPlay(48000, 512); p.processBlock(audio, midi);
+        require(audio.getMagnitude(0, 240) == 0 && audio.getMagnitude(241, 271) > .001f, "processor must render early and late notes at their shifted sample offset");
+    }
+    head.playing = false; p.getPattern().replace({});
     SequencerPanel panel(p); panel.setSize(1160, 620); StepGrid* grid = nullptr;
     for (auto* child : panel.getChildren()) if (auto* g = dynamic_cast<StepGrid*>(child)) grid = g;
     require(grid != nullptr, "step grid must exist"); const auto source = juce::Desktop::getInstance().getMainMouseSource();
-    auto event = [&](int row, int step, int mods, bool drag)
+    auto event = [&](int row, int step, int mods, bool drag, int elapsed = 0)
     {
         const auto position = grid->cellBounds(row, step).getCentre();
-        return juce::MouseEvent(source, position, juce::ModifierKeys(mods), 1, 0, 0, 0, 0, grid, grid, juce::Time::getCurrentTime(), position, juce::Time::getCurrentTime(), 1, drag);
+        return juce::MouseEvent(source, position, juce::ModifierKeys(mods), 1, 0, 0, 0, 0, grid, grid, juce::Time::getCurrentTime()+juce::RelativeTime::milliseconds(elapsed), position, juce::Time::getCurrentTime(), 1, drag);
     };
     juce::ComboBox* selector = nullptr;
     for (auto* child : panel.getChildren())
@@ -108,7 +133,18 @@ int main(int argc, char** argv)
     for (int step = 0; step < 32; ++step) require(p.getPattern().get(5, step) == 0, "fast right-drag must erase intervening steps without gaps");
     p.getPattern().set(3, 0, 0); p.getPattern().set(3, 31, 0);
     grid->mouseDown(event(3, 0, juce::ModifierKeys::leftButtonModifier, false)); grid->mouseDrag(event(3, 31, juce::ModifierKeys::leftButtonModifier, true)); grid->mouseUp(event(3, 31, 0, false));
-    require(p.getPattern().get(3, 0) == 4 && p.getPattern().get(3, 31) == 0, "left drag must not repeatedly cycle or write other cells");
+    for (int step = 0; step < 32; ++step) require(p.getPattern().get(3, step) == 4, "fast left-drag must fill every intervening cell at maximum strength");
+    p.getPattern().set(3, 10, 2); p.getPattern().setTiming(3, 10, -25);
+    grid->mouseDown(event(3, 0, juce::ModifierKeys::leftButtonModifier, false)); grid->mouseDrag(event(3, 31, juce::ModifierKeys::leftButtonModifier, true)); grid->mouseDrag(event(3, 0, juce::ModifierKeys::leftButtonModifier, true)); grid->mouseUp(event(3, 0, 0, false));
+    require(p.getPattern().get(3, 0) == 4 && p.getPattern().get(3, 10) == 2 && p.getPattern().getTiming(3, 10) == -25, "painting and revisiting cells must preserve existing velocity and timing");
+    grid->mouseDown(event(3, 10, juce::ModifierKeys::leftButtonModifier, false)); grid->mouseUp(event(3, 10, 0, false, 700));
+    NoteTimingEditor* timingEditor = nullptr; for (auto* child : grid->getChildren()) if (auto* popup = dynamic_cast<NoteTimingEditor*>(child)) timingEditor = popup;
+    require(timingEditor && timingEditor->isVisible() && p.getPattern().get(3, 10) == 2, "stationary long press must open timing without cycling velocity");
+    juce::Slider* timingSlider = nullptr; for (auto* child : timingEditor->getChildren()) if (auto* slider = dynamic_cast<juce::Slider*>(child)) timingSlider = slider;
+    require(timingSlider && timingSlider->getMinimum() == -50 && timingSlider->getMaximum() == 50, "timing slider must support earlier and later half-step offsets");
+    timingSlider->setValue(35, juce::sendNotificationSync); require(p.getPattern().getTiming(3, 10) == 35 && p.getPattern().get(3, 10) == 2, "slider must change only the held note timing");
+    set(p, "seqPattern", 1); grid->refresh(); for (auto* child : grid->getChildren()) require(dynamic_cast<NoteTimingEditor*>(child) == nullptr, "timing popup must close when the selected pattern changes");
+    require(p.getPattern(1).getTiming(3, 10) == 0, "timing edits must not leak to other banks"); set(p, "seqPattern", 0);
     for (int step = 0; step < 32; ++step) p.getPattern(0).set(4, step, 4);
     p.getPattern(1).set(4, 31, 4);
     grid->mouseDown(event(4, 0, juce::ModifierKeys::rightButtonModifier, false)); set(p, "seqPattern", 1);
@@ -180,6 +216,9 @@ int main(int argc, char** argv)
             for (auto* component : contents->getChildren()) if (auto* wave = dynamic_cast<PadWaveform*>(component))
             { wave->update(0, true); p.audition(0); for (int block = 0; block < 30; ++block) { p.processBlock(audio, midi); wave->update(0, true); } }
         save(*editor, "RaBubanj-sequencer-window.png");
+        grid->mouseDown(event(1, 8, juce::ModifierKeys::leftButtonModifier, false)); grid->mouseUp(event(1, 8, 0, false, 700));
+        for (auto* child : grid->getChildren()) if (auto* popup = dynamic_cast<NoteTimingEditor*>(child)) for (auto* control : popup->getChildren()) if (auto* slider = dynamic_cast<juce::Slider*>(control)) slider->setValue(20, juce::sendNotificationSync);
+        save(panel, "RaBubanj-note-timing.png");
     }
-    std::cout << "Host transport, exact note offsets, panic, pattern recall, MIDI export, four-pattern recall/migration, click cycling, right-drag erase, child window and Space forwarding passed.\n";
+    std::cout << "Host transport, exact note offsets, panic, pattern recall, MIDI export, four-pattern recall/migration, click cycling, left-drag paint, long-press timing, shifted audio/MIDI, right-drag erase, child window and Space forwarding passed.\n";
 }

@@ -1,6 +1,6 @@
-# RaBubanj 0.9.0 — Windows x64, bez instalera
+# RaBubanj 0.10.0 — Windows x64, bez instalera
 
-1. Preuzmi ZIP `RaBubanj-0.9.0-Windows-x64` iz uspješnog GitHub Actions builda i raspakiraj ga.
+1. Preuzmi ZIP `RaBubanj-0.10.0-Windows-x64` iz uspješnog GitHub Actions builda i raspakiraj ga.
 2. Zatvori DAW i kopiraj cijelu mapu **RaBubanj.vst3** u `C:\Program Files\Common Files\VST3\`. Zamijeni cijeli prethodni paket.
 3. Ponovno skeniraj VST3 instrumente u 64-bitnom DAW-u, dodaj RaBubanj na MIDI traku i uključi arm/monitoring.
 4. `RaBubanj.exe` je samostalna aplikacija, bez instalera; u njoj odaberi audio i MIDI uređaj.
@@ -14,7 +14,7 @@ Osam zvučnih kanala sada su **PAD 1–PAD 8**. Isti nazivi prikazuju se u kanal
 1. Klikni **STEP SEQ** za otvaranje; ponovni klik ili **crveni X** zatvara prikaz. Prozor ima **32 koraka i 8 redova**, s oznakama **PAD 1–PAD 8 lijevo**. Koraci su šesnaestinke; obrazac traje dva takta u 4/4.
 2. U padajućem izborniku odaberi **Pattern 1, Pattern 2, Pattern 3 ili Pattern 4**. Svaki pamti zasebne korake. Promjena se čuje od sljedećeg audio bloka i zadržava položaj prema DAW-u.
 3. **Lijevi klik upisuje najjači udarac.** Na istoj noti drugi klik daje srednji, treći slabiji, četvrti najslabiji, a peti ponovno najjači udarac: **127 → 88 → 48 → 32 → 127**. Jačina se vidi po visini i svjetlini ispunjenog polja. Gumbi SLABA/SREDNJA/JAKA su uklonjeni.
-4. **Desni klik briše korak.** Drži desnu tipku i povlači za brisanje više koraka. Brzo povlačenje briše i korake između položaja miša. Lijevo povlačenje ne upisuje dodatne note.
+4. **Desni klik briše korak.** Drži desnu tipku i povlači za brisanje više koraka. Brzo povlačenje briše i korake između položaja miša. **Drži lijevu tipku i povlači** za upis najjačih nota u prazne ćelije. Brzo povlačenje popunjava i preskočene ćelije. Postojeće note zadržavaju jačinu i pomak; prelazak preko njih ne mijenja velocity.
 5. Uz **SEQ ON**, DAW razmaknicom pokrećeš kao i prije. Sekvencer prati njegov tempo, položaj, Play/Stop i loop. Uključi monitoring/arm instrument trake i audio engine DAW-a.
 6. Povuci **DRAG MIDI** na MIDI traku za izvoz odabranog patterna. Izvezeni klip zadržava sve četiri jačine i trenutačni MIDI raspored. Pri sviranju izvezenog klipa postavi **SEQ OFF** da ne sviraju istodobno klip i interni obrazac.
 
@@ -22,7 +22,11 @@ Klik na oznaku **PAD 1–PAD 8** lijevo jednom reproducira trenutačni sempl i o
 
 Na dnu povećanog prozora nalazi se **živi waveform odabranog pada**: otprilike posljednja sekunda stereo signala nakon Pitch/Drive/Comp/EQ-a, prije glasnoće i panorame. Prati udarce sekvence, MIDI-ja i preslušavanja. Klik na drugi PAD briše stari prikaz i prati novi zvuk. Dok nema audio obrade, prikaz zadržava posljednji primljeni signal. Svjetlije skupine po četiri koraka sada su izraženije.
 
-Sva četiri patterna, odabrani pattern i SEQ ON/OFF spremaju se u projekt. Novi plugin počinje četirima praznim patternima. Pri otvaranju projekta iz 0.7 njegov obrazac prelazi u Pattern 1 uz očuvane stare jačine 48/88/127, dok ostali ostaju prazni. Stariji projekti bez sekvencera također se otvaraju prazni. Zatvaranje prozora ne briše obrazac niti ga isključuje. Stop zaustavlja nove udarce; repovi semplova i reverba mogu prirodno odjeknuti.
+**Dugi pritisak na notu (0,65 sekundi), bez pomicanja miša**, otvara **TIMING** kliznik. Negativna vrijednost aktivira udarac ranije, pozitivna kasnije, a 0% ostaje na mreži. Raspon je **−50% do +50% jednog koraka**, uz prikaz milisekundi prema trenutačnom tempu (na 120 BPM: ±62,5 ms). Dvoklik na kliznik vraća 0%. Dugi pritisak ne mijenja velocity; na praznoj ćeliji najprije upisuje najjaču notu. X ili klik na mrežu zatvara mali panel. Oznaka na noti pokazuje pomak ranije/kasnije.
+
+Pomak se sprema za svaku notu i pattern te prenosi u MIDI izvoz. Rani prvi korak kružno prelazi na kraj dvotaktnog obrasca; prije početka reprodukcije DAW-a zvuk se ne može čuti unaprijed. Pri aktivnom DAW loopu pomak prati rubove tog loopa. Projekti iz 0.8/0.9 zadržavaju sve pattern-e s početnim pomakom 0%.
+
+Sva četiri patterna, pomaci nota, odabrani pattern i SEQ ON/OFF spremaju se u projekt. Novi plugin počinje četirima praznim patternima. Pri otvaranju projekta iz 0.7 njegov obrazac prelazi u Pattern 1 uz očuvane stare jačine 48/88/127, dok ostali ostaju prazni. Stariji projekti bez sekvencera također se otvaraju prazni. Zatvaranje prozora ne briše obrazac niti ga isključuje. Stop zaustavlja nove udarce; repovi semplova i reverba mogu prirodno odjeknuti.
 
 MIDI izvoz je datoteka jednog tracka, 960 PPQ, kanal 10, duljine osam beatova. Privremene datoteke ostaju u OS temp mapi `RaBubanj-MIDI`. Samostalni EXE nema DAW transport za sekvencer, ali zadržava preslušavanje padova i vanjski MIDI ulaz.
 
