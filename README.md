@@ -1,14 +1,20 @@
-# RaBubanj 0.5.0
+# RaBubanj 0.6.0
 
-Windows x64 VST3 and standalone drum sample instrument by Voyagersquare, with a distressed dark-blue mixer, per-channel processing and a shared stereo Reverb. Portable ZIP, without an installer.
+Windows x64 VST3 and standalone drum sample instrument by Voyagersquare, with a solid ochre console-style mixer, per-channel processing and a shared stereo Reverb. Portable ZIP, without an installer.
 
-**[Preuzmi RaBubanj 0.5 za Windows x64 — ZIP bez instalera](https://github.com/voyagersquare/RaBubanj/actions/runs/44499031182/artifacts/14517505191)**
-
-Windows build, svih sedam testnih skupova i pluginval strictness 5 prolaze.
+Windows 0.6 package links will be added after native validation.
 
 [Windows instructions in Croatian](docs/WINDOWS-HR.md) · [Validation](VALIDATION.md)
 
-![RaBubanj 0.5 mixer and spectrum displays](docs/preview.png)
+![RaBubanj 0.6 ochre mixer and spectrum displays](docs/preview.png)
+
+## New in 0.6
+
+- Solid ochre enamel replaces the scratched/rusted texture. Command legends are white; EQ gain/spectrum scales and the response curve use warm gold tones.
+- More pronounced bevels and shadows around EQ panels. Rotary controls have ribbed light-plastic bodies, coloured caps and position marks inspired by the supplied SSL console reference. Faders and switches have raised console-style hardware details. Artwork is drawn by the project; no manufacturer assets or logos are bundled.
+- **Right-click an EQ node** for a dark ochre-themed context menu with **Curve shape** (six types with curve icons), **Gain (dB)** presets, **Invert gain** and **Band enabled**. The previous filter-type dropdown is removed from both EQs. Gain choices/inversion are disabled for cut and notch filters.
+- [Context-menu styling preview](docs/eq-menu.png).
+- **Alt-click** a node still toggles it directly. Drag, wheel, double-click, bypass and reset retain their existing actions.
 
 ## Controls
 
@@ -20,15 +26,15 @@ Windows build, svih sedam testnih skupova i pluginval strictness 5 prolaze.
 - **PITCH:** −24 to +24 semitones, default 0. It changes source playback speed and duration. Existing voices glide smoothly to automated pitch changes; new voices start at the requested pitch.
 - **DRIVE:** 0–100% soft saturation with antiderivative antialiasing. Default 0% is neutral.
 - **COMP:** 0–100% compression strength. Fixed −18 dBFS threshold, 3:1 ratio, 6 dB soft knee, 10 ms attack, and programme-dependent 150–350 ms opto-style release. Stereo linked, with no automatic makeup gain. This is an opto-inspired response, not a hardware circuit model.
-- Double-click the three processing knobs to reset them to neutral. The same worn finish, rotary Reverb controls, pan, faders, mute/solo and EQ editing remain.
+- Double-click the three processing knobs to reset them to neutral. Rotary Reverb controls, pan, faders, mute/solo and graph EQ editing remain.
 
-Each of the eight channels retains one built-in starter voice when no user sample is loaded. Old factory source IDs and source recipes remain only for backwards project compatibility; no factory selection controls or factory preview download are offered by the 0.5 interface. Old projects retain their selected source until it is replaced by a dropped sample.
+Each of the eight channels retains one built-in starter voice when no user sample is loaded. Old factory source IDs and source recipes remain only for backwards project compatibility; no factory selection controls or factory preview download are offered by the current interface. Old projects retain their selected source until it is replaced by a dropped sample.
 
 ## Mixer and EQ
 
 Every drum has level, pan, mute/solo and a post-fader **SEND**, defaulting to **0%**. The Reverb return has its own EQ, level, mute/solo and rotary Size/Damping/Width controls. Master EQ stays visible on the right. The VST3 exposes one stereo output.
 
-Six parametric bands per EQ offer Bell, Low shelf, High shelf, Low cut, High cut and Notch. Select a graph node, drag it for frequency/gain, use the wheel for Q, double-click to reset gain, or right-click/Alt-click to enable/disable. Bypass and Reset affect only the chosen EQ. The analyser is visual only and adds no audio latency. It performs FFTs on the GUI thread; audio writes to bounded lock-free buffers only for the visible channel and master.
+Six parametric bands per EQ offer Bell, Low shelf, High shelf, Low cut, High cut and Notch. Select a graph node, drag it for frequency/gain, use the wheel for Q, double-click to reset gain, right-click for shape/gain commands, or Alt-click to enable/disable. Bypass and Reset affect only the chosen EQ. The analyser is visual only and adds no audio latency. It performs FFTs on the GUI thread; audio writes to bounded lock-free buffers only for the visible channel and master.
 
 ```text
 Sample → Pitch → Drive → Compressor → channel EQ → level/pan → dry mix ─┐
@@ -83,7 +89,7 @@ GitHub Actions builds both targets, runs the DSP tests, and validates the VST3 w
 
 ## Tests
 
-A full build runs seven suites: drum engine/pitch, parametric EQ, legacy source regression, processor MIDI/state, mixer/editor, sample import/recall, and channel colour/spectrum. The last suite checks neutral bypass, compressor calibration and stereo linking, saturation harmonics, exact pitch-rate conversion, FFT frequency/dBFS calibration, anti-phase stereo, decay, concurrent buffers, real processor taps and state recall. UI tests cover name meters without triggering, yellow PLAY buttons, per-channel knob binding and minimum/default/maximum bounds.
+A full build runs seven suites: drum engine/pitch, parametric EQ, legacy source regression, processor MIDI/state, mixer/editor, sample import/recall, and channel colour/spectrum. The last suite checks neutral bypass, compressor calibration and stereo linking, saturation harmonics, exact pitch-rate conversion, FFT frequency/dBFS calibration, anti-phase stereo, decay, concurrent buffers, real processor taps and state recall. UI tests cover name meters without triggering, yellow PLAY buttons, curve/gain menu actions and cancellation, per-channel knob binding and minimum/default/maximum bounds.
 
 `mixer_tests <absolute-directory>` exports actual JUCE editor snapshots. Native Windows CI also runs pluginval strictness 5 before packaging.
 

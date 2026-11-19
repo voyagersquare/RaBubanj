@@ -24,6 +24,10 @@ Twenty sounds per drum (160 total), refined snares/hats/cymbals, preset arrows, 
 
 Channel-name level meters without audition, yellow bottom PLAY pads replacing factory selection, stereo EQ spectrum displays, and independent Pitch/Drive/opto-style one-knob compression for each drum.
 
+## 0.6 — ochre console and node menus
+
+Solid ochre finish, white command legends, stronger EQ bevels and console-inspired physical controls. Node context menus replace EQ type dropdowns and expose shape/gain commands with a dark themed palette.
+
 ## Next: acoustic sample engine
 
 - Load a documented kit manifest with licensed WAV samples, velocity zones, independent round-robin pools, tuning and per-articulation envelopes.

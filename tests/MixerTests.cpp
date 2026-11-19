@@ -128,8 +128,8 @@ int main(int argc, char** argv)
     for (auto* panel : { channelEq, globalEq })
         for (auto* child : panel->getChildren())
         {
-            require(dynamic_cast<juce::Slider*>(child) == nullptr && dynamic_cast<juce::ToggleButton*>(child) == nullptr,
-                "duplicate EQ numeric sliders and band toggle must be removed");
+            require(dynamic_cast<juce::Slider*>(child) == nullptr && dynamic_cast<juce::ToggleButton*>(child) == nullptr && dynamic_cast<juce::ComboBox*>(child) == nullptr,
+                "duplicate EQ controls and filter dropdown must be removed");
             if (auto* button = dynamic_cast<juce::TextButton*>(child))
                 require(button->getButtonText() == "BYPASS" || button->getButtonText() == "RESET", "duplicate band-number buttons must be removed");
         }
@@ -168,12 +168,58 @@ int main(int argc, char** argv)
     require(uiProcessor.parameters.getRawParameterValue("eq0b2q")->load() > originalQ, "EQ graph wheel must change Q");
     graph->mouseDoubleClick(event(centre.translated(45, -20), false, false));
     require(std::abs(uiProcessor.parameters.getRawParameterValue("eq0b2gain")->load()) < .001f, "double click must reset band gain");
-    graph->mouseDown(juce::MouseEvent(source, centre.translated(45, -20), juce::ModifierKeys(juce::ModifierKeys::rightButtonModifier),
+    graph->mouseDown(juce::MouseEvent(source, centre.translated(45, -20), juce::ModifierKeys(juce::ModifierKeys::leftButtonModifier | juce::ModifierKeys::altModifier),
         1, 0, 0, 0, 0, graph, graph, juce::Time::getCurrentTime(), centre, juce::Time::getCurrentTime(), 1, false));
-    require(uiProcessor.parameters.getRawParameterValue("eq0b2on")->load() < .5f, "right-click must disable the selected graph band");
+    require(uiProcessor.parameters.getRawParameterValue("eq0b2on")->load() < .5f, "Alt-click must disable the selected graph band");
     set(uiProcessor, "eq0b2on", 1);
     set(uiProcessor, "eq0b2gain", 6); channelEq->refresh();
     require(std::abs(uiProcessor.parameters.getRawParameterValue("eq8b2gain")->load()) < .001f, "graph editing must not change other channel EQs");
+    for (auto* panel : { channelEq, globalEq })
+    {
+        panel->selectBand(2); const auto bus = panel->getBus();
+        auto menu = panel->makeBandContextMenu(2); int shapes = 0, gainOptions = 0, checkedShapes = 0;
+        juce::PopupMenu::MenuItemIterator items(menu, true);
+        while (items.next())
+        {
+            const auto& item = items.getItem();
+            if (item.itemID >= EqPanel::ShapeBase && item.itemID < EqPanel::ShapeBase+6)
+            { ++shapes; if (item.isTicked) ++checkedShapes; require(item.image != nullptr, "every curve shape must have a visual icon"); }
+            if (item.itemID >= EqPanel::GainBase && item.itemID < EqPanel::GainBase+11) ++gainOptions;
+        }
+        require(shapes == 6 && gainOptions == 11 && checkedShapes == 1, "node menu must expose all curve shapes and gain choices");
+        for (int shape = 0; shape < 6; ++shape)
+        {
+            panel->applyBandContextAction(bus, 2, EqPanel::ShapeBase+shape);
+            require(uiProcessor.getEqSettings(bus).bands[2].type == shape, "context shape selection must update the clicked EQ");
+        }
+        panel->applyBandContextAction(bus, 2, EqPanel::ShapeBase);
+        panel->applyBandContextAction(bus, 2, EqPanel::GainBase+8);
+        require(std::abs(uiProcessor.getEqSettings(bus).bands[2].gain-12) < .001f, "gain menu must apply its dB value");
+        panel->applyBandContextAction(bus, 2, EqPanel::InvertGain);
+        require(std::abs(uiProcessor.getEqSettings(bus).bands[2].gain+12) < .001f, "invert gain must reverse the band");
+        panel->applyBandContextAction(bus, 2, EqPanel::ShapeBase+4);
+        panel->applyBandContextAction(bus, 2, EqPanel::GainBase+10);
+        require(std::abs(uiProcessor.getEqSettings(bus).bands[2].gain+12) < .001f, "gain actions must be inactive for cut filters");
+        panel->applyBandContextAction(bus, 2, EqPanel::ToggleBand);
+        require(!uiProcessor.getEqSettings(bus).bands[2].enabled, "menu must allow disabling a band");
+        panel->applyBandContextAction(bus, 2, EqPanel::ToggleBand);
+        panel->applyBandContextAction(bus, 2, EqPanel::ShapeBase);
+        panel->applyBandContextAction(bus, 2, EqPanel::GainBase+5);
+    }
+    // An asynchronous menu belongs to the bus/band clicked, even after selection moves.
+    editor->selectChannel(1); channelEq->selectBand(0);
+    channelEq->applyBandContextAction(0, 2, EqPanel::GainBase+7);
+    require(std::abs(uiProcessor.getEqSettings(0).bands[2].gain-6) < .001f
+        && std::abs(uiProcessor.getEqSettings(1).bands[0].gain) < .001f, "menu callback must retain its original channel and band");
+    const auto beforeCancel = uiProcessor.getEqSettings(0).bands[2].gain;
+    channelEq->applyBandContextAction(0, 2, 0);
+    require(uiProcessor.getEqSettings(0).bands[2].gain == beforeCancel, "dismissing the menu must not change audio parameters");
+    set(uiProcessor, "eq1b0gain", 5);
+    graph->mouseDoubleClick(juce::MouseEvent(source, centre, juce::ModifierKeys(juce::ModifierKeys::rightButtonModifier),
+        1, 0, 0, 0, 0, graph, graph, juce::Time::getCurrentTime(), centre, juce::Time::getCurrentTime(), 2, false));
+    require(std::abs(uiProcessor.getEqSettings(1).bands[0].gain-5) < .001f, "right double-click must not reset gain");
+    set(uiProcessor, "eq1b0gain", 0);
+    editor->selectChannel(0); channelEq->selectBand(2);
     uiProcessor.setRateAndBufferSizeDetails(48000, 512); uiProcessor.prepareToPlay(48000, 512);
     juce::AudioBuffer<float> previewAudio(2, 512); juce::MidiBuffer previewMidi;
     // Drain earlier selector-click previews before checking one-click / one-hit behaviour.
@@ -273,6 +319,35 @@ int main(int argc, char** argv)
             if (stream) { stream->setPosition(0); stream->truncate(); }
             require(stream && png.writeImageToStream(editor->createComponentSnapshot(editor->getLocalBounds()), *stream), "UI snapshot must be written");
         }
+    }
+    if (argc > 1)
+    {
+        rabubanj::ui::EqMenuLookAndFeel menuLook;
+        auto contextMenu = channelEq->makeBandContextMenu(2);
+        juce::Image menuImage(juce::Image::RGB, 574, 250, true); juce::Graphics graphics(menuImage);
+        graphics.fillAll(rabubanj::ui::background);
+        auto drawMenu = [&](const juce::PopupMenu& menu, int x, int width)
+        {
+            juce::Graphics::ScopedSaveState saved(graphics); graphics.setOrigin(x, 8);
+            juce::PopupMenu::MenuItemIterator count(menu); int rows = 0; while (count.next()) ++rows;
+            graphics.reduceClipRegion(0, 0, width, rows*28+8);
+            menuLook.drawPopupMenuBackground(graphics, width, rows*28+8);
+            juce::PopupMenu::MenuItemIterator it(menu); int y = 4;
+            while (it.next())
+            {
+                const auto& item = it.getItem(); const juce::Rectangle<int> row(4, y, width-8, 28);
+                if (item.isSectionHeader) menuLook.drawPopupMenuSectionHeader(graphics, row, item.text);
+                else menuLook.drawPopupMenuItem(graphics, row, item.isSeparator, item.isEnabled, item.text == "Curve shape", item.isTicked, item.subMenu != nullptr, item.text, item.shortcutKeyDescription, item.image.get(), nullptr);
+                y += 28;
+            }
+        };
+        drawMenu(contextMenu, 8, 286);
+        juce::PopupMenu::MenuItemIterator it(contextMenu);
+        while (it.next()) if (it.getItem().text == "Curve shape" && it.getItem().subMenu) drawMenu(*it.getItem().subMenu, 304, 260);
+        require(menuImage.getPixelAt(14, 14).getPerceivedBrightness() < .35f, "context menu background must use the dark theme");
+        auto output = juce::File(juce::String(argv[1])+"/RaBubanj-curve-menu.png").createOutputStream(); juce::PNGImageFormat format;
+        if (output) { output->setPosition(0); output->truncate(); }
+        require(output && format.writeImageToStream(menuImage, *output), "menu style preview must write");
     }
     std::cout << "Send routing, post-fader / mute / solo, channel / return / master EQ, state migration and editor selection / sizing passed.\n";
 }

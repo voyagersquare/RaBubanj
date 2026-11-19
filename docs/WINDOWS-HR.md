@@ -1,9 +1,13 @@
-# RaBubanj 0.5.0 — Windows x64, bez instalera
+# RaBubanj 0.6.0 — Windows x64, bez instalera
 
-1. Preuzmi ZIP `RaBubanj-0.5.0-Windows-x64` iz uspješnog GitHub Actions builda i raspakiraj ga.
+1. Preuzmi ZIP `RaBubanj-0.6.0-Windows-x64` iz uspješnog GitHub Actions builda i raspakiraj ga.
 2. Zatvori DAW i kopiraj cijelu mapu **RaBubanj.vst3** u `C:\Program Files\Common Files\VST3\`. Zamijeni cijeli prethodni paket.
 3. Ponovno skeniraj VST3 instrumente u 64-bitnom DAW-u, dodaj RaBubanj na MIDI traku i uključi arm/monitoring.
 4. `RaBubanj.exe` je samostalna aplikacija, bez instalera; u njoj odaberi audio i MIDI uređaj.
+
+## Oker konzola i EQ izbornik
+
+Jednobojna oker površina zamjenjuje prijašnju hrđu i ogrebotine. Nazivi komandi su bijeli. EQ paneli imaju dublje reljefne rubove, a svijetli rebrasti potenciometri s obojenim kapicama, faderi i tipke oblikovani su prema priloženom primjeru studijske miksete. Graf i izbornici koriste tamnu toplu podlogu, uz zlatnu krivulju i skale.
 
 ## Nazivi kanala i preslušavanje
 
@@ -30,8 +34,8 @@ Svaki drum kanal, Reverb povrat i master imaju po šest neovisnih bandova.
 1. Klikni kanal, zatim njegovu točku na grafu. Uklonjeni su duplicirani gumbi 1–6 i brojčani kliznici.
 2. Povuci točku lijevo/desno za frekvenciju i gore/dolje za gain.
 3. Kotačić miša mijenja **Q**, odnosno širinu banda. Zadrži miš na grafu za prikaz vrijednosti odabranog banda u tooltipu.
-4. U padajućem izborniku odaberi **Bell**, **Low shelf**, **High shelf**, **Low cut**, **High cut** ili **Notch**. Low/High cut imaju nagib 12 dB po oktavi. Gain nije primjenjiv na cut i notch filtre.
-5. **Desni klik na točku** (ili Alt-klik) uključuje/isključuje pojedini band, **BYPASS** zaobilazi cijeli odabrani EQ, a **RESET** vraća njegove bandove na ravnu krivulju. Dvoklik na točku vraća gain tog banda na 0 dB.
+4. **Desnim klikom na točku** otvori tamni izbornik, pa u **Curve shape** odaberi **Bell**, **Low shelf**, **High shelf**, **Low cut**, **High cut** ili **Notch**. Stari padajući izbornik ispod grafa uklonjen je. Low/High cut imaju nagib 12 dB po oktavi. Gain nije primjenjiv na cut i notch filtre.
+5. U istom izborniku **Gain (dB)** bira gain u koracima, **Invert gain** obrće njegov predznak, a **Band enabled** uključuje/isključuje band. Gain nije ponuđen za cut/notch. **Alt-klik** izravno uključuje/isključuje band, **BYPASS** zaobilazi cijeli odabrani EQ, a **RESET** vraća njegove bandove na ravnu krivulju. Dvoklik na točku vraća gain tog banda na 0 dB.
 
 Raspon je 20 Hz–20 kHz, ±24 dB i Q 0,15–18. Graf prikazuje frekvencijski odziv filtara koji stvarno obrađuju audio. Ova verzija nema dinamički EQ ni linear-phase način rada.
 

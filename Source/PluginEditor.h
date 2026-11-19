@@ -42,6 +42,7 @@ class MixerLookAndFeel final : public juce::LookAndFeel_V4
 {
 public:
     MixerLookAndFeel();
+    int getSliderThumbRadius(juce::Slider& s) override { return s.getSliderStyle() == juce::Slider::LinearVertical ? 12 : 6; }
     void drawButtonBackground(juce::Graphics&, juce::Button&, const juce::Colour&, bool, bool) override;
     void drawRotarySlider(juce::Graphics&, int, int, int, int, float, float, float, juce::Slider&) override;
     void drawLinearSlider(juce::Graphics&, int, int, int, int, float, float, float, juce::Slider::SliderStyle, juce::Slider&) override;

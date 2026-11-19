@@ -16,9 +16,7 @@ EqPanel::EqPanel(RaBubanjProcessor& p, int bus, bool isMaster) : processor(p), m
                 }
     };
     for (auto* button : { &bypass, &reset }) addAndMakeVisible(*button);
-    addAndMakeVisible(type); addAndMakeVisible(graph);
-    for (int i = 0; i < 6; ++i) type.addItem(rabubanj::eqTypeNames[static_cast<size_t>(i)], i+1);
-    type.setName("EQ filter type"); type.setTooltip("Filter type of the selected graph node");
+    addAndMakeVisible(graph);
     setBus(bus);
 }
 EqPanel::~EqPanel() = default;
@@ -29,11 +27,11 @@ void EqPanel::setBus(int bus)
     bypassAttachment.reset();
     bypassAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(processor.parameters, "eqBypass"+juce::String(busIndex), bypass);
     processor.getSpectrumTap(busIndex).discard(); graph.resetSpectrum();
-    bindBand(); repaint();
+    refresh(); repaint();
 }
 void EqPanel::selectBand(int b)
 {
-    graph.cancelGesture(); selectedBand = juce::jlimit(0, rabubanj::eqBandCount-1, b); bindBand(); graph.repaint();
+    graph.cancelGesture(); selectedBand = juce::jlimit(0, rabubanj::eqBandCount-1, b); refresh(); graph.repaint();
 }
 juce::RangedAudioParameter* EqPanel::parameter(const char* field) const
 {
@@ -43,12 +41,65 @@ void EqPanel::setBandValue(const char* field, float value)
 {
     auto* p = parameter(field); p->setValueNotifyingHost(p->convertTo0to1(value));
 }
-void EqPanel::bindBand()
+juce::PopupMenu EqPanel::makeBandContextMenu(int band) const
 {
-    typeAttachment.reset();
-    typeAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(processor.parameters,
-        juce::String(rabubanj::eqParameterId(busIndex, selectedBand, "type")), type);
-    refresh();
+    const auto settings = processor.getEqSettings(busIndex);
+    const auto& value = settings.bands[static_cast<size_t>(juce::jlimit(0, rabubanj::eqBandCount-1, band))];
+    juce::PopupMenu menu, shapes, gains;
+    for (auto* m : { &menu, &shapes, &gains }) m->setLookAndFeel(menuLook.get());
+    menu.addSectionHeader("Band "+juce::String(band+1)+" / "+rabubanj::eqTypeNames[static_cast<size_t>(value.type)]);
+    menu.addItem(-1, juce::String(value.frequency, 1)+" Hz   "+(value.gain > 0 ? "+" : "")+juce::String(value.gain, 1)+" dB   Q "+juce::String(value.q, 2), false);
+    menu.addSeparator();
+    menu.addItem(ToggleBand, "Band enabled", true, value.enabled);
+    for (int shape = 0; shape < 6; ++shape)
+    {
+        juce::PopupMenu::Item item(rabubanj::eqTypeNames[static_cast<size_t>(shape)]);
+        item.itemID = ShapeBase+shape; item.isTicked = value.type == shape;
+        auto icon = std::make_unique<juce::DrawablePath>(); juce::Path path;
+        rabubanj::EqBand example { 1000, 9, .7071f, shape, true };
+        const auto coefficients = rabubanj::eqCoefficients(example, 48000);
+        for (int x = 0; x <= 32; ++x)
+        {
+            const auto frequency = 50*std::pow(320.0, x/32.0);
+            const auto db = juce::jlimit(-12.0, 12.0, 20*std::log10(std::max(1e-9, coefficients.magnitude(frequency, 48000))));
+            const auto y = 12-static_cast<float>(db)*.75f;
+            if (x == 0) path.startNewSubPath(0, y); else path.lineTo(static_cast<float>(x), y);
+        }
+        icon->setPath(path); icon->setFill(juce::FillType(juce::Colours::transparentBlack)); icon->setStrokeFill(juce::FillType(gold)); icon->setStrokeType(juce::PathStrokeType(1.8f));
+        item.image = std::move(icon); shapes.addItem(std::move(item));
+    }
+    menu.addSubMenu("Curve shape", shapes);
+    for (size_t i = 0; i < gainChoices.size(); ++i)
+    {
+        const auto db = gainChoices[i];
+        gains.addItem(GainBase+static_cast<int>(i), (db > 0 ? "+" : "")+juce::String(db)+" dB", true, std::abs(value.gain-static_cast<float>(db)) < .01f);
+    }
+    menu.addSubMenu("Gain (dB)", gains, value.type < 3);
+    menu.addItem(InvertGain, "Invert gain", value.type < 3);
+    return menu;
+}
+void EqPanel::applyBandContextAction(int bus, int band, int command)
+{
+    if (bus < 0 || bus >= rabubanj::eqBusCount || band < 0 || band >= rabubanj::eqBandCount) return;
+    const auto current = processor.getEqSettings(bus).bands[static_cast<size_t>(band)];
+    const char* field = nullptr; float value = 0;
+    if (command == ToggleBand) { field = "on"; value = current.enabled ? 0.0f : 1.0f; }
+    else if (command == InvertGain && current.type < 3) { field = "gain"; value = -current.gain; }
+    else if (command >= ShapeBase && command < ShapeBase+6) { field = "type"; value = static_cast<float>(command-ShapeBase); }
+    else if (command >= GainBase && command < GainBase+static_cast<int>(gainChoices.size()) && current.type < 3)
+    { field = "gain"; value = static_cast<float>(gainChoices[static_cast<size_t>(command-GainBase)]); }
+    if (field == nullptr) return;
+    auto* p = processor.parameters.getParameter(juce::String(rabubanj::eqParameterId(bus, band, field)));
+    p->beginChangeGesture(); p->setValueNotifyingHost(p->convertTo0to1(value)); p->endChangeGesture(); refresh();
+}
+void EqPanel::showBandContextMenu(juce::Component& target, juce::Point<int> screenPosition)
+{
+    if (!target.isShowing()) return;
+    auto menu = makeBandContextMenu(selectedBand); const auto bus = busIndex, band = selectedBand;
+    const juce::Component::SafePointer<EqPanel> safe(this); auto keepLookAlive = menuLook;
+    menu.showMenuAsync(juce::PopupMenu::Options().withTargetComponent(&target).withTargetScreenArea({ screenPosition.x, screenPosition.y, 1, 1 }).withMinimumWidth(270).withStandardItemHeight(27),
+        [safe, bus, band, keepLookAlive](int command)
+        { juce::ignoreUnused(keepLookAlive); if (safe) safe->applyBandContextAction(bus, band, command); });
 }
 void EqPanel::refresh()
 {
@@ -56,12 +107,12 @@ void EqPanel::refresh()
     const auto& band = settings.bands[static_cast<size_t>(selectedBand)];
     graph.setTooltip("Band "+juce::String(selectedBand+1)+": "+juce::String(band.frequency, 1)+" Hz / "+juce::String(band.gain, 2)
         +" dB / Q "+juce::String(band.q, 2)+(band.enabled ? " / ON" : " / OFF")
-        +". Live spectrum: -90 to 0 dBFS, post-EQ (master: stereo output). Drag: frequency/gain; wheel: Q; right-click: on/off; double-click: reset gain.");
+        +". Live spectrum: -90 to 0 dBFS, post-EQ (master: stereo output). Drag: frequency/gain; wheel: Q; right-click: curve shape / gain menu; Alt-click: on/off; double-click: reset gain.");
     graph.updateSpectrum(); graph.repaint(); repaint();
 }
 void EqPanel::paint(juce::Graphics& g)
 {
-    raisedPanel(g, getLocalBounds().toFloat(), panel, .85f);
+    raisedPanel(g, getLocalBounds().toFloat(), panel, 1.9f);
     g.setColour(masterPanel ? gold : cyan); g.fillRect(0, 0, getWidth(), 2);
     const juce::String name = busIndex < 8 ? rabubanj::names[static_cast<size_t>(busIndex)] : "Reverb";
     text(g, masterPanel ? "GLOBAL EQ  /  STEREO MASTER" : "CHANNEL EQ  /  "+name.toUpperCase(), { 12, 5, getWidth()-24, 24 }, 12, ink);
@@ -73,14 +124,13 @@ void EqPanel::resized()
     auto row = area.removeFromTop(23);
     reset.setBounds(row.removeFromRight(48)); row.removeFromRight(5); bypass.setBounds(row.removeFromRight(64));
     area.removeFromTop(6);
-    auto bottom = area.removeFromBottom(29); graph.setBounds(area);
-    bottom.removeFromTop(5); type.setBounds(bottom.removeFromLeft(juce::jmin(145, getWidth()/3)));
+    graph.setBounds(area.withTrimmedBottom(4));
 }
 
 EqPanel::Graph::Graph(EqPanel& panelToUse) : owner(panelToUse)
 {
     setName("EQ response graph"); setMouseCursor(juce::MouseCursor::CrosshairCursor);
-    setTooltip("Drag a band: frequency / gain. Mouse wheel: Q. Double-click a band: reset gain. Select filter type below.");
+    setTooltip("Drag a band: frequency / gain. Mouse wheel: Q. Double-click a band: reset gain. Right-click a node for curve shape and gain.");
 }
 juce::Rectangle<float> EqPanel::Graph::plot() const { return getLocalBounds().toFloat().reduced(26, 12).withTrimmedBottom(12); }
 juce::Point<float> EqPanel::Graph::point(const rabubanj::EqBand& band) const
@@ -110,14 +160,14 @@ void EqPanel::Graph::paint(juce::Graphics& g)
     for (int db : { -24, -12, 0, 12, 24 })
     {
         const auto y = r.getCentreY() - static_cast<float>(db)/48.0f*r.getHeight();
-        g.setColour(db == 0 ? juce::Colour(0xff506479) : juce::Colour(0xff293c50)); g.drawHorizontalLine(juce::roundToInt(y), r.getX(), r.getRight());
-        text(g, juce::String(db), { 0, juce::roundToInt(y)-6, 23, 12 }, 9, muted, juce::Justification::centredRight);
+        g.setColour(db == 0 ? juce::Colour(0xff80704a) : grid); g.drawHorizontalLine(juce::roundToInt(y), r.getX(), r.getRight());
+        text(g, juce::String(db), { 0, juce::roundToInt(y)-6, 23, 12 }, 9, axis, juce::Justification::centredRight);
     }
     for (float f : { 20.0f, 50.0f, 100.0f, 200.0f, 500.0f, 1000.0f, 2000.0f, 5000.0f, 10000.0f, 20000.0f })
     {
         if (getWidth() < 450 && (f == 50 || f == 200 || f == 2000 || f == 20000)) continue;
-        const auto x = xFor(f); g.setColour(juce::Colour(0xff293c50)); g.drawVerticalLine(juce::roundToInt(x), r.getY(), r.getBottom());
-        text(g, f >= 1000 ? juce::String(f/1000, 0)+"k" : juce::String(f, 0), { juce::roundToInt(x)-17, juce::roundToInt(r.getBottom())+3, 34, 12 }, 9, muted, juce::Justification::centred);
+        const auto x = xFor(f); g.setColour(grid); g.drawVerticalLine(juce::roundToInt(x), r.getY(), r.getBottom());
+        text(g, f >= 1000 ? juce::String(f/1000, 0)+"k" : juce::String(f, 0), { juce::roundToInt(x)-17, juce::roundToInt(r.getBottom())+3, 34, 12 }, 9, axis, juce::Justification::centred);
     }
     {
         const auto colour = owner.masterPanel ? gold : cyan;
@@ -132,7 +182,7 @@ void EqPanel::Graph::paint(juce::Graphics& g)
         auto fill = trace; fill.lineTo(r.getRight(), r.getBottom()); fill.lineTo(r.getX(), r.getBottom()); fill.closeSubPath();
         g.setColour(colour.withAlpha(.16f)); g.fillPath(fill); g.setColour(colour.withAlpha(.65f)); g.strokePath(trace, juce::PathStrokeType(1.1f));
         for (int db : { -12, -36, -60, -84 })
-            text(g, juce::String(db), { juce::roundToInt(r.getRight())+2, juce::roundToInt(r.getBottom()-static_cast<float>(db+90)/90*r.getHeight())-5, 23, 10 }, 8, muted, juce::Justification::centredLeft);
+            text(g, juce::String(db), { juce::roundToInt(r.getRight())+2, juce::roundToInt(r.getBottom()-static_cast<float>(db+90)/90*r.getHeight())-5, 23, 10 }, 8, axis, juce::Justification::centredLeft);
     }
     auto response = [&](bool individual)
     {
@@ -152,8 +202,8 @@ void EqPanel::Graph::paint(juce::Graphics& g)
     g.setColour(bandColours[static_cast<size_t>(owner.selectedBand)].withAlpha(.5f)); g.strokePath(individual, juce::PathStrokeType(1));
     auto total = response(false), fill = total;
     fill.lineTo(r.getRight(), r.getCentreY()); fill.lineTo(r.getX(), r.getCentreY()); fill.closeSubPath();
-    g.setColour(cyan.withAlpha(.10f)); g.fillPath(fill);
-    g.setColour(settings.bypass ? muted : ink); g.strokePath(total, juce::PathStrokeType(1.8f));
+    g.setColour(gold.withAlpha(.08f)); g.fillPath(fill);
+    g.setColour(settings.bypass ? axis : gold); g.strokePath(total, juce::PathStrokeType(1.8f));
     for (int i = 0; i < rabubanj::eqBandCount; ++i)
     {
         const auto& band = settings.bands[static_cast<size_t>(i)]; const auto p = point(band);
@@ -166,8 +216,14 @@ void EqPanel::Graph::paint(juce::Graphics& g)
 void EqPanel::Graph::mouseDown(const juce::MouseEvent& e)
 {
     if (!e.mods.isLeftButtonDown() && !e.mods.isRightButtonDown()) return;
+    if (e.mods.isRightButtonDown())
+    {
+        const auto band = nearest(e.position);
+        if (e.position.getDistanceFrom(point(owner.processor.getEqSettings(owner.busIndex).bands[static_cast<size_t>(band)])) > 18) return;
+        owner.selectBand(band); owner.showBandContextMenu(*this, e.getScreenPosition()); return;
+    }
     owner.selectBand(nearest(e.position));
-    if (e.mods.isRightButtonDown() || e.mods.isAltDown())
+    if (e.mods.isAltDown())
     {
         auto* enabled = owner.parameter("on"); enabled->beginChangeGesture();
         owner.setBandValue("on", enabled->getValue() >= .5f ? 0.0f : 1.0f); enabled->endChangeGesture();
@@ -191,6 +247,7 @@ void EqPanel::Graph::endGesture()
 void EqPanel::Graph::mouseUp(const juce::MouseEvent&) { endGesture(); }
 void EqPanel::Graph::mouseDoubleClick(const juce::MouseEvent& e)
 {
+    if (e.mods.isRightButtonDown()) return;
     endGesture(); owner.selectBand(nearest(e.position)); auto* p = owner.parameter("gain");
     p->beginChangeGesture(); owner.setBandValue("gain", 0); p->endChangeGesture(); repaint();
 }
