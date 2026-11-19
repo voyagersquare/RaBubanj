@@ -20,6 +20,8 @@ private:
     public:
         explicit Graph(EqPanel&);
         ~Graph() override { endGesture(); }
+        void resetSpectrum() { spectrum.clear(); }
+        void updateSpectrum() { spectrum.update(owner.processor.getSpectrumTap(owner.busIndex)); }
         void cancelGesture() { endGesture(); }
         void paint(juce::Graphics&) override;
         void mouseDown(const juce::MouseEvent&) override;
@@ -29,6 +31,7 @@ private:
         void mouseWheelMove(const juce::MouseEvent&, const juce::MouseWheelDetails&) override;
     private:
         EqPanel& owner;
+        rabubanj::SpectrumAnalyser spectrum;
         bool dragging = false;
         juce::Rectangle<float> plot() const;
         juce::Point<float> point(const rabubanj::EqBand&) const;

@@ -20,6 +20,10 @@ Ten original factory sounds per drum channel (80 total), source selection recall
 
 Twenty sounds per drum (160 total), refined snares/hats/cymbals, preset arrows, zero default sends, chromatic C1–G1 with optional GM mapping, DAW/local keyboard modes and asynchronous mono/stereo file drops with embedded recall.
 
+## 0.5 — per-channel shaping and live metering
+
+Channel-name level meters without audition, yellow bottom PLAY pads replacing factory selection, stereo EQ spectrum displays, and independent Pitch/Drive/opto-style one-knob compression for each drum.
+
 ## Next: acoustic sample engine
 
 - Load a documented kit manifest with licensed WAV samples, velocity zones, independent round-robin pools, tuning and per-articulation envelopes.

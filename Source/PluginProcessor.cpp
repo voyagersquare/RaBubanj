@@ -48,6 +48,13 @@ juce::AudioProcessorValueTreeState::ParameterLayout RaBubanjProcessor::makeParam
             addBool(id("on"), prefix + "Enabled", true);
         }
     }
+    for (int drum = 0; drum < 8; ++drum)
+    {
+        const auto id = juce::String(drum), name = juce::String(rabubanj::names[static_cast<size_t>(drum)]);
+        addFloat("pitch"+id, name+" Pitch", { -24.0f, 24.0f, .01f }, 0);
+        addFloat("drive"+id, name+" Drive", { 0.0f, 1.0f, .001f }, 0);
+        addFloat("comp"+id, name+" Compression", { 0.0f, 1.0f, .001f }, 0);
+    }
     return layout;
 }
 
@@ -64,6 +71,9 @@ RaBubanjProcessor::RaBubanjProcessor()
         sendParams[i] = parameters.getRawParameterValue("send" + id);
         presetParams[i] = parameters.getRawParameterValue("preset" + id);
         presetBankParams[i] = parameters.getRawParameterValue("presetBank" + id);
+        pitchParams[i] = parameters.getRawParameterValue("pitch"+id);
+        driveParams[i] = parameters.getRawParameterValue("drive"+id);
+        compParams[i] = parameters.getRawParameterValue("comp"+id);
     }
     for (int i = 0; i <= rabubanj::reverbBus; ++i) soloParams[static_cast<size_t>(i)] = parameters.getRawParameterValue("solo" + juce::String(i));
     for (int bus = 0; bus < rabubanj::eqBusCount; ++bus)
@@ -76,6 +86,7 @@ RaBubanjProcessor::RaBubanjProcessor()
             eq.bands[static_cast<size_t>(band)] = { get("freq"), get("gain"), get("q"), get("type"), get("on") };
         }
     }
+    for (auto& tap : spectrumTaps) tap = std::make_unique<rabubanj::SpectrumTap>();
     midiMapParam = parameters.getRawParameterValue("midiMap");
     sampleLoader.onChange = [this] { triggerAsyncUpdate(); };
     masterParam = parameters.getRawParameterValue("master"); roomParam = parameters.getRawParameterValue("room");
@@ -87,22 +98,10 @@ RaBubanjProcessor::~RaBubanjProcessor()
 {
     sampleLoader.shutdown(); cancelPendingUpdate(); engine.reset();
 }
-int RaBubanjProcessor::getPreset(int drum) const noexcept
+int RaBubanjProcessor::legacySource(int drum) const noexcept
 {
     const auto i = static_cast<size_t>(drum);
     return juce::jlimit(0, 9, static_cast<int>(presetParams[i]->load()))+(presetBankParams[i]->load() >= .5f ? 10 : 0);
-}
-void RaBubanjProcessor::stepPreset(int drum, int direction)
-{
-    if (drum < 0 || drum >= 8) return;
-    const auto next = (getPreset(drum)+(direction < 0 ? 19 : 1))%20;
-    for (const auto& setting : { std::pair<juce::String, float>("preset"+juce::String(drum), static_cast<float>(next%10)),
-        { "presetBank"+juce::String(drum), next >= 10 ? 1.0f : 0.0f } })
-    {
-        auto* parameter = parameters.getParameter(setting.first); parameter->beginChangeGesture();
-        parameter->setValueNotifyingHost(parameter->convertTo0to1(setting.second)); parameter->endChangeGesture();
-    }
-    sampleLoader.clear(drum);
 }
 
 rabubanj::EqSettings RaBubanjProcessor::getEqSettings(int bus) const noexcept
@@ -133,12 +132,14 @@ void RaBubanjProcessor::prepareToPlay(double rate, int)
         dryLevels[i].reset(rate, .015); dryLevels[i].setCurrentAndTargetValue(!anySolo || soloParams[i]->load() >= .5f ? 1.0f : 0.0f);
         pans[i].reset(rate, .015); pans[i].setCurrentAndTargetValue(panParams[i]->load());
         sends[i].reset(rate, .015); sends[i].setCurrentAndTargetValue(sendParams[i]->load());
+        channelColour[i].set(driveParams[i]->load(), compParams[i]->load()); channelColour[i].prepare(rate);
     }
     for (auto& peak : peaks) peak.store(0);
 }
 void RaBubanjProcessor::resetAudio() noexcept
 {
     engine.reset(); reverb.reset(); for (auto& eq : equalisers) eq.reset();
+    for (auto& colour : channelColour) colour.reset();
 }
 void RaBubanjProcessor::releaseResources() { resetAudio(); }
 bool RaBubanjProcessor::isBusesLayoutSupported(const BusesLayout& layout) const
@@ -172,7 +173,9 @@ void RaBubanjProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
     if (auto* hostPlayHead = getPlayHead()) if (auto position = hostPlayHead->getPosition()) hostRecording.store(position->getIsRecording());
     for (int drum = 0; drum < rabubanj::drumCount; ++drum)
     {
-        engine.setPreset(drum, getPreset(drum));
+        engine.setPreset(drum, legacySource(drum));
+        engine.setPitch(drum, pitchParams[static_cast<size_t>(drum)]->load());
+        channelColour[static_cast<size_t>(drum)].set(driveParams[static_cast<size_t>(drum)]->load(), compParams[static_cast<size_t>(drum)]->load());
         engine.setCustomSample(drum, sampleLoader.audioSource(*snapshot, drum), sampleLoader.usesCustom(drum));
     }
     bool anySolo = false;
@@ -200,6 +203,8 @@ void RaBubanjProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
     for (int i = 0; i < size1; ++i) hitDrum(padQueue[static_cast<size_t>(start1 + i)], .85f);
     for (int i = 0; i < size2; ++i) hitDrum(padQueue[static_cast<size_t>(start2 + i)], .85f);
     padFifo.finishedRead(size1 + size2);
+    const auto analysisBus = analyserActive.load() ? getSelectedChannel() : -1;
+    const bool showAnalysis = analyserActive.load();
     auto* left = buffer.getWritePointer(0); auto* right = buffer.getWritePointer(1);
     std::array<float, rabubanj::eqBusCount> blockPeaks {};
     auto renderSegment = [&](int offset, int length)
@@ -219,7 +224,9 @@ void RaBubanjProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
                 for (int s = 0; s < count; ++s)
                 {
                     auto sourceLeft = stems[d][static_cast<size_t>(s)], sourceRight = rightStems[d][static_cast<size_t>(s)];
+                    channelColour[d].process(sourceLeft, sourceRight);
                     equalisers[d].processStereo(sourceLeft, sourceRight);
+                    stems[d][static_cast<size_t>(s)] = sourceLeft; rightStems[d][static_cast<size_t>(s)] = sourceRight;
                     const auto level = gains[d].getNextValue();
                     const auto angle = (pans[d].getNextValue() + 1.0f) * juce::MathConstants<float>::pi * .25f;
                     const auto l = sourceLeft*level*std::cos(angle), r = sourceRight*level*std::sin(angle);
@@ -230,12 +237,14 @@ void RaBubanjProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
                     left[offset+s] += l * dry; right[offset+s] += r * dry;
                     blockPeaks[d] = std::max(blockPeaks[d], std::max(std::abs(l), std::abs(r)) * 2);
                 }
+            if (analysisBus >= 0 && analysisBus < 8) spectrumTaps[static_cast<size_t>(analysisBus)]->push(stems[static_cast<size_t>(analysisBus)].data(), rightStems[static_cast<size_t>(analysisBus)].data(), count);
             reverb.processStereo(wetLeft.data(), wetRight.data(), count);
             for (int s = 0; s < count; ++s)
             {
                 float l = wetLeft[static_cast<size_t>(s)], r = wetRight[static_cast<size_t>(s)];
                 equalisers[8].processStereo(l, r);
                 const auto returnLevel = returnGain.getNextValue(); l *= returnLevel; r *= returnLevel;
+                wetLeft[static_cast<size_t>(s)] = l; wetRight[static_cast<size_t>(s)] = r;
                 blockPeaks[8] = std::max(blockPeaks[8], std::max(std::abs(l), std::abs(r)));
                 l += left[offset+s]; r += right[offset+s];
                 equalisers[9].processStereo(l, r);
@@ -243,6 +252,8 @@ void RaBubanjProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
                 left[offset+s] = std::tanh(l * gain); right[offset+s] = std::tanh(r * gain);
                 blockPeaks[9] = std::max(blockPeaks[9], std::max(std::abs(left[offset+s]), std::abs(right[offset+s])));
             }
+            if (analysisBus == 8) spectrumTaps[8]->push(wetLeft.data(), wetRight.data(), count);
+            if (showAnalysis) spectrumTaps[9]->push(left+offset, right+offset, count);
             offset += count; length -= count;
         }
     };
@@ -263,7 +274,7 @@ void RaBubanjProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
 void RaBubanjProcessor::getStateInformation(juce::MemoryBlock& destination)
 {
     auto state = parameters.copyState();
-    state.setProperty("schemaVersion", 4, nullptr);
+    state.setProperty("schemaVersion", 5, nullptr);
     state.setProperty("localKeys", localKeyboard.load(), nullptr);
     if (auto oldSamples = state.getChildWithName("SAMPLES"); oldSamples.isValid()) state.removeChild(oldSamples, nullptr);
     state.addChild(sampleLoader.save(), -1, nullptr); state.setProperty("selectedChannel", selectedChannel.load(), nullptr);

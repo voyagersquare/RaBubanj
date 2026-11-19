@@ -56,21 +56,8 @@ jobs:
       - name: Upload portable Windows x64 package
         uses: actions/upload-artifact@v4
         with:
-          name: RaBubanj-0.4.0-Windows-x64
+          name: RaBubanj-0.5.0-Windows-x64
           path: package/
-          if-no-files-found: error
-          retention-days: 30
-      - name: Render original factory audio previews
-        shell: pwsh
-        run: |
-          & .\build\Release\factory_preset_tests.exe factory-audio
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          Copy-Item docs/FACTORY-PRESETS.md factory-audio/README.md
-      - name: Upload 160 dry factory previews
-        uses: actions/upload-artifact@v4
-        with:
-          name: RaBubanj-0.4.0-Factory-Audio
-          path: factory-audio/
           if-no-files-found: error
           retention-days: 30
       - name: Upload validation logs

@@ -1,3 +1,5 @@
+> Historical 0.4 catalogue. Factory selection was removed from the 0.5 interface; source recipes remain for old-project compatibility.
+
 # RaBubanj 0.4 — factory sounds and references
 
 Each of the eight drum channels has twenty original factory sounds. Use the left/right arrows at the bottom of a channel, then click its channel-name button to audition. Choosing a preset alone does not play a hit. The name click also selects the channel EQ. Other channel clicks select its EQ without auditioning.

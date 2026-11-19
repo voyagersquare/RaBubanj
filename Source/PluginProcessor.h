@@ -3,6 +3,8 @@
 #include "DrumEngine.h"
 #include "SampleLoader.h"
 #include "ParametricEq.h"
+#include "ChannelColour.h"
+#include "SpectrumAnalyser.h"
 
 class RaBubanjProcessor final : public juce::AudioProcessor, private juce::AsyncUpdater
 {
@@ -20,7 +22,7 @@ public:
     bool acceptsMidi() const override { return true; }
     bool producesMidi() const override { return false; }
     bool isMidiEffect() const override { return false; }
-    double getTailLengthSeconds() const override { return 10.0; }
+    double getTailLengthSeconds() const override { return 130.0; }
     int getNumPrograms() override { return 1; }
     int getCurrentProgram() override { return 0; }
     void setCurrentProgram(int) override {}
@@ -29,8 +31,8 @@ public:
     void getStateInformation(juce::MemoryBlock&) override;
     void setStateInformation(const void*, int) override;
     void audition(int drum) noexcept;
-    void stepPreset(int drum, int direction);
-    int getPreset(int drum) const noexcept;
+    void setAnalyserActive(bool active) noexcept { analyserActive.store(active); }
+    rabubanj::SpectrumTap& getSpectrumTap(int bus) noexcept { return *spectrumTaps[static_cast<size_t>(bus)]; }
     void importSample(int drum, const juce::File& file) { sampleLoader.load(drum, file); }
     void clearSample(int drum) { sampleLoader.clear(drum); }
     SampleLoader::Info getSampleInfo(int drum) const { return sampleLoader.getInfo(drum); }
@@ -54,6 +56,7 @@ private:
         std::atomic<float>* bypass = nullptr;
     };
     static juce::AudioProcessorValueTreeState::ParameterLayout makeParameters();
+    int legacySource(int drum) const noexcept;
     void handleAsyncUpdate() override { updateHostDisplay(ChangeDetails{}.withNonParameterStateChanged(true)); }
     void hit(int note, float velocity) noexcept;
     void hitDrum(int drum, float velocity) noexcept;
@@ -61,6 +64,10 @@ private:
     SampleLoader sampleLoader;
     rabubanj::DrumEngine engine;
     juce::Reverb reverb;
+    std::array<rabubanj::ChannelColour, 8> channelColour;
+    std::array<std::unique_ptr<rabubanj::SpectrumTap>, rabubanj::eqBusCount> spectrumTaps;
+    std::atomic<bool> analyserActive { false };
+    std::array<std::atomic<float>*, 8> pitchParams {}, driveParams {}, compParams {};
     juce::SmoothedValue<float> masterGain, returnGain;
     std::array<juce::SmoothedValue<float>, rabubanj::drumCount> gains, pans, sends, dryLevels;
     std::array<std::atomic<float>*, rabubanj::drumCount> gainParams {}, panParams {}, muteParams {}, sendParams {}, presetParams {}, presetBankParams {};

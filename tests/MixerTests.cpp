@@ -68,11 +68,12 @@ int main(int argc, char** argv)
     set(p, "eq8b0gain", -18);
     require(render(p) < flatReturn*.8, "Reverb return EQ must process wet audio");
 
+    set(p, "pitch5", -7.5f); set(p, "drive5", .63f); set(p, "comp5", .47f);
     p.selectChannel(5); set(p, "send5", .731f); set(p, "eq5b2freq", 3271); set(p, "eq5b2gain", -7.3f);
     set(p, "eq5b2q", 4.1f); set(p, "eq5b2type", 5); set(p, "eq5b2on", 0); set(p, "roomSize", .71f); set(p, "preset5", 8);
     juce::MemoryBlock state; p.getStateInformation(state);
     RaBubanjProcessor restored; restored.setStateInformation(state.getData(), static_cast<int>(state.getSize()));
-    for (const auto* id : { "send5", "eq5b2freq", "eq5b2gain", "eq5b2q", "eq5b2type", "eq5b2on", "roomSize", "room", "eq8b0gain", "eq9b0gain", "preset5" })
+    for (const auto* id : { "send5", "eq5b2freq", "eq5b2gain", "eq5b2q", "eq5b2type", "eq5b2on", "roomSize", "room", "eq8b0gain", "eq9b0gain", "preset5", "pitch5", "drive5", "comp5" })
         require(std::abs(p.parameters.getRawParameterValue(id)->load() - restored.parameters.getRawParameterValue(id)->load()) < .001f, "new mixer / EQ values must recall in DAW state");
     require(restored.getSelectedChannel() == 5, "selected channel must survive project recall");
 
@@ -87,6 +88,7 @@ int main(int argc, char** argv)
     require(restored.parameters.getRawParameterValue("send0")->load() > .999f, "0.1 projects must migrate with unity room sends");
     require(std::abs(restored.parameters.getRawParameterValue("eq5b2gain")->load()) < .001f, "old projects must reset absent EQs to neutral");
     require(restored.parameters.getRawParameterValue("preset5")->load() < .1f, "older projects must use their original slot-01 sounds");
+    require(std::abs(restored.parameters.getRawParameterValue("pitch5")->load()) < .001f && restored.parameters.getRawParameterValue("drive5")->load() < .001f && restored.parameters.getRawParameterValue("comp5")->load() < .001f, "old states must reset new processors to neutral");
 
     auto previousVersion = p.parameters.copyState(); previousVersion.setProperty("schemaVersion", 2, nullptr);
     for (int i = previousVersion.getNumChildren()-1; i >= 0; --i)
@@ -176,41 +178,52 @@ int main(int argc, char** argv)
     juce::AudioBuffer<float> previewAudio(2, 512); juce::MidiBuffer previewMidi;
     // Drain earlier selector-click previews before checking one-click / one-hit behaviour.
     uiProcessor.processBlock(previewAudio, previewMidi);
-    int presetSelectors = 0;
+    int previewButtons = 0;
     for (auto* child : editor->getChildren()) if (auto* strip = dynamic_cast<MixerStrip*>(child))
     {
         for (auto* control : strip->getChildren())
         {
+            require(dynamic_cast<juce::ComboBox*>(control) == nullptr && !control->getName().contains(" preset"), "factory selectors and arrows must be removed");
             if (auto* button = dynamic_cast<juce::TextButton*>(control))
-                require(!button->getName().endsWith(" EQ") && !button->getName().startsWith("Preview "), "EQ and HIT strip buttons must be removed");
-            require(dynamic_cast<juce::ComboBox*>(control) == nullptr, "factory dropdowns must be replaced by arrows");
-            if (auto* button = dynamic_cast<juce::TextButton*>(control))
-                if (button->getName().endsWith(" previous preset"))
-                {
-                    ++presetSelectors;
-                    if (button->getName() == "Kick previous preset")
-                    {
-                        const auto before = uiProcessor.getHitCount(0); button->onClick();
-                        require(uiProcessor.getPreset(0) == 19, "left arrow must wrap from first to twentieth sound");
-                        uiProcessor.stepPreset(0, 1); require(uiProcessor.getPreset(0) == 0, "right arrow must wrap to first sound");
-                        for (int i = 0; i < 16; ++i) uiProcessor.stepPreset(0, 1);
-                        require(uiProcessor.getPreset(0) == 16, "arrows must reach the second bank of sounds");
-                        uiProcessor.processBlock(previewAudio, previewMidi);
-                        require(uiProcessor.getHitCount(0) == before, "preset arrows must not audition automatically");
-                    }
-                }
-            if (control->getName() == "Select Kick")
             {
-                auto* button = dynamic_cast<juce::TextButton*>(control);
-                const auto hitsBefore = uiProcessor.getHitCount(0); button->onClick();
-                uiProcessor.processBlock(previewAudio, previewMidi);
-                require(uiProcessor.getHitCount(0) == hitsBefore+1 && uiProcessor.getSelectedChannel() == 0,
-                    "clicking the channel name must select EQ and audition exactly once");
+                if (button->getName().startsWith("Preview "))
+                {
+                    ++previewButtons;
+                    const auto name = button->getName().substring(8); int drum = -1;
+                    for (int d = 0; d < 8; ++d) if (name == rabubanj::names[static_cast<size_t>(d)]) drum = d;
+                    require(drum >= 0, "preview button must belong to a drum");
+                    const auto before = uiProcessor.getHitCount(drum); button->onClick(); uiProcessor.processBlock(previewAudio, previewMidi);
+                    require(uiProcessor.getHitCount(drum) == before+1, "bottom PLAY must trigger its current sample once");
+                    strip->refresh();
+                    for (auto* header : strip->getChildren()) if (header->getName() == "Select "+name)
+                        require(static_cast<float>(header->getProperties()["channelLevel"]) > 0, "name button must receive the sounding channel level");
+                    require(static_cast<bool>(button->getProperties()["previewLit"]), "pressed PLAY must light yellow");
+                }
+                if (button->getName() == "Select Kick")
+                {
+                    const auto before = uiProcessor.getHitCount(0); button->onClick(); uiProcessor.processBlock(previewAudio, previewMidi);
+                    require(uiProcessor.getHitCount(0) == before && uiProcessor.getSelectedChannel() == 0, "name button must select EQ without triggering audio");
+
+                }
             }
         }
     }
-    require(presetSelectors == 8, "all eight drum channels must expose their factory selector");
-    set(uiProcessor, "preset0", 0); set(uiProcessor, "presetBank0", 0);
+    require(previewButtons == 8, "each drum must have one bottom preview button");
+    juce::Slider* pitch = nullptr; juce::Slider* drive = nullptr; juce::Slider* comp = nullptr;
+    for (auto* child : editor->getChildren()) if (auto* slider = dynamic_cast<juce::Slider*>(child))
+    {
+        if (slider->getName() == "Channel pitch") pitch = slider;
+        if (slider->getName() == "Channel drive") drive = slider;
+        if (slider->getName() == "Channel compression") comp = slider;
+    }
+    require(pitch && drive && comp, "selected-channel FX knobs must exist");
+    editor->selectChannel(0); pitch->setValue(7.5, juce::sendNotificationSync); drive->setValue(.6, juce::sendNotificationSync); comp->setValue(.7, juce::sendNotificationSync);
+    editor->selectChannel(1);
+    require(std::abs(pitch->getValue()) < .001 && drive->getValue() < .001 && comp->getValue() < .001, "newly selected channel must expose its own FX values");
+    pitch->setValue(-3, juce::sendNotificationSync); editor->selectChannel(0);
+    require(std::abs(pitch->getValue()-7.5) < .001 && std::abs(drive->getValue()-.6) < .001 && std::abs(comp->getValue()-.7) < .001, "returning to a channel must retain independent FX");
+    editor->selectChannel(8); require(!pitch->isEnabled() && !drive->isEnabled() && !comp->isEnabled(), "drum-only FX must be disabled for the reverb return");
+    editor->selectChannel(0); pitch->setValue(0, juce::sendNotificationSync); drive->setValue(0, juce::sendNotificationSync); comp->setValue(0, juce::sendNotificationSync);
     for (auto* child : editor->getChildren()) if (auto* strip = dynamic_cast<MixerStrip*>(child))
         for (auto* control : strip->getChildren()) if (auto* s = dynamic_cast<juce::Slider*>(control))
         {
@@ -235,6 +248,21 @@ int main(int argc, char** argv)
     }
     require(!editor->keyPressed(juce::KeyPress('A', juce::ModifierKeys::ctrlModifier, 0)), "keyboard shortcuts must pass through");
     uiProcessor.setLocalKeys(false);
+    juce::Thread::sleep(160);
+    for (auto* child : editor->getChildren()) if (auto* strip = dynamic_cast<MixerStrip*>(child))
+    {
+        strip->refresh();
+        for (auto* control : strip->getChildren()) if (control->getName().startsWith("Preview "))
+            require(!static_cast<bool>(control->getProperties()["previewLit"]), "PLAY illumination must expire after release");
+    }
+    if (argc > 1)
+    {
+        for (auto* child : editor->getChildren()) if (auto* strip = dynamic_cast<MixerStrip*>(child))
+            for (auto* control : strip->getChildren()) if (control->getName() == "Preview Kick") static_cast<juce::TextButton*>(control)->onClick();
+        for (int i = 0; i < 8; ++i) uiProcessor.processBlock(previewAudio, previewMidi);
+    }
+    channelEq->refresh(); globalEq->refresh();
+    for (auto* child : editor->getChildren()) if (auto* strip = dynamic_cast<MixerStrip*>(child)) strip->refresh();
     for (auto size : { juce::Point<int>(1120, 740), juce::Point<int>(1280, 820), juce::Point<int>(1800, 1160) })
     {
         editor->setSize(size.x, size.y); checkBounds(*editor);

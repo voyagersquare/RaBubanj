@@ -28,6 +28,7 @@ void EqPanel::setBus(int bus)
     graph.cancelGesture(); busIndex = juce::jlimit(0, rabubanj::masterBus, bus);
     bypassAttachment.reset();
     bypassAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(processor.parameters, "eqBypass"+juce::String(busIndex), bypass);
+    processor.getSpectrumTap(busIndex).discard(); graph.resetSpectrum();
     bindBand(); repaint();
 }
 void EqPanel::selectBand(int b)
@@ -55,8 +56,8 @@ void EqPanel::refresh()
     const auto& band = settings.bands[static_cast<size_t>(selectedBand)];
     graph.setTooltip("Band "+juce::String(selectedBand+1)+": "+juce::String(band.frequency, 1)+" Hz / "+juce::String(band.gain, 2)
         +" dB / Q "+juce::String(band.q, 2)+(band.enabled ? " / ON" : " / OFF")
-        +". Drag: frequency/gain; wheel: Q; right-click: on/off; double-click: reset gain.");
-    graph.repaint(); repaint();
+        +". Live spectrum: -90 to 0 dBFS, post-EQ (master: stereo output). Drag: frequency/gain; wheel: Q; right-click: on/off; double-click: reset gain.");
+    graph.updateSpectrum(); graph.repaint(); repaint();
 }
 void EqPanel::paint(juce::Graphics& g)
 {
@@ -117,6 +118,21 @@ void EqPanel::Graph::paint(juce::Graphics& g)
         if (getWidth() < 450 && (f == 50 || f == 200 || f == 2000 || f == 20000)) continue;
         const auto x = xFor(f); g.setColour(juce::Colour(0xff293c50)); g.drawVerticalLine(juce::roundToInt(x), r.getY(), r.getBottom());
         text(g, f >= 1000 ? juce::String(f/1000, 0)+"k" : juce::String(f, 0), { juce::roundToInt(x)-17, juce::roundToInt(r.getBottom())+3, 34, 12 }, 9, muted, juce::Justification::centred);
+    }
+    {
+        const auto colour = owner.masterPanel ? gold : cyan;
+        juce::Path trace;
+        for (int pixel = 0; pixel <= static_cast<int>(r.getWidth()); ++pixel)
+        {
+            const auto frequency = 20.0f*std::pow(1000.0f, static_cast<float>(pixel)/r.getWidth());
+            const auto db = juce::jlimit(-90.0f, 0.0f, spectrum.magnitudeAt(frequency, rate));
+            const auto y = r.getBottom()-(db+90)/90*r.getHeight();
+            if (pixel == 0) trace.startNewSubPath(r.getX(), y); else trace.lineTo(r.getX()+static_cast<float>(pixel), y);
+        }
+        auto fill = trace; fill.lineTo(r.getRight(), r.getBottom()); fill.lineTo(r.getX(), r.getBottom()); fill.closeSubPath();
+        g.setColour(colour.withAlpha(.16f)); g.fillPath(fill); g.setColour(colour.withAlpha(.65f)); g.strokePath(trace, juce::PathStrokeType(1.1f));
+        for (int db : { -12, -36, -60, -84 })
+            text(g, juce::String(db), { juce::roundToInt(r.getRight())+2, juce::roundToInt(r.getBottom()-static_cast<float>(db+90)/90*r.getHeight())-5, 23, 10 }, 8, muted, juce::Justification::centredLeft);
     }
     auto response = [&](bool individual)
     {

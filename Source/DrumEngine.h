@@ -50,9 +50,12 @@ public:
     int drumForIncomingNote(int note) const noexcept { return legacyMidi ? drumForGMNote(note) : drumForNote(note); }
     void setCustomSample(int drum, CustomSample* sample, bool use) noexcept
     { customSources[static_cast<size_t>(drum)] = sample; customEnabled[static_cast<size_t>(drum)] = use; }
+    void setPitch(int drum, float semitones) noexcept
+    { if (drum >= 0 && drum < drumCount) pitchRatios[static_cast<size_t>(drum)] = std::pow(2.0, std::clamp(static_cast<double>(semitones), -24.0, 24.0)/12); }
     void prepare(double rate)
     {
         sampleRate = rate > 0.0 ? rate : 44100.0;
+        pitchSmoothing = 1-std::exp(-1/(sampleRate*.005));
         reset();
         factory = &FactoryBank::get();
         for (int drum = 0; drum < drumCount; ++drum)
@@ -100,6 +103,7 @@ public:
         selected->active = true; selected->drum = drum; selected->velocity = velocity; selected->age = ++serial;
         selected->sample = preset == 0 || factory == nullptr ? &bank[static_cast<size_t>(drum)][static_cast<size_t>(layer)][static_cast<size_t>(rr)]
             : &factory->sample(drum, preset, layer, rr);
+        selected->pitch = pitchRatios[static_cast<size_t>(drum)];
         selected->increment = preset == 0 || factory == nullptr ? 1.0 : factorySampleRate/sampleRate;
         if (customEnabled[static_cast<size_t>(drum)])
         {
@@ -152,7 +156,7 @@ private:
         const std::vector<float>* sample = nullptr;
         const std::vector<float>* right = nullptr;
         CustomSample* custom = nullptr;
-        double position = 0, increment = 1;
+        double position = 0, increment = 1, pitch = 1;
         int choke = 0;
         float velocity = 0;
         uint64_t age = 0;
@@ -164,6 +168,8 @@ private:
     std::array<CustomSample*, drumCount> customSources {};
     std::array<bool, drumCount> customEnabled {};
     bool legacyMidi = false;
+    std::array<double, drumCount> pitchRatios { 1, 1, 1, 1, 1, 1, 1, 1 };
+    double pitchSmoothing = .0045;
     std::array<std::array<std::array<std::vector<float>, 3>, 3>, drumCount> bank;
     double sampleRate = 44100;
     uint64_t serial = 0;
@@ -192,7 +198,8 @@ private:
                 };
                 auto l = interpolate(sample)*voice.velocity;
                 auto r = voice.right == nullptr ? l : interpolate(*voice.right)*voice.velocity;
-                voice.position += voice.increment;
+                voice.pitch += (pitchRatios[drum]-voice.pitch)*pitchSmoothing;
+                voice.position += voice.increment*voice.pitch;
                 bool finished = false;
                 if (voice.choke > 0)
                 {

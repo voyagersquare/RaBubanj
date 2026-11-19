@@ -79,16 +79,16 @@ int main()
     { auto stream = largeFile.createOutputStream(); require(stream != nullptr && stream->setPosition(32*1024*1024+1) && stream->writeByte(0), "large fixture must write"); }
     p.importSample(0, largeFile); waitFor(p, 0, SampleLoader::Status::Error);
     require(p.getSampleInfo(0).active && std::abs(preview(p, 0)-monoEnergy) < .000001, "oversize and overlong imports must preserve existing audio");
-    p.setLocalKeys(true); p.stepPreset(7, -1);
+    p.setLocalKeys(true);
     juce::MemoryBlock state; p.getStateInformation(state);
     require(mono.deleteFile() && stereo.deleteFile(), "original files must be removable before recall");
     RaBubanjProcessor restored; restored.setStateInformation(state.getData(), static_cast<int>(state.getSize()));
     waitFor(restored, 0, SampleLoader::Status::Ready); waitFor(restored, 1, SampleLoader::Status::Ready);
-    require(restored.localKeysEnabled() && restored.getPreset(7) == 19, "keyboard mode and second preset bank must recall");
+    require(restored.localKeysEnabled(), "keyboard mode must recall");
     require(std::abs(preview(restored, 0)-monoEnergy) < .000001 && std::abs(preview(restored, 1, true)-stereoEnergy) < .000001,
         "embedded samples must recall without their original file paths");
-    restored.stepPreset(0, 1);
-    require(!restored.getSampleInfo(0).active && restored.getSampleInfo(1).active, "factory arrows must clear only their own imported source");
+    restored.clearSample(0);
+    require(!restored.getSampleInfo(0).active && restored.getSampleInfo(1).active, "clear must remove only its own imported source");
     restored.importSample(0, mono); waitFor(restored, 0, SampleLoader::Status::Error);
     require(!restored.getSampleInfo(0).active, "missing new file must leave factory source active");
     // Corrupt/missing restored content must remain explicitly missing, not play a different factory sound.

@@ -24,8 +24,9 @@ private:
     const int bus;
     juce::String channelName;
     juce::TextButton select, mute { "M" }, solo { "S" };
-    juce::TextButton previous { "<" }, next { ">" }, clear { "x" };
-    juce::Label presetName, sampleName;
+    juce::TextButton preview { "PLAY" }, clear { "x" };
+    juce::Label sampleName;
+    uint32_t previewUntil = 0;
     bool dragging = false;
     juce::Slider gain, pan, send;
     using SliderAttachment = juce::AudioProcessorValueTreeState::SliderAttachment;
@@ -44,9 +45,9 @@ public:
     void drawButtonBackground(juce::Graphics&, juce::Button&, const juce::Colour&, bool, bool) override;
     void drawRotarySlider(juce::Graphics&, int, int, int, int, float, float, float, juce::Slider&) override;
     void drawLinearSlider(juce::Graphics&, int, int, int, int, float, float, float, juce::Slider::SliderStyle, juce::Slider&) override;
-    juce::Font getComboBoxFont(juce::ComboBox& box) override
+    juce::Font getComboBoxFont(juce::ComboBox&) override
     {
-        return juce::Font(juce::FontOptions(box.getName().contains("factory preset") ? 11.0f : 14.0f));
+        return juce::Font(juce::FontOptions(14.0f));
     }
     juce::Label* createSliderTextBox(juce::Slider& s) override
     {
@@ -74,7 +75,11 @@ private:
     juce::TooltipWindow tooltip { this, 600 };
     EqPanel channelEq, globalEq;
     std::array<std::unique_ptr<MixerStrip>, rabubanj::eqBusCount> strips;
-    juce::Slider size, damping, width;
+    void bindChannelControls();
+    juce::Slider size, damping, width, pitch, drive, compression;
+    int colourBus = -1;
+    using SliderAttachment = juce::AudioProcessorValueTreeState::SliderAttachment;
+    std::unique_ptr<SliderAttachment> pitchAttachment, driveAttachment, compAttachment;
     juce::TextButton keyboardMode, midiMode;
     std::array<bool, 8> heldKeys {};
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> sizeAttachment, dampingAttachment, widthAttachment;

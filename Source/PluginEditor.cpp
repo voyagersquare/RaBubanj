@@ -14,13 +14,24 @@ MixerLookAndFeel::MixerLookAndFeel()
 }
 void MixerLookAndFeel::drawButtonBackground(juce::Graphics& g, juce::Button& button, const juce::Colour& colour, bool hover, bool down)
 {
-    const auto base = panel.interpolatedWith(colour, button.getToggleState() ? .38f : .15f).brighter(hover ? .15f : 0.0f);
+    const bool previewLit = button.getName().startsWith("Preview ") && (down || static_cast<bool>(button.getProperties()["previewLit"]));
+    const auto base = previewLit ? juce::Colour(0xffffd454) : panel.interpolatedWith(colour, button.getToggleState() ? .38f : .15f).brighter(hover ? .15f : 0.0f);
     const auto bounds = button.getLocalBounds().toFloat();
     if (down)
     {
         insetPanel(g, bounds.reduced(1)); wear(g, bounds.reduced(2), .4f);
+        if (previewLit) { g.setColour(base); g.fillRoundedRectangle(bounds.reduced(2), 2); }
     }
     else raisedPanel(g, bounds, base, .6f);
+    if (previewLit) { g.setColour(juce::Colours::black.withAlpha(.7f)); g.drawRoundedRectangle(bounds.reduced(1), 2, 1); }
+    if (button.getProperties().contains("channelLevel"))
+    {
+        const auto level = static_cast<float>(button.getProperties()["channelLevel"]);
+        const auto amount = juce::jlimit(0.0f, 1.0f, (juce::Decibels::gainToDecibels(level, -60.0f)+60)/60);
+        auto bar = bounds.reduced(3).withHeight(3).withY(bounds.getBottom()-5);
+        g.setColour(dark); g.fillRect(bar); bar.setWidth(bar.getWidth()*amount);
+        g.setColour(level >= .99f ? juce::Colour(0xfff5a06b) : cyan.brighter(.25f)); g.fillRect(bar);
+    }
     if (button.getToggleState())
     {
         g.setColour(colour.withAlpha(.85f));
@@ -95,8 +106,9 @@ MixerStrip::MixerStrip(RaBubanjProcessor& p, int busToUse) : processor(p), bus(b
     setName(channelName + " channel"); addMouseListener(this, true);
     select.setButtonText(channelName); select.setName("Select " + channelName);
     select.setColour(juce::TextButton::buttonOnColourId, bus >= 8 ? gold : cyan);
-    select.onClick = [this] { if (onSelect) onSelect(bus); if (bus < 8) processor.audition(bus); };
-    select.setTooltip(bus < 8 ? "Select "+channelName+" and play its selected factory sound" : "Select "+channelName+" EQ");
+    select.onClick = [this] { if (onSelect) onSelect(bus); };
+    select.getProperties().set("channelLevel", 0.0f);
+    select.setTooltip("Select "+channelName+" EQ; the bar shows its live level");
     for (auto* b : { &select, &mute }) addAndMakeVisible(*b);
     mute.setClickingTogglesState(true); mute.setTooltip("Mute " + channelName);
     mute.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xffb67a62));
@@ -115,19 +127,19 @@ MixerStrip::MixerStrip(RaBubanjProcessor& p, int busToUse) : processor(p), bus(b
         panAttachment = std::make_unique<SliderAttachment>(p.parameters, "pan" + id, pan);
         sendAttachment = std::make_unique<SliderAttachment>(p.parameters, "send" + id, send);
         muteAttachment = std::make_unique<ButtonAttachment>(p.parameters, "mute" + id, mute);
-        previous.setName(channelName+" previous preset"); next.setName(channelName+" next preset");
-        previous.onClick = [this] { processor.stepPreset(bus, -1); refresh(); };
-        next.onClick = [this] { processor.stepPreset(bus, 1); refresh(); };
-        previous.setTooltip("Previous factory sound (20 per instrument)"); next.setTooltip("Next factory sound (20 per instrument)");
-        clear.setName(channelName+" clear sample"); clear.setTooltip("Remove imported sample and return to the current factory sound");
-        clear.onClick = [this] { processor.clearSample(bus); refresh(); };
-        for (auto* b : { &previous, &next, &clear }) { b->setWantsKeyboardFocus(false); addAndMakeVisible(*b); }
-        for (auto* label : { &presetName, &sampleName })
+        preview.setName("Preview "+channelName); preview.setTriggeredOnMouseDown(true);
+        preview.setColour(juce::TextButton::textColourOffId, ink);
+        preview.onClick = [this]
         {
-            label->setFont(juce::FontOptions(10.0f)); label->setJustificationType(juce::Justification::centred);
-            label->setColour(juce::Label::textColourId, ink); label->setBorderSize(juce::BorderSize<int>()); addAndMakeVisible(*label);
-        }
-        presetName.setColour(juce::Label::backgroundColourId, dark);
+            processor.audition(bus); previewUntil = juce::Time::getMillisecondCounter()+140;
+            preview.getProperties().set("previewLit", true); preview.setColour(juce::TextButton::textColourOffId, dark); preview.repaint();
+        };
+        preview.setTooltip("Play the sample currently loaded on "+channelName);
+        clear.setName(channelName+" clear sample"); clear.setTooltip("Remove the imported sample");
+        clear.onClick = [this] { processor.clearSample(bus); refresh(); };
+        for (auto* b : { &preview, &clear }) { b->setWantsKeyboardFocus(false); addAndMakeVisible(*b); }
+        sampleName.setFont(juce::FontOptions(10.0f)); sampleName.setJustificationType(juce::Justification::centred);
+        sampleName.setColour(juce::Label::textColourId, ink); sampleName.setBorderSize(juce::BorderSize<int>()); addAndMakeVisible(sampleName);
         sampleName.setName(channelName+" sample source");
     }
     else
@@ -167,8 +179,7 @@ void MixerStrip::resized()
     auto bottom = area.removeFromBottom(56);
     auto buttons = bottom.removeFromTop(21);
     mute.setBounds(buttons.removeFromLeft(buttons.getWidth()/2).reduced(1, 0)); solo.setBounds(buttons.reduced(1, 0));
-    bottom.removeFromTop(7); auto factoryRow = bottom.removeFromTop(21);
-    previous.setBounds(factoryRow.removeFromLeft(15)); next.setBounds(factoryRow.removeFromRight(15)); presetName.setBounds(factoryRow);
+    bottom.removeFromTop(7); preview.setBounds(bottom.removeFromTop(21));
     auto panArea = area.removeFromTop(27); pan.setBounds(panArea.withTrimmedTop(9));
     area.removeFromBottom(6); area.removeFromTop(15); faderArea = area;
     if (bus < 8)
@@ -211,13 +222,14 @@ void MixerStrip::refresh()
     {
         const auto count = processor.getHitCount(bus); flash = count != lastHit ? 1.0f : flash*.76f; lastHit = count;
     }
+    select.getProperties().set("channelLevel", processor.getPeak(bus)); select.repaint();
     select.setToggleState(bus == 9 || bus == processor.getSelectedChannel(), juce::dontSendNotification);
     if (bus < 8)
     {
-        const auto info = processor.getSampleInfo(bus); const auto index = processor.getPreset(bus);
-        const auto name = juce::String(rabubanj::factoryPresets[static_cast<size_t>(bus)][static_cast<size_t>(index)].name);
-        presetName.setText(info.active ? "USER" : name, juce::dontSendNotification);
-        presetName.setTooltip(juce::String(index+1)+" / 20: "+name+". Arrows select factory sounds; click the channel name to audition.");
+        const auto info = processor.getSampleInfo(bus);
+        const bool lit = previewUntil != 0 && static_cast<int32_t>(previewUntil-juce::Time::getMillisecondCounter()) > 0;
+        preview.getProperties().set("previewLit", lit);
+        preview.setColour(juce::TextButton::textColourOffId, lit || preview.isDown() ? dark : ink);
         const bool loading = info.status == SampleLoader::Status::Loading;
         const bool problem = info.status == SampleLoader::Status::Error || info.status == SampleLoader::Status::Missing;
         sampleName.setText(dragging ? "DROP SAMPLE" : loading ? "Loading..." : problem ? "Load error" : info.active ? info.name : "Drop sample", juce::dontSendNotification);
@@ -251,6 +263,7 @@ void MixerStrip::textDropped(const juce::String& text, int x, int y) { filesDrop
 RaBubanjEditor::RaBubanjEditor(RaBubanjProcessor& p)
     : AudioProcessorEditor(&p), processor(p), channelEq(p, p.getSelectedChannel()), globalEq(p, rabubanj::masterBus, true)
 {
+    processor.setAnalyserActive(true);
     setLookAndFeel(&look); setWantsKeyboardFocus(true); addAndMakeVisible(channelEq); addAndMakeVisible(globalEq);
     keyboardMode.setName("Computer keyboard mode"); midiMode.setName("MIDI note mapping");
     keyboardMode.setTooltip("DAW: let the host handle keyboard MIDI. PLUGIN: audition A W S E D F T G while this window has focus (outside recording).");
@@ -285,14 +298,44 @@ RaBubanjEditor::RaBubanjEditor(RaBubanjProcessor& p)
         control->valueFromTextFunction = [](const juce::String& v) { return v.getDoubleValue()*.01; };
         control->updateText();
     }
+    for (auto* control : { &pitch, &drive, &compression })
+    {
+        slider(*control, juce::Slider::RotaryHorizontalVerticalDrag, 50);
+        control->setTextBoxStyle(juce::Slider::TextBoxBelow, false, 53, 19); control->setDoubleClickReturnValue(true, 0); addAndMakeVisible(*control);
+    }
+    pitch.setName("Channel pitch"); drive.setName("Channel drive"); compression.setName("Channel compression");
+    pitch.setTooltip("Pitch of the selected drum: -24 to +24 semitones. Changes playback speed and duration. Double-click resets.");
+    drive.setTooltip("Saturation of the selected drum, with antialiasing. Double-click resets.");
+    compression.setTooltip("Compression strength: -18 dBFS threshold, 3:1 ratio, 6 dB soft knee, 10 ms attack, 150-350 ms opto-style release. Stereo linked; no makeup gain.");
+    bindChannelControls();
     setResizable(true, true); setResizeLimits(1120, 740, 1800, 1160); setSize(1280, 820); timerCallback(); startTimerHz(30);
 }
-RaBubanjEditor::~RaBubanjEditor() { stopTimer(); setLookAndFeel(nullptr); }
+RaBubanjEditor::~RaBubanjEditor() { processor.setAnalyserActive(false); stopTimer(); setLookAndFeel(nullptr); }
 void RaBubanjEditor::selectChannel(int bus)
 {
     if (bus < 9) { processor.selectChannel(bus); channelEq.setBus(bus); }
     if (processor.localKeysEnabled() && isShowing() && dynamic_cast<juce::TextEditor*>(juce::Component::getCurrentlyFocusedComponent()) == nullptr) grabKeyboardFocus();
-    for (auto& strip : strips) strip->refresh();
+    bindChannelControls(); for (auto& strip : strips) strip->refresh(); repaint();
+}
+void RaBubanjEditor::bindChannelControls()
+{
+    const auto bus = processor.getSelectedChannel(); if (bus == colourBus) return;
+    pitchAttachment.reset(); driveAttachment.reset(); compAttachment.reset(); colourBus = bus;
+    const bool drum = bus < 8;
+    for (auto* control : { &pitch, &drive, &compression }) control->setEnabled(drum);
+    if (!drum) return;
+    const auto id = juce::String(bus);
+    pitchAttachment = std::make_unique<SliderAttachment>(processor.parameters, "pitch"+id, pitch);
+    driveAttachment = std::make_unique<SliderAttachment>(processor.parameters, "drive"+id, drive);
+    compAttachment = std::make_unique<SliderAttachment>(processor.parameters, "comp"+id, compression);
+    pitch.textFromValueFunction = [](double v) { return juce::String(v, 1)+" st"; };
+    pitch.valueFromTextFunction = [](const juce::String& v) { return v.getDoubleValue(); };
+    for (auto* control : { &drive, &compression })
+    {
+        control->textFromValueFunction = [](double v) { return juce::String(juce::roundToInt(v*100))+"%"; };
+        control->valueFromTextFunction = [](const juce::String& v) { return v.getDoubleValue()*.01; };
+    }
+    pitch.updateText(); drive.updateText(); compression.updateText();
 }
 void RaBubanjEditor::resized()
 {
@@ -319,6 +362,11 @@ void RaBubanjEditor::resized()
     {
         auto row = controls.removeFromTop(rowHeight); row.removeFromTop(14); row.removeFromBottom(4); control->setBounds(row);
     }
+    controls = reservedArea.reduced(8, 8); controls.removeFromTop(26);
+    for (auto* control : { &pitch, &drive, &compression })
+    {
+        auto row = controls.removeFromTop(rowHeight); row.removeFromTop(14); row.removeFromBottom(4); control->setBounds(row);
+    }
 }
 void RaBubanjEditor::paint(juce::Graphics& g)
 {
@@ -333,16 +381,20 @@ void RaBubanjEditor::paint(juce::Graphics& g)
     text(g, "REVERB", reverbControlsArea.reduced(8).removeFromTop(20), 11, gold, juce::Justification::centred);
     text(g, "SIZE", { size.getX(), size.getY()-14, size.getWidth(), 13 }, 9, muted, juce::Justification::centred);
     text(g, "DAMPING", { damping.getX(), damping.getY()-14, damping.getWidth(), 13 }, 9, muted, juce::Justification::centred);
+    const auto colourTitle = colourBus >= 0 && colourBus < 8 ? juce::String(rabubanj::names[static_cast<size_t>(colourBus)]).toUpperCase() : "DRUM FX";
+    text(g, colourTitle, reservedArea.reduced(5).removeFromTop(20), 10, cyan, juce::Justification::centred);
+    for (const auto& item : { std::pair<juce::Slider*, const char*>(&pitch, "PITCH"), { &drive, "DRIVE" }, { &compression, "COMP" } })
+        text(g, item.second, { item.first->getX(), item.first->getY()-14, item.first->getWidth(), 13 }, 9, muted, juce::Justification::centred);
     text(g, "WIDTH", { width.getX(), width.getY()-14, width.getWidth(), 13 }, 9, muted, juce::Justification::centred);
     text(g, "DRAG EQ: FREQ / GAIN    WHEEL: Q    RIGHT-CLICK: BAND ON/OFF", footerArea, 9, muted);
-    text(g, "C1-G1 MIDI  /  160 FACTORY SOUNDS", footerArea, 9, muted, juce::Justification::centredRight);
+    text(g, "C1-G1 MIDI  /  SAMPLE PLAYER", footerArea, 9, muted, juce::Justification::centredRight);
 }
 void RaBubanjEditor::timerCallback()
 {
     keyboardMode.setButtonText(processor.localKeysEnabled() ? "KEYS: PLUGIN" : "KEYS: DAW");
     midiMode.setButtonText(processor.parameters.getRawParameterValue("midiMap")->load() < .5f ? "MIDI: C1-G1" : "MIDI: GM");
     if (processor.getSelectedChannel() != channelEq.getBus()) channelEq.setBus(processor.getSelectedChannel());
-    channelEq.refresh(); globalEq.refresh(); for (auto& strip : strips) strip->refresh();
+    bindChannelControls(); channelEq.refresh(); globalEq.refresh(); for (auto& strip : strips) strip->refresh();
 }
 
 static constexpr std::array<int, 8> auditionKeys { 'A', 'W', 'S', 'E', 'D', 'F', 'T', 'G' };
