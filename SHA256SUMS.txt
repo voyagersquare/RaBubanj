@@ -1,2 +1,1 @@
-d2934c41ff275265cec457d5197a1e3fd30a8a4756c7f380f269e93fcc9fbb5c  RaBubanj-0.4.0-Windows-x64.zip
-1622f851f7745f9f54db2bffdfc0dd4b7230406615b8209841f36bb093033f6e  RaBubanj-0.4.0-Factory-Audio.zip
+76a5778731ed4275a43e6d7af3c8ddc0e6e22935ba8ee11be78cdfb735bd1bb6  RaBubanj-0.5.0-Windows-x64.zip

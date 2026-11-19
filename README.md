@@ -1,6 +1,10 @@
 # RaBubanj 0.5.0
 
-Windows x64 VST3 and standalone drum sample instrument by Voyagersquare, with a distressed dark-blue mixer, per-channel processing and a shared stereo Reverb. Portable ZIP, without an installer. The 0.5 download will be linked after native validation.
+Windows x64 VST3 and standalone drum sample instrument by Voyagersquare, with a distressed dark-blue mixer, per-channel processing and a shared stereo Reverb. Portable ZIP, without an installer.
+
+**[Preuzmi RaBubanj 0.5 za Windows x64 — ZIP bez instalera](https://github.com/voyagersquare/RaBubanj/actions/runs/44499031182/artifacts/14517505191)**
+
+Windows build, svih sedam testnih skupova i pluginval strictness 5 prolaze.
 
 [Windows instructions in Croatian](docs/WINDOWS-HR.md) · [Validation](VALIDATION.md)
 
