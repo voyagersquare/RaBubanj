@@ -79,7 +79,7 @@ int main(int argc, char** argv)
       for (int i = 0; i < data.getTrack(0)->getNumEvents(); ++i) { const auto& message = data.getTrack(0)->getEventPointer(i)->message; if (message.isNoteOn()) { ++notes; require(message.getNoteNumber() == 49 && std::abs(message.getTimeStamp()-2640) < .001, "MIDI drag must export only the selected pattern"); } }
       require(notes == 1, "unselected patterns must not leak into MIDI export"); }
     require(file.deleteFile(), "temporary MIDI must clean up"); set(p, "seqPattern", 0);
-    SequencerPanel panel(p); panel.setSize(1040, 440); StepGrid* grid = nullptr;
+    SequencerPanel panel(p); panel.setSize(1160, 620); StepGrid* grid = nullptr;
     for (auto* child : panel.getChildren()) if (auto* g = dynamic_cast<StepGrid*>(child)) grid = g;
     require(grid != nullptr, "step grid must exist"); const auto source = juce::Desktop::getInstance().getMainMouseSource();
     auto event = [&](int row, int step, int mods, bool drag)
@@ -115,6 +115,34 @@ int main(int argc, char** argv)
     grid->mouseDrag(event(4, 31, juce::ModifierKeys::rightButtonModifier, true)); grid->mouseUp(event(4, 31, 0, false));
     require(p.getPattern(0).get(4, 31) == 0 && p.getPattern(1).get(4, 31) == 4, "a drag gesture must remain bound to its original pattern");
     set(p, "seqPattern", 0);
+    // PAD labels select and audition exactly once without modifying any pattern cell.
+    const auto patternBeforePad = p.getPattern().snapshot(); p.getPattern().replace({});
+    for (int row = 0; row < 8; ++row)
+    {
+        const auto before = p.getHitCount(row); const auto point = grid->padBounds(row).getCentre();
+        const juce::MouseEvent click(source, point, juce::ModifierKeys(juce::ModifierKeys::leftButtonModifier), 1, 0, 0, 0, 0, grid, grid, juce::Time::getCurrentTime(), point, juce::Time::getCurrentTime(), 1, false);
+        grid->mouseDown(click); grid->mouseUp(click); p.processBlock(audio, midi);
+        require(p.getSelectedChannel() == row && grid->getSelectedPad() == row && p.getHitCount(row) == before+1, "PAD label must select and audition its corresponding sample");
+        for (auto cell : p.getPattern().snapshot()) require(cell == 0, "PAD labels must not write sequence steps");
+    }
+    p.getPattern().replace(patternBeforePad);
+    // The scope reads actual stereo audio, discards obsolete pad generations and clears on selection.
+    PadWaveform scope(p); scope.setSize(1100, 128); scope.update(0, true);
+    p.releaseResources(); p.prepareToPlay(48000, 512); p.audition(0); p.processBlock(audio, midi); scope.update(0, true);
+    require(scope.getDisplayedPeak() > .01f, "selected-pad waveform must receive real engine audio");
+    scope.update(1, true); require(scope.getDisplayedPeak() == 0, "switching pads must clear the previous waveform");
+    p.processBlock(audio, midi); scope.update(1, true); require(scope.getDisplayedPeak() == 0, "unselected pad tails must not leak into the selected waveform");
+    p.audition(1); p.processBlock(audio, midi); scope.update(1, true); require(scope.getDisplayedPeak() > .01f, "newly selected pad must display its own sound");
+    scope.update(1, false); require(rabubanj::WaveformTap::padForToken(p.getWaveformTap().getToken()) == -1, "hidden scope must disable audio capture");
+    {
+        rabubanj::WaveformTap tap; tap.selectPad(2); const auto token = tap.getToken();
+        std::array<float, 240> l, r; l.fill(.5f); r.fill(-.5f); tap.push(l.data(), r.data(), 240, token, 48000);
+        std::array<rabubanj::WaveformTap::Frame, 8192> data; const auto count = tap.read(data.data(), 8192);
+        require(count == 10 && data[0].low == -.5f && data[0].high == .5f && data[0].token == token, "scope must preserve anti-phase stereo peaks and calibrated time scale");
+        for (int i = 0; i < 1000; ++i) tap.push(l.data(), r.data(), 240, token, 48000);
+        require(tap.read(data.data(), 8192) == 8191, "scope queue must remain bounded when GUI stops consuming");
+        tap.selectPad(3); tap.selectPad(2); require(tap.getToken() != token, "returning to a pad must use a new generation to reject stale audio");
+    }
     std::unique_ptr<RaBubanjEditor> editor(static_cast<RaBubanjEditor*>(p.createEditor())); editor->showSequencer();
     SequencerWindow* window = nullptr;
     for (auto* child : editor->getChildren()) if (auto* w = dynamic_cast<SequencerWindow*>(child)) window = w;
@@ -122,7 +150,17 @@ int main(int argc, char** argv)
     require(!editor->keyPressed(juce::KeyPress(juce::KeyPress::spaceKey)) && !window->keyPressed(juce::KeyPress(juce::KeyPress::spaceKey)), "Space must remain unhandled for the DAW transport");
     for (auto size : { juce::Point<int>(1120, 740), juce::Point<int>(1280, 820), juce::Point<int>(1800, 1160) })
     { editor->setSize(size.x, size.y); require(editor->getLocalBounds().contains(window->getBounds()), "sequencer window must remain inside resized plugin bounds"); }
-    window->closeButtonPressed(); require(!window->isVisible(), "closing the sequencer window must hide it");
+    auto* close = window->getCloseButton();
+    require(close && window->getComponentAt(close->getBounds().getCentre()) == close && close->onClick, "close control must be an unobstructed, directly wired button");
+    p.getWaveformTap().selectPad(0); close->onClick(); require(!window->isVisible(), "clicking the close button must hide the sequencer");
+    require(rabubanj::WaveformTap::padForToken(p.getWaveformTap().getToken()) == -1, "closing the window must immediately disable its waveform capture");
+    juce::TextButton* toggle = nullptr;
+    for (auto* child : editor->getChildren()) if (auto* button = dynamic_cast<juce::TextButton*>(child); button && button->getName() == "Open step sequencer") toggle = button;
+    require(toggle && toggle->onClick, "main STEP SEQ toggle must exist");
+    toggle->onClick(); require(window->isVisible(), "STEP SEQ must reopen a closed sequencer");
+    toggle->onClick(); require(!window->isVisible(), "STEP SEQ must hide an open sequencer");
+    editor->showSequencer(); window->setLookAndFeel(&editor->getLookAndFeel());
+    window->getCloseButton()->onClick(); require(!window->isVisible(), "close action must survive look-and-feel changes");
     if (argc > 1)
     {
         set(p, "midiMap", 0);
@@ -134,7 +172,14 @@ int main(int argc, char** argv)
         juce::File directory(argv[1]); directory.createDirectory(); juce::PNGImageFormat png;
         auto save = [&](juce::Component& component, const char* name)
         { auto output = directory.getChildFile(name).createOutputStream(); if (output) { output->setPosition(0); output->truncate(); } require(output && png.writeImageToStream(component.createComponentSnapshot(component.getLocalBounds()), *output), "sequencer preview must write"); };
-        save(panel, "RaBubanj-sequencer.png"); editor->setSize(1280, 820); editor->showSequencer(); save(*editor, "RaBubanj-sequencer-window.png");
+        // Feed a real preview hit through the same capture path as sequence playback.
+        for (auto* child : panel.getChildren()) if (auto* wave = dynamic_cast<PadWaveform*>(child))
+        { wave->update(grid->getSelectedPad(), true); p.audition(grid->getSelectedPad()); for (int block = 0; block < 30; ++block) { p.processBlock(audio, midi); wave->update(grid->getSelectedPad(), true); } }
+        save(panel, "RaBubanj-sequencer.png"); editor->setSize(1280, 820); editor->showSequencer();
+        for (auto* child : window->getChildren()) if (auto* contents = dynamic_cast<SequencerPanel*>(child))
+            for (auto* component : contents->getChildren()) if (auto* wave = dynamic_cast<PadWaveform*>(component))
+            { wave->update(0, true); p.audition(0); for (int block = 0; block < 30; ++block) { p.processBlock(audio, midi); wave->update(0, true); } }
+        save(*editor, "RaBubanj-sequencer-window.png");
     }
     std::cout << "Host transport, exact note offsets, panic, pattern recall, MIDI export, four-pattern recall/migration, click cycling, right-drag erase, child window and Space forwarding passed.\n";
 }

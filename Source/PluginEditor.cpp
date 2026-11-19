@@ -28,7 +28,7 @@ void MixerLookAndFeel::drawDocumentWindowTitleBar(juce::DocumentWindow& window, 
 void MixerLookAndFeel::drawButtonBackground(juce::Graphics& g, juce::Button& button, const juce::Colour& colour, bool hover, bool down)
 {
     const bool previewLit = button.getName().startsWith("Preview ") && (down || static_cast<bool>(button.getProperties()["previewLit"]));
-    auto base = previewLit ? juce::Colour(0xffffd454) : juce::Colour(0xff444841).brighter(hover ? .13f : 0.0f);
+    auto base = button.getName() == "Close sequencer" ? juce::Colour(hover ? 0xffec5951 : 0xffbd3832) : previewLit ? juce::Colour(0xffffd454) : juce::Colour(0xff444841).brighter(hover ? .13f : 0.0f);
     if (!previewLit && button.getToggleState()) base = base.interpolatedWith(colour, .35f);
     const auto bounds = button.getLocalBounds().toFloat();
     g.setColour(juce::Colour(0xff302c20)); g.fillRoundedRectangle(bounds, 2);
@@ -290,7 +290,7 @@ RaBubanjEditor::RaBubanjEditor(RaBubanjProcessor& p)
 {
     processor.setAnalyserActive(true);
     setLookAndFeel(&look); setWantsKeyboardFocus(true); addAndMakeVisible(channelEq); addAndMakeVisible(globalEq);
-    sequenceButton.setName("Open step sequencer"); sequenceButton.setWantsKeyboardFocus(false); sequenceButton.onClick = [this] { showSequencer(); }; addAndMakeVisible(sequenceButton);
+    sequenceButton.setName("Open step sequencer"); sequenceButton.setWantsKeyboardFocus(false); sequenceButton.onClick = [this] { if (sequenceWindow && sequenceWindow->isVisible()) sequenceWindow->closeButtonPressed(); else showSequencer(); }; addAndMakeVisible(sequenceButton);
     keyboardMode.setName("Computer keyboard mode"); midiMode.setName("MIDI note mapping");
     keyboardMode.setTooltip("DAW: let the host handle keyboard MIDI. PLUGIN: audition A W S E D F T G while this window has focus (outside recording).");
     midiMode.setTooltip("Chromatic: C1 to G1 (MIDI 36-43). GM: use the older General MIDI drum mapping.");
@@ -365,14 +365,14 @@ void RaBubanjEditor::bindChannelControls()
 }
 void RaBubanjEditor::showSequencer()
 {
-    if (!sequenceWindow) { sequenceWindow = std::make_unique<SequencerWindow>(processor); sequenceWindow->setLookAndFeel(&look); sequenceWindow->setTitleBarButtonsRequired(0, false); sequenceWindow->setTitleBarButtonsRequired(juce::DocumentWindow::closeButton, false); addChildComponent(*sequenceWindow); }
-    sequenceWindow->setBounds((getWidth()-juce::jmin(getWidth()-24, 1080))/2, (getHeight()-490)/2, juce::jmin(getWidth()-24, 1080), 490);
+    if (!sequenceWindow) { sequenceWindow = std::make_unique<SequencerWindow>(processor); sequenceWindow->setLookAndFeel(&look); addChildComponent(*sequenceWindow); }
+    sequenceWindow->setBounds((getWidth()-juce::jmin(getWidth()-24, 1160))/2, juce::jmax(65, (getHeight()-650)/2), juce::jmin(getWidth()-24, 1160), 650);
     sequenceWindow->setVisible(true); sequenceWindow->toFront(false); if (isShowing()) grabKeyboardFocus();
 }
 void RaBubanjEditor::resized()
 {
     sequenceButton.setBounds(getWidth()-465, 23, 166, 24);
-    if (sequenceWindow) sequenceWindow->setBounds((getWidth()-juce::jmin(getWidth()-24, 1080))/2, (getHeight()-490)/2, juce::jmin(getWidth()-24, 1080), 490);
+    if (sequenceWindow) sequenceWindow->setBounds((getWidth()-juce::jmin(getWidth()-24, 1160))/2, juce::jmax(65, (getHeight()-650)/2), juce::jmin(getWidth()-24, 1160), 650);
     midiMode.setBounds(getWidth()-285, 23, 135, 24); keyboardMode.setBounds(getWidth()-141, 23, 119, 24);
     auto area = getLocalBounds().reduced(22, 16); area.removeFromTop(61);
     eqArea = area.removeFromTop(juce::jlimit(270, 335, getHeight()*36/100));
@@ -425,6 +425,7 @@ void RaBubanjEditor::paint(juce::Graphics& g)
 }
 void RaBubanjEditor::timerCallback()
 {
+    sequenceButton.setToggleState(sequenceWindow && sequenceWindow->isVisible(), juce::dontSendNotification);
     keyboardMode.setButtonText(processor.localKeysEnabled() ? "KEYS: PLUGIN" : "KEYS: DAW");
     midiMode.setButtonText(processor.parameters.getRawParameterValue("midiMap")->load() < .5f ? "MIDI: C1-G1" : "MIDI: GM");
     if (processor.getSelectedChannel() != channelEq.getBus()) channelEq.setBus(processor.getSelectedChannel());

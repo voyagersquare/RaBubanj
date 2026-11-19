@@ -221,6 +221,8 @@ void RaBubanjProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
     for (int i = 0; i < size1; ++i) hitDrum(padQueue[static_cast<size_t>(start1 + i)], .85f);
     for (int i = 0; i < size2; ++i) hitDrum(padQueue[static_cast<size_t>(start2 + i)], .85f);
     padFifo.finishedRead(size1 + size2);
+    const auto waveformToken = waveformTap.getToken();
+    const auto waveformBus = rabubanj::WaveformTap::padForToken(waveformToken);
     const auto analysisBus = analyserActive.load() ? getSelectedChannel() : -1;
     const bool showAnalysis = analyserActive.load();
     auto* left = buffer.getWritePointer(0); auto* right = buffer.getWritePointer(1);
@@ -256,6 +258,7 @@ void RaBubanjProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
                     blockPeaks[d] = std::max(blockPeaks[d], std::max(std::abs(l), std::abs(r)) * 2);
                 }
             if (analysisBus >= 0 && analysisBus < 8) spectrumTaps[static_cast<size_t>(analysisBus)]->push(stems[static_cast<size_t>(analysisBus)].data(), rightStems[static_cast<size_t>(analysisBus)].data(), count);
+            if (waveformBus >= 0) waveformTap.push(stems[static_cast<size_t>(waveformBus)].data(), rightStems[static_cast<size_t>(waveformBus)].data(), count, waveformToken, displaySampleRate.load());
             reverb.processStereo(wetLeft.data(), wetRight.data(), count);
             for (int s = 0; s < count; ++s)
             {

@@ -56,3 +56,7 @@ Four independent patterns selected from a dropdown, four velocity levels cycled 
 - Signing and a versioned release download; an installer is deliberately outside the initial scope.
 
 Reference products inform the workflow only. Artwork, sample recordings and implementation remain original or appropriately licensed.
+
+## 0.9 — sequencer controls and live waveform
+
+Explicit close/toggle controls with a red X, PAD-label audition and selection, brighter beat groups and a larger panel with a dedicated live selected-pad stereo waveform feed.

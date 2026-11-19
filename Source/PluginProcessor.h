@@ -6,6 +6,7 @@
 #include "ChannelColour.h"
 #include "SpectrumAnalyser.h"
 #include "StepSequencer.h"
+#include "WaveformTap.h"
 
 class RaBubanjProcessor final : public juce::AudioProcessor, private juce::AsyncUpdater
 {
@@ -45,6 +46,7 @@ public:
     double getHostBpm() const noexcept { return hostBpm.load(); }
     void setAnalyserActive(bool active) noexcept { analyserActive.store(active); }
     rabubanj::SpectrumTap& getSpectrumTap(int bus) noexcept { return *spectrumTaps[static_cast<size_t>(bus)]; }
+    rabubanj::WaveformTap& getWaveformTap() noexcept { return waveformTap; }
     void importSample(int drum, const juce::File& file) { sampleLoader.load(drum, file); }
     void clearSample(int drum) { sampleLoader.clear(drum); }
     SampleLoader::Info getSampleInfo(int drum) const { return sampleLoader.getInfo(drum); }
@@ -84,6 +86,7 @@ private:
     juce::Reverb reverb;
     std::array<rabubanj::ChannelColour, 8> channelColour;
     std::array<std::unique_ptr<rabubanj::SpectrumTap>, rabubanj::eqBusCount> spectrumTaps;
+    rabubanj::WaveformTap waveformTap;
     std::atomic<bool> analyserActive { false };
     std::array<std::atomic<float>*, 8> pitchParams {}, driveParams {}, compParams {};
     juce::SmoothedValue<float> masterGain, returnGain;

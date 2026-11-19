@@ -1,18 +1,21 @@
-# RaBubanj 0.8.0
+# RaBubanj 0.9.0
 
 Windows x64 VST3 and standalone drum sample instrument by Voyagersquare, with a solid ochre console-style mixer, per-channel processing and a shared stereo Reverb. Portable ZIP, without an installer.
 
-[Download Windows x64 ZIP](https://github.com/voyagersquare/RaBubanj/actions/runs/44516977117/artifacts/14525384002) · [Passed Windows build and validation](https://github.com/voyagersquare/RaBubanj/actions/runs/44516977117). Artifacts are retained for 30 days and may require GitHub sign-in.
+Windows 0.9 package links will be added after native validation.
 
 [Windows instructions in Croatian](docs/WINDOWS-HR.md) · [Validation](VALIDATION.md)
 
-![RaBubanj 0.8 PAD mixer and spectrum displays](docs/preview.png)
+![RaBubanj 0.9 PAD mixer and spectrum displays](docs/preview.png)
 
-## Step sequencer 0.8
+## Step sequencer 0.9
 
-- **STEP SEQ** opens a floating child window with **32 sixteenth-note steps × 8 rows**. **PAD 1–PAD 8 labels are on the left.** One pattern is two bars in 4/4.
+- **STEP SEQ** toggles a floating child window; click it again or the **red X** to hide the window. It has **32 sixteenth-note steps × 8 rows**. **PAD 1–PAD 8 labels are on the left.** One pattern is two bars in 4/4.
 - **Left-click** an empty cell to write the strongest hit. Repeated clicks on the same cell cycle **127 → 88 → 48 → 32 → 127**. Right-click is the only erase action; cycling never deletes a note.
 - **Right-click** erases. Hold and drag the right button to erase several cells, including intervening cells during fast drags. Left-drag does not cycle or paint additional cells.
+- Click a **PAD label on the left** to select and audition its current sample once. The selected PAD label is brighter and updates the main channel selection. Clicking grid cells keeps the existing four-strength editing workflow.
+- A larger window includes a **live selected-pad waveform** below the grid. It shows approximately one second of stereo peak envelopes after Pitch/Drive/Comp/EQ, before level/pan. Both stereo sides are included, so opposite-phase audio remains visible. Select another PAD label to clear the view and follow that sound; incoming MIDI, pad audition and sequence hits all appear. Imported sample filenames remain on the mixer strips.
+- Alternating four-step groups have a brighter light background for clearer beat divisions.
 - The SLABA/SREDNJA/JAKA brush buttons are removed. Cell bar height and brightness show the four strengths.
 - The **Pattern 1–Pattern 4 dropdown** chooses one of four independent patterns. Selection changes playback at the next audio block while retaining DAW phase. All four patterns and the selected pattern are saved in the project.
 - **SEQ ON** follows DAW tempo, playback position, Play/Stop and host loops. **Space stays with the DAW transport.** There is no competing local clock.
