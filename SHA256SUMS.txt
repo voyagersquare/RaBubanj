@@ -1,1 +1,1 @@
-4d58d2b9c30aa0d12fb032ad4e2413cb3474caec551a26f7b0bb39cd1ec3ce96  RaBubanj-0.10.0-Windows-x64.zip
+e0a9d04c62b8b221e1e4f14d3d005c73d0738b72b74e49ad50753dca972283e9  RaBubanj-0.11.0-Windows-x64.zip
