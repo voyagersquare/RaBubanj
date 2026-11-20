@@ -112,12 +112,12 @@ void StepGrid::paint(juce::Graphics& g)
         {
             auto cell = cellBounds(row, step).reduced(2, 3);
             const auto point = cells[static_cast<size_t>(row*32+step)]; const auto value = point.strength;
-            raisedMetal(g, cell, step/4%2 == 0 ? steel.darker(.22f) : steelDark, 4);
-            g.setColour(juce::Colours::black.withAlpha(step/4%2 == 0 ? .08f : .26f)); g.fillRoundedRectangle(cell.reduced(2).withTrimmedBottom(4), 1);
+            g.setColour(step/4%2 == 0 ? juce::Colour(0xff302e24) : juce::Colour(0xff62563a));
+            g.fillRoundedRectangle(cell, 2);
             if (value > 0)
             {
                 const std::array<juce::Colour, 4> colours { juce::Colour(0xff786c49), juce::Colour(0xffa28b4a), juce::Colour(0xffcdb057), juce::Colour(0xffffd46b) };
-                g.setColour(colours[static_cast<size_t>(value-1)].withAlpha(.8f));
+                g.setColour(colours[static_cast<size_t>(value-1)]);
                 auto fill = cell.reduced(2); fill.removeFromTop(fill.getHeight()*(1-static_cast<float>(value)/4)); g.fillRoundedRectangle(fill, 1);
             }
             if (value > 0 && point.timing != 0)
@@ -131,9 +131,9 @@ void StepGrid::paint(juce::Graphics& g)
     for (int row = 0; row < 8; ++row)
     {
         const auto label = padBounds(row).reduced(0, 3);
-        raisedMetal(g, label, row == selectedPad ? steel.brighter(.3f) : steel.darker(.3f), 4);
-        if (row == selectedPad) { g.setColour(gold.withAlpha(.25f)); g.fillRoundedRectangle(label.reduced(2), 2); }
-        text(g, rabubanj::padNames[static_cast<size_t>(row)], label.toNearestInt(), 14, ink, juce::Justification::centred, true);
+        flatCaption(g, label, row == selectedPad ? juce::Colour(0xff344739) : juce::Colour(0xff142019).withAlpha(.86f),
+            row == selectedPad ? gold.withAlpha(.8f) : juce::Colour(0xffe9d6a5).withAlpha(.45f));
+        text(g, rabubanj::padNames[static_cast<size_t>(row)], label.toNearestInt(), 16, ink, juce::Justification::centred, true);
     }
 }
 MidiPatternDrag::MidiPatternDrag(RaBubanjProcessor& p) : TextButton("DRAG MIDI"), processor(p)

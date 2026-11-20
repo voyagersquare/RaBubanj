@@ -60,7 +60,7 @@ public:
         auto* label = juce::LookAndFeel_V4::createSliderTextBox(s);
         label->setFont(juce::FontOptions(11.0f)); label->setBorderSize(juce::BorderSize<int>(0, 1, 0, 1)); return label;
     }
-    juce::Font getTextButtonFont(juce::TextButton& button, int height) override { return juce::Font(juce::FontOptions(juce::jmin(button.getName().startsWith("Select ") ? 15.0f : 13.0f, static_cast<float>(height)*.58f))).boldened(); }
+    juce::Font getTextButtonFont(juce::TextButton& button, int height) override { return juce::Font(juce::FontOptions(juce::jmin(button.getName().startsWith("Select ") ? 16.0f : 14.0f, static_cast<float>(height)*.65f))).boldened(); }
 };
 
 class RaBubanjEditor final : public juce::AudioProcessorEditor, private juce::Timer

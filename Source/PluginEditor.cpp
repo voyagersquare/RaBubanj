@@ -28,51 +28,42 @@ void MixerLookAndFeel::drawDocumentWindowTitleBar(juce::DocumentWindow& window, 
 void MixerLookAndFeel::drawButtonBackground(juce::Graphics& g, juce::Button& button, const juce::Colour& colour, bool hover, bool down)
 {
     const bool previewLit = button.getName().startsWith("Preview ") && (down || static_cast<bool>(button.getProperties()["previewLit"]));
-    auto base = button.getName().startsWith("Close ") ? juce::Colour(hover ? 0xffec5951 : 0xffbd3832) : previewLit ? juce::Colour(0xffffd454) : juce::Colour(0xff8b97a5).brighter(hover ? .16f : 0.0f);
-    if (!previewLit && button.getToggleState()) base = base.interpolatedWith(colour, .35f);
-    const auto bounds = button.getLocalBounds().toFloat();
-    const auto lift = down ? 2.0f : 5.0f;
-    auto face = bounds.reduced(2).withTrimmedBottom(lift);
-    if (down) face = face.translated(0, 2);
-    metalSurface(g, bounds.reduced(1), steelDark);
-    g.setColour(juce::Colours::black.withAlpha(.55f)); g.fillRoundedRectangle(bounds.reduced(1).withTrimmedTop(4), 2);
-    metalSurface(g, face, base);
-    g.setColour(juce::Colour(0xfff1f7ff).withAlpha(.8f)); g.drawLine(face.getX()+1, face.getY()+1, face.getRight()-1, face.getY()+1, 1.2f);
-    g.setColour(juce::Colour(0xff151e2b)); g.drawRoundedRectangle(bounds.reduced(1), 2, 1);
-    g.setColour(juce::Colours::black.withAlpha(.75f)); g.drawLine(face.getX(), face.getBottom(), face.getRight(), face.getBottom(), 1.5f);
+    const bool close = button.getName().startsWith("Close ");
+    auto face = previewLit ? juce::Colour(0xffffd454) : close ? juce::Colour(0xffbd3832) : juce::Colour(0xff142019).withAlpha(.86f);
+    if (!previewLit && !close && button.getToggleState()) face = face.interpolatedWith(colour, .2f);
+    if (hover || down) face = face.brighter(down ? .12f : .06f);
+    const auto bounds = button.getLocalBounds().toFloat().reduced(1);
+    flatCaption(g, bounds, face, button.getToggleState() ? colour.withAlpha(.8f) : juce::Colour(0xffe9d6a5).withAlpha(.45f));
     if (button.getProperties().contains("channelLevel"))
     {
         const auto level = static_cast<float>(button.getProperties()["channelLevel"]);
         const auto amount = juce::jlimit(0.0f, 1.0f, (juce::Decibels::gainToDecibels(level, -60.0f)+60)/60);
-        auto bar = bounds.reduced(3).withHeight(3).withY(bounds.getBottom()-5);
+        auto bar = bounds.reduced(2).withHeight(2).withY(bounds.getBottom()-4);
         g.setColour(dark); g.fillRect(bar); bar.setWidth(bar.getWidth()*amount);
         g.setColour(level >= .99f ? juce::Colour(0xffed9b59) : juce::Colour(0xff97d38b)); g.fillRect(bar);
     }
     if (button.getToggleState())
-    {
-        g.setColour(colour.brighter(.2f)); g.fillRoundedRectangle(4, 3, juce::jmax(2.0f, bounds.getWidth()-8), 2, .5f);
-    }
+    { g.setColour(colour.brighter(.2f)); g.fillRoundedRectangle(4, 2, juce::jmax(2.0f, bounds.getWidth()-6), 1.5f, .5f); }
 }
-void MixerLookAndFeel::drawButtonText(juce::Graphics& g, juce::TextButton& button, bool, bool down)
+void MixerLookAndFeel::drawButtonText(juce::Graphics& g, juce::TextButton& button, bool, bool)
 {
     const auto colour = button.findColour(button.getToggleState() ? juce::TextButton::textColourOnId : juce::TextButton::textColourOffId);
-    text(g, button.getButtonText(), button.getLocalBounds().withTrimmedBottom(down ? 1 : 4).reduced(3, 0),
+    text(g, button.getButtonText(), button.getLocalBounds().reduced(3, 0),
         getTextButtonFont(button, button.getHeight()).getHeight(), colour, juce::Justification::centred, true);
 }
 void MixerLookAndFeel::drawComboBox(juce::Graphics& g, int w, int h, bool down, int, int, int, int, juce::ComboBox&)
 {
-    raisedMetal(g, { 0, 0, static_cast<float>(w), static_cast<float>(h) }, steel, 4);
-    g.setColour(juce::Colours::black.withAlpha(down ? .65f : .45f)); g.fillRoundedRectangle(3, 2, static_cast<float>(w-6), static_cast<float>(h-7), 2);
-    juce::Path arrow; const auto cx = static_cast<float>(w-15), cy = static_cast<float>(h)*.43f;
+    flatCaption(g, { 1, 1, static_cast<float>(w-2), static_cast<float>(h-2) }, juce::Colour(0xff142019).withAlpha(down ? .96f : .86f));
+    juce::Path arrow; const auto cx = static_cast<float>(w-15), cy = static_cast<float>(h)*.5f;
     arrow.startNewSubPath(cx-4, cy-2); arrow.lineTo(cx, cy+2); arrow.lineTo(cx+4, cy-2);
     g.setColour(gold); g.strokePath(arrow, juce::PathStrokeType(1.8f));
 }
 void MixerLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int w, int h, float position, float start, float end, juce::Slider& s)
 {
-    // Keep the approved reference silhouette and scale the complete rotary artwork by 70%.
+    // Keep the approved reference silhouette and enlarge the 0.12 rotary artwork by 15% (70% × 1.15 = 80.5%).
     // Slider bounds and mouse/automation behaviour remain independent of the rendered size.
     juce::Graphics::ScopedSaveState savedKnob(g);
-    g.addTransform(juce::AffineTransform::scale(.7f, .7f, static_cast<float>(x)+static_cast<float>(w)*.5f, static_cast<float>(y)+static_cast<float>(h)*.5f));
+    g.addTransform(juce::AffineTransform::scale(.805f, .805f, static_cast<float>(x)+static_cast<float>(w)*.5f, static_cast<float>(y)+static_cast<float>(h)*.5f));
     const auto diameter = juce::jmin(static_cast<float>(w)-14, (static_cast<float>(h)-9)/1.7f);
     if (diameter < 6) return;
     const auto radius = diameter*.5f, rise = diameter*.98f, capHeight = diameter*.72f;
@@ -140,8 +131,7 @@ namespace
 {
 void drawControlLegend(juce::Graphics& g, const juce::String& label, juce::Rectangle<int> bounds, float fontSize = 16)
 {
-    g.setColour(juce::Colour(0xff142019).withAlpha(.86f)); g.fillRoundedRectangle(bounds.toFloat(), 2.5f);
-    g.setColour(juce::Colour(0xffe9d6a5).withAlpha(.45f)); g.drawRoundedRectangle(bounds.toFloat().reduced(.5f), 2.5f, .8f);
+    flatCaption(g, bounds.toFloat());
     text(g, label, bounds.reduced(2, 0), fontSize, ink, juce::Justification::centred, true);
 }
 void drawSaddleFader(juce::Graphics& g, float cx, float cy, float width, float length)

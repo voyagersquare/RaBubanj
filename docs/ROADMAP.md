@@ -75,3 +75,8 @@ Original user-provided wood image embedded unchanged. Deep panel relief with tal
 ## 0.12 — reference-shaped knobs and faders
 
 Tall fluted metal cylinders with six coloured matte cap discs, thick rim-reaching indicators and black bases. Rotary artwork reduced by 30%, with larger high-contrast command labels. Console-style saddle faders with dark side cheeks and aluminium bridges; matching PAN/TIMING handles. Wood panels and existing controls/workflows retained.
+
+
+## 0.13 — flat captions and sequencer cells
+
+Flat legend-style commands across the main editor and sequencer, retaining all actions and feedback. Rotary artwork enlarged 15% from 0.12. Sequencer cells return to a simple flat style with four dark/four light grouping.

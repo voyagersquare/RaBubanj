@@ -46,6 +46,13 @@ inline void raisedMetal(juce::Graphics& g, juce::Rectangle<float> bounds, juce::
     g.setColour(juce::Colours::white.withAlpha(.7f)); g.drawLine(face.getX()+1, face.getY()+1, face.getRight()-1, face.getY()+1, 1);
     g.setColour(juce::Colours::black.withAlpha(.65f)); g.drawLine(face.getX(), face.getBottom(), face.getRight(), face.getBottom(), 1);
 }
+inline void flatCaption(juce::Graphics& g, juce::Rectangle<float> bounds,
+    juce::Colour face = juce::Colour(0xff142019).withAlpha(.86f),
+    juce::Colour edge = juce::Colour(0xffe9d6a5).withAlpha(.45f))
+{
+    g.setColour(face); g.fillRoundedRectangle(bounds, 2.5f);
+    g.setColour(edge); g.drawRoundedRectangle(bounds.reduced(.5f), 2.5f, .8f);
+}
 inline void raisedPanel(juce::Graphics& g, juce::Rectangle<float> bounds, juce::Colour base = panel, float depth = .85f)
 {
     const auto body = bounds.reduced(1.5f); const auto rise = juce::jlimit(4.0f, 10.0f, 4+depth*2.2f);

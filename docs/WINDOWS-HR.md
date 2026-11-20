@@ -1,6 +1,6 @@
-# RaBubanj 0.12.0 — Windows x64, bez instalera
+# RaBubanj 0.13.0 — Windows x64, bez instalera
 
-1. Preuzmi ZIP `RaBubanj-0.12.0-Windows-x64` iz uspješnog GitHub Actions builda i raspakiraj ga.
+1. Preuzmi ZIP `RaBubanj-0.13.0-Windows-x64` iz uspješnog GitHub Actions builda i raspakiraj ga.
 2. Zatvori DAW i kopiraj cijelu mapu **RaBubanj.vst3** u `C:\Program Files\Common Files\VST3\`. Zamijeni cijeli prethodni paket.
 3. Ponovno skeniraj VST3 instrumente u 64-bitnom DAW-u, dodaj RaBubanj na MIDI traku i uključi arm/monitoring.
 4. `RaBubanj.exe` je samostalna aplikacija, bez instalera; u njoj odaberi audio i MIDI uređaj.
@@ -34,11 +34,11 @@ MIDI izvoz je datoteka jednog tracka, 960 PPQ, kanal 10, duljine osam beatova. P
 
 Kućište, kanalni paneli, EQ okviri te Reverb/FX i sekvencer koriste izvornu drvenu teksturu iz poslane arhive. JPEG je ugrađen bez izmjene datoteke; prilagodba prikaza zadržava omjer slike, uz odvojeno osvjetljenje reljefa.
 
-**Svi gumbi i kliznici su metalni:** visoki cilindri sa širokim uzdužnim utorima, obojenim mat gornjim plohama, debelim oznakama i crnom bazom; profilirane kapice fadera s udubljenom sredinom i tamnim krajevima; PAN/TIMING kliznici, tipke, PAD oznake, koraci sekvencera i točke EQ-a. Hladni odsjaji i sjene naglašavaju visinu. Natpisi su bijeli s tamnim rubom radi čitljivosti. PLAY ostaje žut pri pritisku, X crven, a oznake jačina i pomaka nota zadržavaju značenje. Funkcije i spremljeni projekti ostaju isti.
+Zaokružene metalne tipke zamijenjene su **ravnim bijelim natpisima na tamnim podlogama**, poput REVERB/PAD naslova: STEP SEQ, MIDI/KEYS, EQ BYPASS/RESET, nazivi kanala, M/S i PLAY. Isto vrijedi u sekvenceru za SEQ ON/OFF, DRAG MIDI, izbor patterna, PAD oznake i X. Klikovi i sve dosadašnje funkcije ostaju; PLAY pri pritisku svijetli žuto, X je crven, aktivna stanja i kanalni metri i dalje se prikazuju.
 
-Kružni gumbi smanjeni su za **30%**, uz zadržan oblik i funkciju. Natpisi SIZE/DAMPING/WIDTH/PITCH/DRIVE/COMP sada su veći i podebljani, na tamnim podlogama radi čitljivosti; povećani su i naslovi REVERB/PAD.
+Kružni metalni gumbi s obojenim gornjim plohama **povećani su za 15% u odnosu na 0.12**, uz zadržane proporcije. Boje: SIZE tirkizna, DAMPING bijela, WIDTH bordo, PITCH plava, DRIVE crvena i COMP ljubičasta. Profilirani faderi ostaju prema primjeru konzole. Veliki natpisi iznad kontrola ostaju podebljani i kontrastni.
 
-Boje prema primjeru: SIZE tirkizna, DAMPING bijela, WIDTH bordo, PITCH plava, DRIVE crvena i COMP ljubičasta. Oznaka na bijelom gumbu je crna; ostale su bijele. Kapice fadera imaju oblik prema primjeru konzole, s povišenim krilcima, brušenim metalnim mostom i bijelom središnjom oznakom.
+Ćelije sekvencera vraćene su na **jednostavan ravan izgled**: prve četiri su tamnije, sljedeće četiri svjetlije i tako do 32. Četiri jačine udarca, pomaci nota, uređivanje i MIDI izvoz ostaju kao prije.
 
 ## Nazivi kanala i preslušavanje
 

@@ -1,12 +1,12 @@
-# RaBubanj 0.12.0
+# RaBubanj 0.13.0
 
 Windows x64 VST3 and standalone drum sample instrument by Voyagersquare, with raised wood panels and metal controls, per-channel processing and a shared stereo Reverb. Portable ZIP, without an installer.
 
-[Download Windows x64 ZIP](https://github.com/voyagersquare/RaBubanj/actions/runs/44801723658/artifacts/14660988968) · [Passed Windows build and validation](https://github.com/voyagersquare/RaBubanj/actions/runs/44801723658). Artifacts are retained for 30 days and may require GitHub sign-in.
+Windows 0.13 package links will be added after native validation.
 
 [Windows instructions in Croatian](docs/WINDOWS-HR.md) · [Validation](VALIDATION.md)
 
-![RaBubanj 0.12 PAD mixer and spectrum displays](docs/preview.png)
+![RaBubanj 0.13 PAD mixer and spectrum displays](docs/preview.png)
 
 ## Step sequencer 0.10
 
@@ -16,7 +16,7 @@ Windows x64 VST3 and standalone drum sample instrument by Voyagersquare, with ra
 - **Hold a note for 650 ms without moving** to open its dark **TIMING** slider. Choose **−50% to +50% of a sixteenth-note step**; negative is earlier, positive is later, and 0% is on the grid. The readout also shows milliseconds at the current DAW tempo. Double-click the slider to reset to 0. A long press preserves note velocity; a long press on an empty cell creates a strong note. Click the grid or X to dismiss. A small cyan/orange mark identifies shifted notes.
 - Click a **PAD label on the left** to select and audition its current sample once. The selected PAD label is brighter and updates the main channel selection. Clicking grid cells keeps the existing four-strength editing workflow.
 - A larger window includes a **live selected-pad waveform** below the grid. It shows approximately one second of stereo peak envelopes after Pitch/Drive/Comp/EQ, before level/pan. Both stereo sides are included, so opposite-phase audio remains visible. Select another PAD label to clear the view and follow that sound; incoming MIDI, pad audition and sequence hits all appear. Imported sample filenames remain on the mixer strips.
-- Alternating four-step groups have a brighter light background for clearer beat divisions.
+- Flat cells alternate four darker steps and four lighter steps for clearer beat divisions.
 - The SLABA/SREDNJA/JAKA brush buttons are removed. Cell bar height and brightness show the four strengths.
 - The **Pattern 1–Pattern 4 dropdown** chooses one of four independent patterns. Selection changes playback at the next audio block while retaining DAW phase. All four patterns, their per-note timing offsets and the selected pattern are saved in the project.
 - **SEQ ON** follows DAW tempo, playback position, Play/Stop and host loops. **Space stays with the DAW transport.** There is no competing local clock.
@@ -35,11 +35,11 @@ The sequencer requires an active DAW audio engine and a monitored instrument tra
 ## Wood panels and metal controls
 
 - The user's original **7680×4302 JPEG** from `wood texture.rar` is embedded **byte for byte** as `Assets/wood-reference.jpg`. Natural wood grain covers the housing, channel sections, EQ frames, Reverb/FX panels and sequencer enclosure. Rendering uses uniform scaling/cropping and separate relief lighting; no replacement texture or recoloured source image is used.
-- **All controls are metal:** tall fluted cylinders with coloured matte top discs, thick position bars and black bases; contoured saddle fader caps with dark side cheeks and brushed aluminium bridges; matching pan/timing slider handles, switches, PAD labels, step keys, dropdown housings, EQ nodes and screws. Brushed surfaces use cold highlights, dark sidewalls and deep shadows. Metal materials are independent of the wood image.
-- Rotary tops follow the supplied reference palette: **SIZE teal, DAMPING off-white, WIDTH burgundy, PITCH blue, DRIVE red and COMP purple**. The light damping cap uses a black marker; the other caps use white markers. Broad flutes, a thin scalloped silver lip and a matte cap finish replace the earlier fine knurling and machining rings.
-- The fader design follows the supplied console photo, with raised end wings, a concave waist, dark end cheeks and a white centre index. Travel padding fits the taller caps at both extremes.
-- Rotary artwork is **30% smaller** than the approved reference-model preview, preserving its proportions and mouse/automation behaviour. The labels above SIZE/DAMPING/WIDTH/PITCH/DRIVE/COMP are larger (16 px bold) on dark contrast plates; Reverb/PAD section captions use 17 px bold.
-- The strong height and bevels from the relief study remain. Fader travel reserves enough room for the taller caps. White outlined legends remain readable on both wood and metal. **PLAY still lights yellow**, close buttons stay red, and sequence velocity/microtiming/selection indicators keep their existing meanings.
+- **Flat caption controls** replace raised metal pushbuttons: STEP SEQ, MIDI/keyboard modes, EQ BYPASS/RESET, channel names, M/S and PLAY. The sequencer uses the same flat treatment for SEQ ON/OFF, DRAG MIDI, pattern selection, PAD labels and close controls. They look like the dark REVERB/PAD legend plates and retain their click actions, meters, state feedback and keyboard focus behaviour.
+- Rotary knobs retain the supplied-reference silhouette: tall fluted metal cylinders, black bases, coloured matte top discs and thick position bars. They are **15% larger than 0.12** (80.5% of the original reference-model artwork size). Colours remain SIZE teal, DAMPING off-white, WIDTH burgundy, PITCH blue, DRIVE red and COMP purple.
+- Faders keep the contoured saddle profile, dark end cheeks, brushed aluminium centre and white index. PAN/TIMING use the matching horizontal profile.
+- **Sequencer cells are flat again**, with **four dark steps followed by four light steps**, starting dark at step 1. Four velocity bar heights/colours, the playhead and per-note timing markers retain their meanings.
+- Larger white bold command labels stay on dark contrast plates. PLAY still lights yellow; close controls stay red. Wood texture, raised panel frames and original sample/sequence workflows remain.
 - [Material and original-asset details](docs/WOOD-UI.md).
 - **Right-click an EQ node** for the dark context menu with **Curve shape** (six types), **Gain (dB)**, **Invert gain** and **Band enabled**. Alt-click toggles a band. Drag, wheel, double-click, bypass and reset retain their actions.
 - [EQ context-menu preview](docs/eq-menu.png).
