@@ -1,12 +1,12 @@
-# RaBubanj 0.10.0
+# RaBubanj 0.11.0
 
-Windows x64 VST3 and standalone drum sample instrument by Voyagersquare, with a solid ochre console-style mixer, per-channel processing and a shared stereo Reverb. Portable ZIP, without an installer.
+Windows x64 VST3 and standalone drum sample instrument by Voyagersquare, with raised wood panels and metal controls, per-channel processing and a shared stereo Reverb. Portable ZIP, without an installer.
 
-[Download Windows x64 ZIP](https://github.com/voyagersquare/RaBubanj/actions/runs/44527504050/artifacts/14532861959) · [Passed Windows build and validation](https://github.com/voyagersquare/RaBubanj/actions/runs/44527504050). Artifacts are retained for 30 days and may require GitHub sign-in.
+Windows 0.11 package links will be added after native validation.
 
 [Windows instructions in Croatian](docs/WINDOWS-HR.md) · [Validation](VALIDATION.md)
 
-![RaBubanj 0.10 PAD mixer and spectrum displays](docs/preview.png)
+![RaBubanj 0.11 PAD mixer and spectrum displays](docs/preview.png)
 
 ## Step sequencer 0.10
 
@@ -32,13 +32,14 @@ Timing shifts follow tempo as a percentage of one step. At 120 BPM the range is 
 
 The sequencer requires an active DAW audio engine and a monitored instrument track. Standalone supports pad audition/external MIDI but supplies no DAW transport for the sequencer. One-shot and Reverb tails may decay after Stop. MIDI export uses one type-0 track, 960 PPQ, channel 10, a 1/32-note gate and an explicit 8-beat end marker. Export files remain in the OS temporary `RaBubanj-MIDI` folder for deferred host reading.
 
-## Console and EQ workflow
+## Wood panels and metal controls
 
-- Solid ochre enamel replaces the scratched/rusted texture. Command legends are white; EQ gain/spectrum scales and the response curve use warm gold tones.
-- More pronounced bevels and shadows around EQ panels. Rotary controls have ribbed light-plastic bodies, coloured caps and position marks inspired by the supplied SSL console reference. Faders and switches have raised console-style hardware details. Artwork is drawn by the project; no manufacturer assets or logos are bundled.
-- **Right-click an EQ node** for a dark ochre-themed context menu with **Curve shape** (six types with curve icons), **Gain (dB)** presets, **Invert gain** and **Band enabled**. The previous filter-type dropdown is removed from both EQs. Gain choices/inversion are disabled for cut and notch filters.
-- [Context-menu styling preview](docs/eq-menu.png).
-- **Alt-click** a node still toggles it directly. Drag, wheel, double-click, bypass and reset retain their existing actions.
+- The user's original **7680×4302 JPEG** from `wood texture.rar` is embedded **byte for byte** as `Assets/wood-reference.jpg`. Natural wood grain covers the housing, channel sections, EQ frames, Reverb/FX panels and sequencer enclosure. Rendering uses uniform scaling/cropping and separate relief lighting; no replacement texture or recoloured source image is used.
+- **All controls are metal:** high cylindrical rotary knobs with knurled sidewalls and concentric machining rings, thick fader caps, pan/timing slider handles, switches, PAD labels, step keys, dropdown housings, EQ nodes and screws. Brushed surfaces use cold highlights, dark sidewalls and deep shadows. Metal materials are independent of the wood image.
+- The strong height and bevels from the relief study remain. Fader travel reserves enough room for the taller caps. White outlined legends remain readable on both wood and metal. **PLAY still lights yellow**, close buttons stay red, and sequence velocity/microtiming/selection indicators keep their existing meanings.
+- [Material and original-asset details](docs/WOOD-UI.md).
+- **Right-click an EQ node** for the dark context menu with **Curve shape** (six types), **Gain (dB)**, **Invert gain** and **Band enabled**. Alt-click toggles a band. Drag, wheel, double-click, bypass and reset retain their actions.
+- [EQ context-menu preview](docs/eq-menu.png).
 
 ## Controls
 

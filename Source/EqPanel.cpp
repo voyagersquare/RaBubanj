@@ -210,7 +210,7 @@ void EqPanel::Graph::paint(juce::Graphics& g)
         const auto colour = bandColours[static_cast<size_t>(i)].withAlpha(band.enabled && !settings.bypass ? 1.0f : .35f);
         if (i == owner.selectedBand) { g.setColour(colour.withAlpha(.16f)); g.fillEllipse(p.x-13, p.y-13, 26, 26); }
         g.setColour(juce::Colours::black.withAlpha(.65f)); g.fillEllipse(p.x-7, p.y-4, 15, 15);
-        juce::Path cap; cap.addEllipse(p.x-7, p.y-8, 14, 14); woodSurface(g, cap, colour);
+        juce::Path cap; cap.addEllipse(p.x-7, p.y-8, 14, 14); metalSurface(g, cap, band.enabled && !settings.bypass ? steel : steelDark);
         g.setColour(colour); g.strokePath(cap, juce::PathStrokeType(2));
         text(g, juce::String(i+1), { juce::roundToInt(p.x)-7, juce::roundToInt(p.y)-8, 14, 14 }, 9, ink, juce::Justification::centred);
     }

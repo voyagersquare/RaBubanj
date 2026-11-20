@@ -112,8 +112,8 @@ void StepGrid::paint(juce::Graphics& g)
         {
             auto cell = cellBounds(row, step).reduced(2, 3);
             const auto point = cells[static_cast<size_t>(row*32+step)]; const auto value = point.strength;
-            raisedPanel(g, cell, step/4%2 == 0 ? panel : panel.darker(.4f), .15f);
-            g.setColour(juce::Colours::black.withAlpha(step/4%2 == 0 ? .18f : .52f)); g.fillRoundedRectangle(cell.reduced(2).withTrimmedBottom(4), 1);
+            raisedMetal(g, cell, step/4%2 == 0 ? steel.darker(.22f) : steelDark, 4);
+            g.setColour(juce::Colours::black.withAlpha(step/4%2 == 0 ? .08f : .26f)); g.fillRoundedRectangle(cell.reduced(2).withTrimmedBottom(4), 1);
             if (value > 0)
             {
                 const std::array<juce::Colour, 4> colours { juce::Colour(0xff786c49), juce::Colour(0xffa28b4a), juce::Colour(0xffcdb057), juce::Colour(0xffffd46b) };
@@ -131,7 +131,7 @@ void StepGrid::paint(juce::Graphics& g)
     for (int row = 0; row < 8; ++row)
     {
         const auto label = padBounds(row).reduced(0, 3);
-        raisedPanel(g, label, row == selectedPad ? panel.brighter(.25f) : panel.darker(.35f), .2f);
+        raisedMetal(g, label, row == selectedPad ? steel.brighter(.3f) : steel.darker(.3f), 4);
         if (row == selectedPad) { g.setColour(gold.withAlpha(.25f)); g.fillRoundedRectangle(label.reduced(2), 2); }
         text(g, rabubanj::padNames[static_cast<size_t>(row)], label.toNearestInt(), 14, ink, juce::Justification::centred, true);
     }

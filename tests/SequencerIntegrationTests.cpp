@@ -211,6 +211,7 @@ int main(int argc, char** argv)
         // Feed a real preview hit through the same capture path as sequence playback.
         for (auto* child : panel.getChildren()) if (auto* wave = dynamic_cast<PadWaveform*>(child))
         { wave->update(grid->getSelectedPad(), true); p.audition(grid->getSelectedPad()); for (int block = 0; block < 30; ++block) { p.processBlock(audio, midi); wave->update(grid->getSelectedPad(), true); } }
+        panel.setLookAndFeel(&editor->getLookAndFeel());
         save(panel, "RaBubanj-sequencer.png"); editor->setSize(1280, 820); editor->showSequencer();
         for (auto* child : window->getChildren()) if (auto* contents = dynamic_cast<SequencerPanel*>(child))
             for (auto* component : contents->getChildren()) if (auto* wave = dynamic_cast<PadWaveform*>(component))
@@ -219,6 +220,7 @@ int main(int argc, char** argv)
         grid->mouseDown(event(1, 8, juce::ModifierKeys::leftButtonModifier, false)); grid->mouseUp(event(1, 8, 0, false, 700));
         for (auto* child : grid->getChildren()) if (auto* popup = dynamic_cast<NoteTimingEditor*>(child)) for (auto* control : popup->getChildren()) if (auto* slider = dynamic_cast<juce::Slider*>(control)) slider->setValue(20, juce::sendNotificationSync);
         save(panel, "RaBubanj-note-timing.png");
+        panel.setLookAndFeel(nullptr);
     }
     std::cout << "Host transport, exact note offsets, panic, pattern recall, MIDI export, four-pattern recall/migration, click cycling, left-drag paint, long-press timing, shifted audio/MIDI, right-drag erase, child window and Space forwarding passed.\n";
 }

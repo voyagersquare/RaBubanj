@@ -65,3 +65,8 @@ Explicit close/toggle controls with a red X, PAD-label audition and selection, b
 ## 0.10 — paint notes and per-note microtiming
 
 Left-drag writing retains click velocity cycling and right-drag erasing. Stationary long press opens a per-note early/late timing slider, with atomic velocity/timing state, host-loop-aware playback, project recall and shifted MIDI export.
+
+
+## 0.11 — wood panels and raised metal controls
+
+Original user-provided wood image embedded unchanged. Deep panel relief with tall metal rotary controls, faders, pushbuttons, dropdowns, PAD labels and sequencer keys; existing sample/sequence/DSP workflows retained.

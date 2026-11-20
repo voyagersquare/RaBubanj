@@ -12,7 +12,7 @@ inline void woodSurface(juce::Graphics& g, const juce::Path& path, juce::Colour 
     if (woodTexture().isValid())
     {
         const auto bounds = path.getBounds();
-        const auto scale = juce::jmax(.7f, bounds.getRight()/static_cast<float>(woodTexture().getWidth()), bounds.getBottom()/static_cast<float>(woodTexture().getHeight()));
+        const auto scale = juce::jmax(1344.0f/static_cast<float>(woodTexture().getWidth()), bounds.getRight()/static_cast<float>(woodTexture().getWidth()), bounds.getBottom()/static_cast<float>(woodTexture().getHeight()));
         g.setFillType(juce::FillType(woodTexture(), juce::AffineTransform::scale(scale)));
     }
     else g.setColour(fallback);
@@ -20,6 +20,32 @@ inline void woodSurface(juce::Graphics& g, const juce::Path& path, juce::Colour 
 }
 inline void woodSurface(juce::Graphics& g, juce::Rectangle<float> bounds, juce::Colour fallback, float radius = 2)
 { juce::Path path; path.addRoundedRectangle(bounds, radius); woodSurface(g, path, fallback); }
+inline const juce::Colour steel { 0xffa2adb9 }, steelDark { 0xff343e4b };
+inline void metalSurface(juce::Graphics& g, const juce::Path& path, juce::Colour base = steel)
+{
+    const auto bounds = path.getBounds();
+    juce::ColourGradient sheen(base.darker(.5f), bounds.getX(), bounds.getY(), base.darker(.32f), bounds.getRight(), bounds.getBottom(), false);
+    sheen.addColour(.12, base.brighter(.65f)); sheen.addColour(.38, base.brighter(.1f));
+    sheen.addColour(.52, base.darker(.22f)); sheen.addColour(.62, base.brighter(.4f));
+    g.setGradientFill(sheen); g.fillPath(path);
+    juce::Graphics::ScopedSaveState saved(g); g.reduceClipRegion(path);
+    for (int line = juce::roundToInt(bounds.getY())+2; line < juce::roundToInt(bounds.getBottom()); line += 2)
+    {
+        g.setColour(juce::Colours::white.withAlpha(.065f)); g.drawHorizontalLine(line, bounds.getX(), bounds.getRight());
+        g.setColour(juce::Colours::black.withAlpha(.05f)); g.drawHorizontalLine(line+1, bounds.getX(), bounds.getRight());
+    }
+}
+inline void metalSurface(juce::Graphics& g, juce::Rectangle<float> bounds, juce::Colour base = steel, float radius = 2)
+{ juce::Path path; path.addRoundedRectangle(bounds, radius); metalSurface(g, path, base); }
+inline void raisedMetal(juce::Graphics& g, juce::Rectangle<float> bounds, juce::Colour base = steel, float rise = 4)
+{
+    const auto body = bounds.reduced(1), face = body.withTrimmedBottom(rise);
+    g.setColour(juce::Colours::black.withAlpha(.7f)); g.fillRoundedRectangle(body.translated(1, 1), 2);
+    metalSurface(g, body, steelDark); metalSurface(g, face, base);
+    g.setColour(juce::Colour(0xff101722)); g.drawRoundedRectangle(body, 2, 1);
+    g.setColour(juce::Colours::white.withAlpha(.7f)); g.drawLine(face.getX()+1, face.getY()+1, face.getRight()-1, face.getY()+1, 1);
+    g.setColour(juce::Colours::black.withAlpha(.65f)); g.drawLine(face.getX(), face.getBottom(), face.getRight(), face.getBottom(), 1);
+}
 inline void raisedPanel(juce::Graphics& g, juce::Rectangle<float> bounds, juce::Colour base = panel, float depth = .85f)
 {
     const auto body = bounds.reduced(1.5f); const auto rise = juce::jlimit(4.0f, 10.0f, 4+depth*2.2f);
@@ -45,9 +71,9 @@ inline void insetPanel(juce::Graphics& g, juce::Rectangle<float> bounds)
 inline void screw(juce::Graphics& g, float x, float y)
 {
     g.setColour(juce::Colours::black.withAlpha(.65f)); g.fillEllipse(x-3, y-1, 7, 7);
-    juce::Path plug; plug.addEllipse(x-3, y-3, 6, 6); woodSurface(g, plug, panel.darker(.1f));
-    g.setColour(juce::Colour(0xff472310)); g.strokePath(plug, juce::PathStrokeType(.8f));
-    g.setColour(juce::Colour(0xffffd5a0).withAlpha(.65f)); g.drawEllipse(x-2, y-2, 4, 4, .5f);
+    juce::Path plug; plug.addEllipse(x-3, y-3, 6, 6); metalSurface(g, plug, steel);
+    g.setColour(juce::Colour(0xff27303c)); g.strokePath(plug, juce::PathStrokeType(.8f));
+    g.drawLine(x-2, y+1, x+2, y-1, .9f);
 }
 inline void text(juce::Graphics& g, const juce::String& value, juce::Rectangle<int> bounds, float size = 11, juce::Colour colour = muted, int alignment = juce::Justification::centredLeft, bool bold = false)
 {

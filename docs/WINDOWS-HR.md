@@ -1,6 +1,6 @@
-# RaBubanj 0.10.0 — Windows x64, bez instalera
+# RaBubanj 0.11.0 — Windows x64, bez instalera
 
-1. Preuzmi ZIP `RaBubanj-0.10.0-Windows-x64` iz uspješnog GitHub Actions builda i raspakiraj ga.
+1. Preuzmi ZIP `RaBubanj-0.11.0-Windows-x64` iz uspješnog GitHub Actions builda i raspakiraj ga.
 2. Zatvori DAW i kopiraj cijelu mapu **RaBubanj.vst3** u `C:\Program Files\Common Files\VST3\`. Zamijeni cijeli prethodni paket.
 3. Ponovno skeniraj VST3 instrumente u 64-bitnom DAW-u, dodaj RaBubanj na MIDI traku i uključi arm/monitoring.
 4. `RaBubanj.exe` je samostalna aplikacija, bez instalera; u njoj odaberi audio i MIDI uređaj.
@@ -30,9 +30,11 @@ Sva četiri patterna, pomaci nota, odabrani pattern i SEQ ON/OFF spremaju se u p
 
 MIDI izvoz je datoteka jednog tracka, 960 PPQ, kanal 10, duljine osam beatova. Privremene datoteke ostaju u OS temp mapi `RaBubanj-MIDI`. Samostalni EXE nema DAW transport za sekvencer, ali zadržava preslušavanje padova i vanjski MIDI ulaz.
 
-## Oker konzola i EQ izbornik
+## Drveni paneli i metalne kontrole
 
-Jednobojna oker površina zamjenjuje prijašnju hrđu i ogrebotine. Nazivi komandi su bijeli. EQ paneli imaju dublje reljefne rubove, a svijetli rebrasti potenciometri s obojenim kapicama, faderi i tipke oblikovani su prema priloženom primjeru studijske miksete. Graf i izbornici koriste tamnu toplu podlogu, uz zlatnu krivulju i skale.
+Kućište, kanalni paneli, EQ okviri te Reverb/FX i sekvencer koriste izvornu drvenu teksturu iz poslane arhive. JPEG je ugrađen bez izmjene datoteke; prilagodba prikaza zadržava omjer slike, uz odvojeno osvjetljenje reljefa.
+
+**Svi gumbi i kliznici su metalni:** visoki kružni potenciometri s rebrastim bočnim stijenkama, deblje kapice fadera, PAN/TIMING kliznici, tipke, PAD oznake, koraci sekvencera i točke EQ-a. Hladni odsjaji i sjene naglašavaju visinu. Natpisi su bijeli s tamnim rubom radi čitljivosti. PLAY ostaje žut pri pritisku, X crven, a oznake jačina i pomaka nota zadržavaju značenje. Funkcije i spremljeni projekti ostaju isti.
 
 ## Nazivi kanala i preslušavanje
 
