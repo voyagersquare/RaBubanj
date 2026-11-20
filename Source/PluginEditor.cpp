@@ -69,44 +69,110 @@ void MixerLookAndFeel::drawComboBox(juce::Graphics& g, int w, int h, bool down, 
 }
 void MixerLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int w, int h, float position, float start, float end, juce::Slider& s)
 {
-    const auto radius = juce::jmin(static_cast<float>(w), static_cast<float>(h))*.5f-9;
-    if (radius < 3) return;
-    const auto cx = static_cast<float>(x)+static_cast<float>(w)*.5f, cy = static_cast<float>(y)+static_cast<float>(h)*.5f;
-    const auto rise = juce::jmin(19.0f, radius*.7f), angle = start+position*(end-start);
-    const juce::Rectangle<float> top(cx-radius, cy-radius*.78f-rise*.42f, radius*2, radius*1.56f);
-    const auto lower = top.translated(0, rise);
-    for (int tick = 0; tick <= 10; ++tick)
-    {
-        const auto a = start+static_cast<float>(tick)*(end-start)/10;
-        g.setColour(ink.withAlpha(s.isEnabled() ? .9f : .35f));
-        g.drawLine(cx+std::sin(a)*(radius+4), cy-std::cos(a)*(radius+4), cx+std::sin(a)*(radius+6), cy-std::cos(a)*(radius+6), 1);
-    }
-    g.setColour(juce::Colours::black.withAlpha(.6f)); g.fillEllipse(lower.translated(3, 4).expanded(2));
-    juce::Path body; body.addRectangle(top.getX(), top.getCentreY(), top.getWidth(), rise); body.addEllipse(lower);
-    metalSurface(g, body, steelDark);
-    juce::ColourGradient sides(juce::Colours::black.withAlpha(.65f), top.getX(), cy, juce::Colours::black.withAlpha(.7f), top.getRight(), cy, false);
-    sides.addColour(.3, juce::Colour(0xffe5f1ff).withAlpha(.4f)); sides.addColour(.65, juce::Colours::black.withAlpha(.25f));
-    g.setGradientFill(sides); g.fillPath(body);
+    // Keep the approved reference silhouette and scale the complete rotary artwork by 70%.
+    // Slider bounds and mouse/automation behaviour remain independent of the rendered size.
+    juce::Graphics::ScopedSaveState savedKnob(g);
+    g.addTransform(juce::AffineTransform::scale(.7f, .7f, static_cast<float>(x)+static_cast<float>(w)*.5f, static_cast<float>(y)+static_cast<float>(h)*.5f));
+    const auto diameter = juce::jmin(static_cast<float>(w)-14, (static_cast<float>(h)-9)/1.7f);
+    if (diameter < 6) return;
+    const auto radius = diameter*.5f, rise = diameter*.98f, capHeight = diameter*.72f;
+    const auto cx = static_cast<float>(x)+static_cast<float>(w)*.5f;
+    const auto topY = static_cast<float>(y)+3;
+    const juce::Rectangle<float> top(cx-radius, topY, diameter, capHeight), lower = top.translated(0, rise);
+    const auto angle = start+position*(end-start), topCy = top.getCentreY();
+    const auto name = s.getName();
+    const auto colour = !s.isEnabled() ? juce::Colour(0xff72766f)
+        : name.containsIgnoreCase("pitch") ? juce::Colour(0xff286b9d)
+        : name.containsIgnoreCase("drive") ? juce::Colour(0xffb42c35)
+        : name.containsIgnoreCase("compression") ? juce::Colour(0xffa34b9f)
+        : name.containsIgnoreCase("damping") ? juce::Colour(0xffbdc0b7)
+        : name.containsIgnoreCase("width") ? juce::Colour(0xff78443e) : juce::Colour(0xff258e87);
+    g.setColour(juce::Colours::black.withAlpha(.42f)); g.fillEllipse(lower.translated(diameter*.14f, diameter*.14f).expanded(1));
+    g.setColour(juce::Colour(0xff101411)); g.fillEllipse(lower.translated(0, diameter*.1f).expanded(.8f));
+    juce::Path body; body.addRectangle(top.getX(), topCy, diameter, rise); body.addEllipse(lower);
+    juce::ColourGradient wall(juce::Colour(0xff434b46), top.getX(), topCy, juce::Colour(0xff424a44), top.getRight(), topCy, false);
+    wall.addColour(.08, juce::Colour(0xffa3aaa1)); wall.addColour(.2, juce::Colour(0xff424d46));
+    wall.addColour(.37, juce::Colour(0xff242c27)); wall.addColour(.62, juce::Colour(0xff747e75)); wall.addColour(.8, juce::Colour(0xff505b52));
+    g.setGradientFill(wall); g.fillPath(body);
     {
         juce::Graphics::ScopedSaveState saved(g); g.reduceClipRegion(body);
-        for (int rib = -8; rib <= 8; ++rib)
+        for (int flute = -2; flute <= 2; ++flute)
         {
-            const auto rx = cx+static_cast<float>(rib)*radius/8;
-            g.setColour(juce::Colour(0xff15202d).withAlpha(.8f)); g.drawLine(rx, top.getCentreY(), rx, lower.getBottom(), .8f);
-            g.setColour(juce::Colour(0xffe9f3ff).withAlpha(.6f)); g.drawLine(rx+.8f, top.getCentreY(), rx+.8f, lower.getBottom(), .6f);
+            const auto a = static_cast<float>(flute)*.58f;
+            const auto fx = cx+std::sin(a)*radius, fy = topCy+std::cos(a)*capHeight*.5f;
+            const auto groove = juce::jmax(1.3f, diameter*.075f);
+            g.setGradientFill(juce::ColourGradient(juce::Colour(0xff111b15), fx-groove*.5f, fy, juce::Colour(0xff56665a), fx+groove*.5f, fy, false));
+            g.fillRect(fx-groove*.5f, fy-2, groove, rise+3);
+            g.setColour(juce::Colour(0xffc4cdc1).withAlpha(.55f)); g.drawLine(fx+groove*.5f, fy, fx+groove*.5f, fy+rise, .7f);
         }
     }
-    juce::Path cap; cap.addEllipse(top); metalSurface(g, cap, steel.brighter(.1f));
-    g.setGradientFill(juce::ColourGradient(juce::Colours::white.withAlpha(.18f), top.getTopLeft(), juce::Colours::black.withAlpha(.18f), top.getBottomRight(), false)); g.fillEllipse(top);
-    g.setColour(juce::Colour(0xff1c2734)); g.drawEllipse(top, 1.5f);
-    g.setColour(juce::Colour(0xfff3f9ff).withAlpha(.9f)); g.drawEllipse(top.reduced(1.4f), 1);
-    g.setColour(juce::Colour(0xff45576a).withAlpha(.7f)); g.drawEllipse(top.reduced(3.3f), .8f);
-    for (float inset = 5; inset < radius*.72f; inset += 2)
-    { g.setColour(juce::Colour(0xffdbe8f6).withAlpha(.18f)); g.drawEllipse(top.reduced(inset, inset*.78f), .45f); }
-    const auto tx = cx+std::sin(angle)*radius*.71f, ty = top.getCentreY()-std::cos(angle)*radius*.54f;
-    g.setColour(juce::Colour(0xff111a27)); g.drawLine(cx+std::sin(angle)*radius*.15f, top.getCentreY()-std::cos(angle)*radius*.12f, tx, ty, 4);
-    g.setColour(ink); g.drawLine(cx+std::sin(angle)*radius*.17f, top.getCentreY()-std::cos(angle)*radius*.13f, tx, ty, 1.8f);
-    if (!s.isEnabled()) { g.setColour(juce::Colours::black.withAlpha(.35f)); g.fillPath(body); g.fillEllipse(top); }
+    // A subtly scalloped rim corresponds to the flutes; the coloured cap remains a flat disc.
+    juce::Path rim;
+    for (int point = 0; point <= 120; ++point)
+    {
+        const auto a = static_cast<float>(point)*juce::MathConstants<float>::twoPi/120;
+        const auto ripple = 1-.022f*std::pow(.5f+.5f*std::cos(a*10), 4.0f);
+        const juce::Point<float> p(cx+std::sin(a)*radius*ripple, topCy-std::cos(a)*capHeight*.5f*ripple);
+        if (point == 0) rim.startNewSubPath(p); else rim.lineTo(p);
+    }
+    rim.closeSubPath();
+    g.setColour(juce::Colour(0xffaeb6aa)); g.fillPath(rim);
+    g.setColour(juce::Colour(0xffe3e8dc).withAlpha(.55f)); g.strokePath(rim, juce::PathStrokeType(.7f));
+    const auto cap = top.reduced(diameter*.035f, diameter*.026f);
+    g.setColour(juce::Colour(0xff18251e)); g.fillEllipse(cap.translated(0, 1));
+    g.setGradientFill(juce::ColourGradient(colour.brighter(.045f), cap.getTopLeft(), colour.darker(.12f), cap.getBottomRight(), false)); g.fillEllipse(cap);
+    {
+        juce::Graphics::ScopedSaveState saved(g); juce::Path clip; clip.addEllipse(cap); g.reduceClipRegion(clip);
+        for (int py = juce::roundToInt(cap.getY()); py < juce::roundToInt(cap.getBottom()); ++py)
+            for (int px = juce::roundToInt(cap.getX()); px < juce::roundToInt(cap.getRight()); ++px)
+            {
+                auto grain = static_cast<unsigned>(px)*374761393u+static_cast<unsigned>(py)*668265263u;
+                grain = (grain^(grain >> 13u))*1274126177u; grain ^= grain >> 16u;
+                if ((grain & 7u) == 0) { g.setColour((grain & 8u) != 0 ? juce::Colours::white.withAlpha(.07f) : juce::Colours::black.withAlpha(.055f)); g.fillRect(px, py, 1, 1); }
+            }
+    }
+    g.setColour(name.containsIgnoreCase("damping") ? juce::Colour(0xff171b17) : juce::Colour(0xfff2f3e8));
+    g.drawLine(cx+std::sin(angle)*radius*.08f, topCy-std::cos(angle)*radius*.058f,
+        cx+std::sin(angle)*radius*.96f, topCy-std::cos(angle)*radius*.69f, juce::jmax(2.0f, diameter*.095f));
+    if (!s.isEnabled()) { g.setColour(juce::Colours::black.withAlpha(.22f)); g.fillPath(body); g.fillEllipse(cap); }
+}
+namespace
+{
+void drawControlLegend(juce::Graphics& g, const juce::String& label, juce::Rectangle<int> bounds, float fontSize = 16)
+{
+    g.setColour(juce::Colour(0xff142019).withAlpha(.86f)); g.fillRoundedRectangle(bounds.toFloat(), 2.5f);
+    g.setColour(juce::Colour(0xffe9d6a5).withAlpha(.45f)); g.drawRoundedRectangle(bounds.toFloat().reduced(.5f), 2.5f, .8f);
+    text(g, label, bounds.reduced(2, 0), fontSize, ink, juce::Justification::centred, true);
+}
+void drawSaddleFader(juce::Graphics& g, float cx, float cy, float width, float length)
+{
+    const auto left = cx-width*.5f, right = cx+width*.5f, top = cy-length*.5f, bottom = cy+length*.5f;
+    const auto waist = juce::jmin(3.2f, width*.12f), wing = length*.24f;
+    juce::Path cap;
+    cap.startNewSubPath(left+1, top); cap.lineTo(right-1, top); cap.quadraticTo(right, top, right, top+2);
+    cap.lineTo(right, top+wing); cap.cubicTo(right-waist, cy-length*.15f, right-waist, cy+length*.15f, right, bottom-wing);
+    cap.lineTo(right, bottom-2); cap.quadraticTo(right, bottom, right-1, bottom); cap.lineTo(left+1, bottom); cap.quadraticTo(left, bottom, left, bottom-2);
+    cap.lineTo(left, bottom-wing); cap.cubicTo(left+waist, cy+length*.15f, left+waist, cy-length*.15f, left, top+wing);
+    cap.lineTo(left, top+2); cap.quadraticTo(left, top, left+1, top); cap.closeSubPath();
+    const auto extrusion = juce::AffineTransform::translation(0, 5);
+    g.setColour(juce::Colours::black.withAlpha(.55f)); g.fillPath(cap, juce::AffineTransform::translation(2, 7));
+    g.setColour(juce::Colour(0xff141918)); g.fillPath(cap, extrusion);
+    g.setColour(juce::Colour(0xff303936)); g.fillPath(cap);
+    {
+        juce::Graphics::ScopedSaveState saved(g); g.reduceClipRegion(cap);
+        const auto cheek = juce::jmin(4.0f, width*.16f);
+        juce::ColourGradient aluminium(juce::Colour(0xffb6b4ad), cx, top, juce::Colour(0xff81817a), cx, bottom, false);
+        aluminium.addColour(.12, juce::Colour(0xffe6e3d8)); aluminium.addColour(.3, juce::Colour(0xff888982));
+        aluminium.addColour(.5, juce::Colour(0xff5d635b)); aluminium.addColour(.7, juce::Colour(0xffbbc0b6)); aluminium.addColour(.86, juce::Colour(0xffd4d4c8));
+        g.setGradientFill(aluminium); g.fillRect(left+cheek, top, width-cheek*2, length);
+        g.setColour(juce::Colours::white.withAlpha(.2f)); g.drawVerticalLine(juce::roundToInt(left+cheek)+1, top+1, bottom-1);
+        g.setColour(juce::Colours::black.withAlpha(.3f)); g.drawVerticalLine(juce::roundToInt(right-cheek), top+1, bottom-1);
+        g.setColour(juce::Colour(0xffeef1e6)); g.fillRect(left+cheek, cy-.8f, width-cheek*2, 1.6f);
+        g.setColour(juce::Colour(0xffe6eadf).withAlpha(.65f)); g.drawHorizontalLine(juce::roundToInt(top)+2, left+cheek, right-cheek);
+        g.setColour(juce::Colour(0xff26342b)); g.drawHorizontalLine(juce::roundToInt(bottom-wing), left+cheek, right-cheek);
+    }
+    g.setColour(juce::Colour(0xff111c16)); g.strokePath(cap, juce::PathStrokeType(.9f));
+}
 }
 void MixerLookAndFeel::drawLinearSlider(juce::Graphics& g, int x, int y, int w, int h, float position, float minimum, float maximum, juce::Slider::SliderStyle style, juce::Slider& s)
 {
@@ -117,24 +183,17 @@ void MixerLookAndFeel::drawLinearSlider(juce::Graphics& g, int x, int y, int w, 
     const auto track = vertical ? juce::Rectangle<float>(cx-3, static_cast<float>(y), 6, static_cast<float>(h))
         : juce::Rectangle<float>(static_cast<float>(x), cy-2.5f, static_cast<float>(w), 5);
     g.setColour(juce::Colour(0xffe3b47b)); g.fillRoundedRectangle(track.translated(1.5f, 1.5f), 2);
-    g.setColour(juce::Colour(0xff27150d)); g.fillRoundedRectangle(track, 2);
-    const bool send = s.getName().containsIgnoreCase("send");
-    const auto capWidth = vertical ? juce::jmin(static_cast<float>(w-2), send ? 20.0f : 27.0f) : 16.0f;
-    const auto capHeight = vertical ? (send ? 22.0f : 28.0f) : juce::jmin(11.0f, static_cast<float>(h)-5);
-    const auto rise = vertical ? 7.0f : 4.0f;
-    const juce::Rectangle<float> face((vertical ? cx : position)-capWidth*.5f, (vertical ? position : cy)-capHeight*.5f-rise*.25f, capWidth, capHeight);
-    const auto body = face.withTrimmedTop(2).withHeight(face.getHeight()+rise);
-    g.setColour(juce::Colours::black.withAlpha(.65f)); g.fillRoundedRectangle(body.translated(2, 3), 2);
-    metalSurface(g, body, steelDark); g.setColour(juce::Colours::black.withAlpha(.4f)); g.fillRoundedRectangle(body, 2);
-    metalSurface(g, face, steel); g.setColour(juce::Colour(0xff202b39)); g.drawRoundedRectangle(face, 2, 1);
-    g.setColour(juce::Colour(0xffeff7ff)); g.drawLine(face.getX()+1, face.getY()+1, face.getRight()-1, face.getY()+1, 1);
+    g.setColour(juce::Colour(0xff171f19)); g.fillRoundedRectangle(track, 2);
     if (vertical)
     {
-        for (int rib : { -1, 1 }) { g.setColour(juce::Colour(0xff596c80)); g.drawHorizontalLine(juce::roundToInt(face.getCentreY())+rib*5, face.getX()+3, face.getRight()-3); }
-        g.setColour(juce::Colour(0xff1b2634)); g.fillRect(face.getX()+2, face.getCentreY()-2, capWidth-4, 4.0f);
-        g.setColour(ink); g.fillRect(face.getX()+3, face.getCentreY()-.7f, capWidth-6, 1.4f);
+        const auto send = s.getName().containsIgnoreCase("send");
+        drawSaddleFader(g, cx, position, juce::jmin(static_cast<float>(w-2), send ? 21.0f : 29.0f), send ? 26.0f : 32.0f);
     }
-    else { g.setColour(juce::Colour(0xff1b2634)); g.fillRect(position-2, face.getY()+1, 4.0f, capHeight-2); g.setColour(ink); g.fillRect(position-.7f, face.getY()+2, 1.4f, capHeight-4); }
+    else
+    {
+        juce::Graphics::ScopedSaveState saved(g); g.addTransform(juce::AffineTransform::rotation(-juce::MathConstants<float>::halfPi, position, cy));
+        drawSaddleFader(g, position, cy, juce::jmin(11.0f, static_cast<float>(h)-5), 18);
+    }
 }
 
 MixerStrip::MixerStrip(RaBubanjProcessor& p, int busToUse) : processor(p), bus(busToUse),
@@ -429,14 +488,14 @@ void RaBubanjEditor::paint(juce::Graphics& g)
     text(g, "MIXER  /  SELECT A CHANNEL TO EDIT ITS EQ", { mixerArea.getX(), mixerArea.getY()-24, 500, 18 }, 10, muted);
     raisedPanel(g, reverbControlsArea.toFloat(), panel, 1.0f);
     raisedPanel(g, reservedArea.toFloat(), panel.darker(.1f), 1.0f);
-    text(g, "REVERB", reverbControlsArea.reduced(6).removeFromTop(23), 14, ink, juce::Justification::centred, true);
-    text(g, "SIZE", { size.getX(), size.getY()-19, size.getWidth(), 18 }, 12, ink, juce::Justification::centred, true);
-    text(g, "DAMPING", { damping.getX(), damping.getY()-19, damping.getWidth(), 18 }, 12, ink, juce::Justification::centred, true);
+    drawControlLegend(g, "REVERB", reverbControlsArea.reduced(6).removeFromTop(25), 17);
+    drawControlLegend(g, "SIZE", { size.getX(), size.getY()-24, size.getWidth(), 22 });
+    drawControlLegend(g, "DAMPING", { damping.getX(), damping.getY()-24, damping.getWidth(), 22 });
     const auto colourTitle = colourBus >= 0 && colourBus < 8 ? juce::String(rabubanj::padNames[static_cast<size_t>(colourBus)]).toUpperCase() : "DRUM FX";
-    text(g, colourTitle, reservedArea.reduced(5).removeFromTop(23), 14, ink, juce::Justification::centred, true);
+    drawControlLegend(g, colourTitle, reservedArea.reduced(6).removeFromTop(25), 17);
     for (const auto& item : { std::pair<juce::Slider*, const char*>(&pitch, "PITCH"), { &drive, "DRIVE" }, { &compression, "COMP" } })
-        text(g, item.second, { item.first->getX(), item.first->getY()-19, item.first->getWidth(), 18 }, 12, ink, juce::Justification::centred, true);
-    text(g, "WIDTH", { width.getX(), width.getY()-19, width.getWidth(), 18 }, 12, ink, juce::Justification::centred, true);
+        drawControlLegend(g, item.second, { item.first->getX(), item.first->getY()-24, item.first->getWidth(), 22 });
+    drawControlLegend(g, "WIDTH", { width.getX(), width.getY()-24, width.getWidth(), 22 });
     text(g, "DRAG EQ: FREQ / GAIN    WHEEL: Q    RIGHT-CLICK: SHAPE / GAIN", footerArea, 9, muted);
     text(g, "C1-G1 MIDI  /  SAMPLE PLAYER", footerArea, 9, muted, juce::Justification::centredRight);
 }

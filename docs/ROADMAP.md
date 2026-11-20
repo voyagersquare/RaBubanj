@@ -70,3 +70,8 @@ Left-drag writing retains click velocity cycling and right-drag erasing. Station
 ## 0.11 — wood panels and raised metal controls
 
 Original user-provided wood image embedded unchanged. Deep panel relief with tall metal rotary controls, faders, pushbuttons, dropdowns, PAD labels and sequencer keys; existing sample/sequence/DSP workflows retained.
+
+
+## 0.12 — reference-shaped knobs and faders
+
+Tall fluted metal cylinders with six coloured matte cap discs, thick rim-reaching indicators and black bases. Rotary artwork reduced by 30%, with larger high-contrast command labels. Console-style saddle faders with dark side cheeks and aluminium bridges; matching PAN/TIMING handles. Wood panels and existing controls/workflows retained.

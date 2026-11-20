@@ -1,12 +1,12 @@
-# RaBubanj 0.11.0
+# RaBubanj 0.12.0
 
 Windows x64 VST3 and standalone drum sample instrument by Voyagersquare, with raised wood panels and metal controls, per-channel processing and a shared stereo Reverb. Portable ZIP, without an installer.
 
-[Download Windows x64 ZIP](https://github.com/voyagersquare/RaBubanj/actions/runs/44797921119/artifacts/14660885460) · [Passed Windows build and validation](https://github.com/voyagersquare/RaBubanj/actions/runs/44797921119). Artifacts are retained for 30 days and may require GitHub sign-in.
+Windows 0.12 package links will be added after native validation.
 
 [Windows instructions in Croatian](docs/WINDOWS-HR.md) · [Validation](VALIDATION.md)
 
-![RaBubanj 0.11 PAD mixer and spectrum displays](docs/preview.png)
+![RaBubanj 0.12 PAD mixer and spectrum displays](docs/preview.png)
 
 ## Step sequencer 0.10
 
@@ -35,7 +35,10 @@ The sequencer requires an active DAW audio engine and a monitored instrument tra
 ## Wood panels and metal controls
 
 - The user's original **7680×4302 JPEG** from `wood texture.rar` is embedded **byte for byte** as `Assets/wood-reference.jpg`. Natural wood grain covers the housing, channel sections, EQ frames, Reverb/FX panels and sequencer enclosure. Rendering uses uniform scaling/cropping and separate relief lighting; no replacement texture or recoloured source image is used.
-- **All controls are metal:** high cylindrical rotary knobs with knurled sidewalls and concentric machining rings, thick fader caps, pan/timing slider handles, switches, PAD labels, step keys, dropdown housings, EQ nodes and screws. Brushed surfaces use cold highlights, dark sidewalls and deep shadows. Metal materials are independent of the wood image.
+- **All controls are metal:** tall fluted cylinders with coloured matte top discs, thick position bars and black bases; contoured saddle fader caps with dark side cheeks and brushed aluminium bridges; matching pan/timing slider handles, switches, PAD labels, step keys, dropdown housings, EQ nodes and screws. Brushed surfaces use cold highlights, dark sidewalls and deep shadows. Metal materials are independent of the wood image.
+- Rotary tops follow the supplied reference palette: **SIZE teal, DAMPING off-white, WIDTH burgundy, PITCH blue, DRIVE red and COMP purple**. The light damping cap uses a black marker; the other caps use white markers. Broad flutes, a thin scalloped silver lip and a matte cap finish replace the earlier fine knurling and machining rings.
+- The fader design follows the supplied console photo, with raised end wings, a concave waist, dark end cheeks and a white centre index. Travel padding fits the taller caps at both extremes.
+- Rotary artwork is **30% smaller** than the approved reference-model preview, preserving its proportions and mouse/automation behaviour. The labels above SIZE/DAMPING/WIDTH/PITCH/DRIVE/COMP are larger (16 px bold) on dark contrast plates; Reverb/PAD section captions use 17 px bold.
 - The strong height and bevels from the relief study remain. Fader travel reserves enough room for the taller caps. White outlined legends remain readable on both wood and metal. **PLAY still lights yellow**, close buttons stay red, and sequence velocity/microtiming/selection indicators keep their existing meanings.
 - [Material and original-asset details](docs/WOOD-UI.md).
 - **Right-click an EQ node** for the dark context menu with **Curve shape** (six types), **Gain (dB)**, **Invert gain** and **Band enabled**. Alt-click toggles a band. Drag, wheel, double-click, bypass and reset retain their actions.
