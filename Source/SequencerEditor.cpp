@@ -112,11 +112,12 @@ void StepGrid::paint(juce::Graphics& g)
         {
             auto cell = cellBounds(row, step).reduced(2, 3);
             const auto point = cells[static_cast<size_t>(row*32+step)]; const auto value = point.strength;
-            g.setColour(step/4%2 == 0 ? juce::Colour(0xff62563a) : juce::Colour(0xff302e24)); g.fillRoundedRectangle(cell, 2);
+            raisedPanel(g, cell, step/4%2 == 0 ? panel : panel.darker(.4f), .15f);
+            g.setColour(juce::Colours::black.withAlpha(step/4%2 == 0 ? .18f : .52f)); g.fillRoundedRectangle(cell.reduced(2).withTrimmedBottom(4), 1);
             if (value > 0)
             {
                 const std::array<juce::Colour, 4> colours { juce::Colour(0xff786c49), juce::Colour(0xffa28b4a), juce::Colour(0xffcdb057), juce::Colour(0xffffd46b) };
-                g.setColour(colours[static_cast<size_t>(value-1)]);
+                g.setColour(colours[static_cast<size_t>(value-1)].withAlpha(.8f));
                 auto fill = cell.reduced(2); fill.removeFromTop(fill.getHeight()*(1-static_cast<float>(value)/4)); g.fillRoundedRectangle(fill, 1);
             }
             if (value > 0 && point.timing != 0)
@@ -130,7 +131,8 @@ void StepGrid::paint(juce::Graphics& g)
     for (int row = 0; row < 8; ++row)
     {
         const auto label = padBounds(row).reduced(0, 3);
-        if (row == selectedPad) { g.setColour(juce::Colour(0xff89733d)); g.fillRoundedRectangle(label, 3); g.setColour(gold); g.drawRoundedRectangle(label, 3, 1); }
+        raisedPanel(g, label, row == selectedPad ? panel.brighter(.25f) : panel.darker(.35f), .2f);
+        if (row == selectedPad) { g.setColour(gold.withAlpha(.25f)); g.fillRoundedRectangle(label.reduced(2), 2); }
         text(g, rabubanj::padNames[static_cast<size_t>(row)], label.toNearestInt(), 14, ink, juce::Justification::centred, true);
     }
 }
@@ -227,6 +229,6 @@ SequencerWindow::SequencerWindow(RaBubanjProcessor& p) : content(p)
 }
 void SequencerWindow::resized() { close.setBounds(getWidth()-36, 3, 31, 25); content.setBounds(0, 30, getWidth(), getHeight()-30); }
 void SequencerWindow::paint(juce::Graphics& g)
-{ g.fillAll(menuFace); g.setColour(gold); g.drawRect(getLocalBounds(), 1); text(g, getName(), { 40, 0, getWidth()-80, 30 }, 15, ink, juce::Justification::centred, true); }
+{ raisedPanel(g, getLocalBounds().toFloat(), panel); text(g, getName(), { 40, 0, getWidth()-80, 30 }, 15, ink, juce::Justification::centred, true); }
 void SequencerWindow::mouseDown(const juce::MouseEvent& e) { if (e.position.y < 30) dragger.startDraggingComponent(this, e); }
 void SequencerWindow::mouseDrag(const juce::MouseEvent& e) { dragger.dragComponent(this, e, &constrainer); }

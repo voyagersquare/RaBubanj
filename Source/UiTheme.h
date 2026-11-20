@@ -1,42 +1,59 @@
 #pragma once
 #include <juce_gui_basics/juce_gui_basics.h>
+#include "WoodTexture.h"
 namespace rabubanj::ui
 {
-// Flat ochre enamel; depth is confined to machined edges and console hardware.
-inline const juce::Colour background { 0xffac880b }, panel { 0xffa5800b }, dark { 0xff201e18 }, ink { 0xffffffff }, muted { 0xffffffff }, cyan { 0xff82b9ba }, gold { 0xffe7bb49 };
+// Carved relief; the source wood image is filled without colour conversion or image edits.
+inline const juce::Colour background { 0xff8b5d34 }, panel { 0xffb68855 }, dark { 0xff201e18 }, ink { 0xffffffff }, muted { 0xffffffff }, cyan { 0xff82b9ba }, gold { 0xffe7bb49 };
 inline const juce::Colour axis { 0xffcbb77d }, grid { 0xff494438 }, menuFace { 0xff28241c };
 inline const std::array<juce::Colour, 6> bandColours { juce::Colour(0xffe8bc56), juce::Colour(0xff9ac985), juce::Colour(0xff80c1c2), juce::Colour(0xffa8b7d1), juce::Colour(0xffc6a5c5), juce::Colour(0xffd79b83) };
+inline void woodSurface(juce::Graphics& g, const juce::Path& path, juce::Colour fallback)
+{
+    if (woodTexture().isValid())
+    {
+        const auto bounds = path.getBounds();
+        const auto scale = juce::jmax(.7f, bounds.getRight()/static_cast<float>(woodTexture().getWidth()), bounds.getBottom()/static_cast<float>(woodTexture().getHeight()));
+        g.setFillType(juce::FillType(woodTexture(), juce::AffineTransform::scale(scale)));
+    }
+    else g.setColour(fallback);
+    g.fillPath(path);
+}
+inline void woodSurface(juce::Graphics& g, juce::Rectangle<float> bounds, juce::Colour fallback, float radius = 2)
+{ juce::Path path; path.addRoundedRectangle(bounds, radius); woodSurface(g, path, fallback); }
 inline void raisedPanel(juce::Graphics& g, juce::Rectangle<float> bounds, juce::Colour base = panel, float depth = .85f)
 {
-    const auto face = bounds.reduced(2);
-    const auto bevel = juce::jlimit(2.0f, 6.0f, 2+depth*1.6f);
-    juce::DropShadow(juce::Colours::black.withAlpha(.7f), juce::roundToInt(3+depth*2), { 1, juce::roundToInt(2+depth) }).drawForRectangle(g, face.toNearestInt());
-    g.setColour(base.darker(.75f)); g.fillRoundedRectangle(face, 3);
-    g.setColour(base.brighter(.42f));
-    juce::Path top; top.startNewSubPath(face.getX()+1, face.getBottom()-1); top.lineTo(face.getX()+1, face.getY()+1);
-    top.lineTo(face.getRight()-1, face.getY()+1); top.lineTo(face.getRight()-bevel, face.getY()+bevel);
-    top.lineTo(face.getX()+bevel, face.getY()+bevel); top.lineTo(face.getX()+bevel, face.getBottom()-bevel); top.closeSubPath(); g.fillPath(top);
-    g.setColour(base); g.fillRect(face.reduced(bevel));
-    g.setColour(juce::Colour(0xff352c14)); g.drawRoundedRectangle(face, 3, 1);
-    g.setColour(base.brighter(.6f).withAlpha(.65f)); g.drawLine(face.getX()+2, face.getY()+1, face.getRight()-2, face.getY()+1, .8f);
+    const auto body = bounds.reduced(1.5f); const auto rise = juce::jlimit(4.0f, 10.0f, 4+depth*2.2f);
+    const auto face = body.withTrimmedRight(2).withTrimmedBottom(rise);
+    if (depth > .3f) juce::DropShadow(juce::Colours::black.withAlpha(.75f), 9, { 2, 5 }).drawForRectangle(g, body.reduced(2).toNearestInt());
+    woodSurface(g, body, base.darker(.7f));
+    g.setGradientFill(juce::ColourGradient(juce::Colours::black.withAlpha(.1f), body.getX(), body.getY(), juce::Colours::black.withAlpha(.65f), body.getRight(), body.getBottom(), false)); g.fillRoundedRectangle(body, 3);
+    woodSurface(g, face, base);
+    g.setColour(juce::Colour(0xffffe4b2).withAlpha(.6f)); g.drawRoundedRectangle(face.reduced(.6f), 2, 1.2f);
+    g.setColour(juce::Colour(0xff3a1c0e)); g.drawRoundedRectangle(body, 3, 1);
+    g.setColour(juce::Colours::black.withAlpha(.55f)); g.drawLine(face.getX()+2, face.getBottom(), face.getRight()-1, face.getBottom(), 1.8f);
+    g.setColour(juce::Colour(0xffe4b579).withAlpha(.45f)); g.drawLine(body.getX()+3, body.getBottom()-1.5f, body.getRight()-3, body.getBottom()-1.5f, .8f);
 }
 inline void insetPanel(juce::Graphics& g, juce::Rectangle<float> bounds)
 {
-    g.setColour(juce::Colour(0xff17150f)); g.fillRoundedRectangle(bounds, 2);
-    g.setColour(dark); g.fillRoundedRectangle(bounds.reduced(3), 1);
-    g.setColour(juce::Colour(0xff71603a)); g.drawLine(bounds.getX()+2, bounds.getBottom()-1, bounds.getRight()-2, bounds.getBottom()-1, 1.5f);
-    g.setColour(juce::Colours::black.withAlpha(.8f)); g.drawLine(bounds.getX()+1, bounds.getY()+1, bounds.getRight()-1, bounds.getY()+1, 2);
+    woodSurface(g, bounds, juce::Colour(0xff6b4225));
+    const auto well = bounds.reduced(4);
+    woodSurface(g, well, dark); g.setColour(juce::Colours::black.withAlpha(.88f)); g.fillRoundedRectangle(well, 2);
+    g.setColour(juce::Colour(0xff2c160d)); g.drawRoundedRectangle(bounds.reduced(1), 2, 2);
+    g.setColour(juce::Colours::black.withAlpha(.85f)); g.drawLine(well.getX(), well.getY(), well.getRight(), well.getY(), 3);
+    g.setColour(juce::Colour(0xffebbd86).withAlpha(.65f)); g.drawLine(bounds.getX()+2, bounds.getBottom()-1, bounds.getRight()-2, bounds.getBottom()-1, 1);
 }
 inline void screw(juce::Graphics& g, float x, float y)
 {
-    g.setColour(juce::Colours::black.withAlpha(.65f)); g.fillEllipse(x-4, y-3, 9, 9);
-    g.setGradientFill(juce::ColourGradient(juce::Colour(0xffb8bab1), x-3, y-3, juce::Colour(0xff575c56), x+3, y+3, false));
-    g.fillEllipse(x-3, y-3, 6, 6); g.setColour(juce::Colour(0xff252823)); g.drawLine(x-2, y+1, x+2, y-1, 1);
+    g.setColour(juce::Colours::black.withAlpha(.65f)); g.fillEllipse(x-3, y-1, 7, 7);
+    juce::Path plug; plug.addEllipse(x-3, y-3, 6, 6); woodSurface(g, plug, panel.darker(.1f));
+    g.setColour(juce::Colour(0xff472310)); g.strokePath(plug, juce::PathStrokeType(.8f));
+    g.setColour(juce::Colour(0xffffd5a0).withAlpha(.65f)); g.drawEllipse(x-2, y-2, 4, 4, .5f);
 }
 inline void text(juce::Graphics& g, const juce::String& value, juce::Rectangle<int> bounds, float size = 11, juce::Colour colour = muted, int alignment = juce::Justification::centredLeft, bool bold = false)
 {
     const auto font = juce::Font(juce::FontOptions(size)); g.setFont(bold ? font.boldened() : font);
-    g.setColour(juce::Colours::black.withAlpha(.55f)); g.drawText(value, bounds.translated(0, 1), alignment);
+    g.setColour(juce::Colours::black.withAlpha(.8f));
+    for (const auto offset : { juce::Point<int>(-1, 0), { 1, 0 }, { 0, -1 }, { 0, 1 } }) g.drawText(value, bounds.translated(offset.x, offset.y), alignment);
     g.setColour(colour); g.drawText(value, bounds, alignment);
 }
 inline void slider(juce::Slider& s, juce::Slider::SliderStyle style, int textWidth = 46)
@@ -70,7 +87,7 @@ public:
     }
     void drawPopupMenuBackground(juce::Graphics& g, int width, int height) override
     {
-        g.fillAll(menuFace); g.setColour(juce::Colour(0xffad8839)); g.drawRect(0, 0, width, height, 1);
+        woodSurface(g, { 0, 0, static_cast<float>(width), static_cast<float>(height) }, menuFace); g.setColour(juce::Colours::black.withAlpha(.88f)); g.fillAll(); g.setColour(juce::Colour(0xffad8839)); g.drawRect(0, 0, width, height, 1);
         g.setColour(juce::Colour(0xff463c27)); g.drawRect(1, 1, width-2, height-2, 1);
     }
 };

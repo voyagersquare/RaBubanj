@@ -31,12 +31,17 @@ void MixerLookAndFeel::drawButtonBackground(juce::Graphics& g, juce::Button& but
     auto base = button.getName().startsWith("Close ") ? juce::Colour(hover ? 0xffec5951 : 0xffbd3832) : previewLit ? juce::Colour(0xffffd454) : juce::Colour(0xff444841).brighter(hover ? .13f : 0.0f);
     if (!previewLit && button.getToggleState()) base = base.interpolatedWith(colour, .35f);
     const auto bounds = button.getLocalBounds().toFloat();
-    g.setColour(juce::Colour(0xff302c20)); g.fillRoundedRectangle(bounds, 2);
-    g.setColour(juce::Colours::black.withAlpha(.85f)); g.fillRoundedRectangle(bounds.reduced(1).translated(0, 1), 1.5f);
-    auto face = bounds.reduced(2).translated(0, down ? 1.0f : 0.0f); if (down) face.removeFromBottom(1);
-    g.setGradientFill(juce::ColourGradient(base.brighter(.22f), face.getTopLeft(), base.darker(.25f), face.getBottomRight(), false)); g.fillRoundedRectangle(face, 1.5f);
-    g.setColour(juce::Colours::white.withAlpha(down ? .1f : .4f)); g.drawLine(face.getX()+1, face.getY()+.5f, face.getRight()-1, face.getY()+.5f, .8f);
-    g.setColour(juce::Colours::black.withAlpha(.8f)); g.drawLine(face.getX()+1, face.getBottom(), face.getRight()-1, face.getBottom(), 1.4f);
+    const auto lift = down ? 2.0f : 5.0f;
+    auto face = bounds.reduced(2).withTrimmedBottom(lift);
+    if (down) face = face.translated(0, 2);
+    woodSurface(g, bounds.reduced(1), panel.darker(.65f));
+    g.setColour(juce::Colours::black.withAlpha(.55f)); g.fillRoundedRectangle(bounds.reduced(1).withTrimmedTop(4), 2);
+    woodSurface(g, face, previewLit || button.getName().startsWith("Close ") ? base : panel);
+    if (previewLit || button.getName().startsWith("Close "))
+    { g.setColour(base.withAlpha(woodTexture().isValid() ? .55f : .85f)); g.fillRoundedRectangle(face, 2); }
+    g.setColour(juce::Colour(0xffffe1af).withAlpha(.65f)); g.drawLine(face.getX()+1, face.getY()+1, face.getRight()-1, face.getY()+1, 1.2f);
+    g.setColour(juce::Colour(0xff3a1c0e)); g.drawRoundedRectangle(bounds.reduced(1), 2, 1);
+    g.setColour(juce::Colours::black.withAlpha(.75f)); g.drawLine(face.getX(), face.getBottom(), face.getRight(), face.getBottom(), 1.5f);
     if (button.getProperties().contains("channelLevel"))
     {
         const auto level = static_cast<float>(button.getProperties()["channelLevel"]);
@@ -50,74 +55,86 @@ void MixerLookAndFeel::drawButtonBackground(juce::Graphics& g, juce::Button& but
         g.setColour(colour.brighter(.2f)); g.fillRoundedRectangle(4, 3, juce::jmax(2.0f, bounds.getWidth()-8), 2, .5f);
     }
 }
+void MixerLookAndFeel::drawButtonText(juce::Graphics& g, juce::TextButton& button, bool, bool down)
+{
+    const auto colour = button.findColour(button.getToggleState() ? juce::TextButton::textColourOnId : juce::TextButton::textColourOffId);
+    text(g, button.getButtonText(), button.getLocalBounds().withTrimmedBottom(down ? 1 : 4).reduced(3, 0),
+        getTextButtonFont(button, button.getHeight()).getHeight(), colour, juce::Justification::centred, true);
+}
+void MixerLookAndFeel::drawComboBox(juce::Graphics& g, int w, int h, bool down, int, int, int, int, juce::ComboBox&)
+{
+    raisedPanel(g, { 0, 0, static_cast<float>(w), static_cast<float>(h) }, panel, .25f);
+    g.setColour(juce::Colours::black.withAlpha(down ? .65f : .45f)); g.fillRoundedRectangle(3, 2, static_cast<float>(w-6), static_cast<float>(h-7), 2);
+    juce::Path arrow; const auto cx = static_cast<float>(w-15), cy = static_cast<float>(h)*.43f;
+    arrow.startNewSubPath(cx-4, cy-2); arrow.lineTo(cx, cy+2); arrow.lineTo(cx+4, cy-2);
+    g.setColour(gold); g.strokePath(arrow, juce::PathStrokeType(1.8f));
+}
 void MixerLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int w, int h, float position, float start, float end, juce::Slider& s)
 {
-    const auto radius = juce::jmin(static_cast<float>(w), static_cast<float>(h))*.5f-8;
+    const auto radius = juce::jmin(static_cast<float>(w), static_cast<float>(h))*.5f-9;
     if (radius < 3) return;
     const auto cx = static_cast<float>(x)+static_cast<float>(w)*.5f, cy = static_cast<float>(y)+static_cast<float>(h)*.5f;
-    const auto angle = start+position*(end-start);
-    const auto name = s.getName();
-    auto cap = name.containsIgnoreCase("drive") ? juce::Colour(0xff8eb790)
-        : name.containsIgnoreCase("compression") || name.containsIgnoreCase("width") ? juce::Colour(0xffd9857b)
-        : name.containsIgnoreCase("damping") ? juce::Colour(0xffd2cdb7) : juce::Colour(0xff8abbd0);
-    if (!s.isEnabled()) cap = juce::Colour(0xff91958c);
+    const auto rise = juce::jmin(19.0f, radius*.7f), angle = start+position*(end-start);
+    const juce::Rectangle<float> top(cx-radius, cy-radius*.78f-rise*.42f, radius*2, radius*1.56f);
+    const auto lower = top.translated(0, rise);
     for (int tick = 0; tick <= 10; ++tick)
     {
         const auto a = start+static_cast<float>(tick)*(end-start)/10;
-        g.setColour(ink.withAlpha(s.isEnabled() ? .9f : .4f));
-        g.drawLine(cx+std::sin(a)*(radius+4), cy-std::cos(a)*(radius+4), cx+std::sin(a)*(radius+6), cy-std::cos(a)*(radius+6), .8f);
+        g.setColour(ink.withAlpha(s.isEnabled() ? .9f : .35f));
+        g.drawLine(cx+std::sin(a)*(radius+4), cy-std::cos(a)*(radius+4), cx+std::sin(a)*(radius+6), cy-std::cos(a)*(radius+6), 1);
     }
-    g.setColour(juce::Colours::black.withAlpha(.5f)); g.fillEllipse(cx-radius-2, cy-radius+2, radius*2+6, radius*2+6);
-    g.setColour(juce::Colour(0xff32362f)); g.fillEllipse(cx-radius-1, cy-radius, radius*2+2, radius*2+2);
-    const juce::Rectangle<float> body(cx-radius, cy-radius*.8f, radius*2, radius*1.8f);
-    juce::ColourGradient plastic(juce::Colour(0xff969c96), cx-radius, cy, juce::Colour(0xff747d77), cx+radius, cy, false);
-    plastic.addColour(.35, juce::Colour(0xffeceee3)); plastic.addColour(.62, juce::Colour(0xffcdd1c8));
-    g.setGradientFill(plastic); g.fillEllipse(body);
+    g.setColour(juce::Colours::black.withAlpha(.6f)); g.fillEllipse(lower.translated(3, 4).expanded(2));
+    juce::Path body; body.addRectangle(top.getX(), top.getCentreY(), top.getWidth(), rise); body.addEllipse(lower);
+    woodSurface(g, body, panel.darker(.3f));
+    juce::ColourGradient sides(juce::Colours::black.withAlpha(.65f), top.getX(), cy, juce::Colours::black.withAlpha(.7f), top.getRight(), cy, false);
+    sides.addColour(.3, juce::Colour(0xffffd194).withAlpha(.12f)); sides.addColour(.65, juce::Colours::black.withAlpha(.25f));
+    g.setGradientFill(sides); g.fillPath(body);
     {
-        juce::Graphics::ScopedSaveState saved(g); juce::Path clip; clip.addEllipse(body); g.reduceClipRegion(clip);
-        for (int rib = -10; rib <= 10; ++rib)
+        juce::Graphics::ScopedSaveState saved(g); g.reduceClipRegion(body);
+        for (int rib = -8; rib <= 8; ++rib)
         {
-            const auto rx = cx+static_cast<float>(rib)*radius/10;
-            g.setColour(juce::Colour(0xff626c65).withAlpha(.65f)); g.drawLine(rx, cy, rx, cy+radius, .7f);
-            g.setColour(juce::Colours::white.withAlpha(.5f)); g.drawLine(rx+.8f, cy, rx+.8f, cy+radius, .5f);
+            const auto rx = cx+static_cast<float>(rib)*radius/8;
+            g.setColour(juce::Colour(0xff32180d).withAlpha(.6f)); g.drawLine(rx, top.getCentreY(), rx, lower.getBottom(), .8f);
+            g.setColour(juce::Colour(0xffffd6a2).withAlpha(.25f)); g.drawLine(rx+.8f, top.getCentreY(), rx+.8f, lower.getBottom(), .6f);
         }
     }
-    const juce::Rectangle<float> top(cx-radius*.86f, cy-radius*.96f, radius*1.72f, radius*1.55f);
-    g.setColour(juce::Colour(0xffedf0e6)); g.fillEllipse(top.expanded(1));
-    g.setGradientFill(juce::ColourGradient(cap.brighter(.25f), top.getTopLeft(), cap.darker(.22f), top.getBottomRight(), false)); g.fillEllipse(top);
-    g.setColour(juce::Colour(0xff6e7770)); g.drawEllipse(top, .6f);
-    const auto topCy = top.getCentreY();
-    g.setColour(juce::Colour(0xff283630));
-    g.drawLine(cx+std::sin(angle)*radius*.16f, topCy-std::cos(angle)*radius*.15f,
-        cx+std::sin(angle)*radius*.69f, topCy-std::cos(angle)*radius*.61f, 2.4f);
-    g.setColour(juce::Colours::white.withAlpha(.35f)); g.drawEllipse(top.reduced(1.1f), .6f);
+    juce::Path cap; cap.addEllipse(top); woodSurface(g, cap, panel.brighter(.2f));
+    g.setGradientFill(juce::ColourGradient(juce::Colours::white.withAlpha(.18f), top.getTopLeft(), juce::Colours::black.withAlpha(.18f), top.getBottomRight(), false)); g.fillEllipse(top);
+    g.setColour(juce::Colour(0xff351a0d)); g.drawEllipse(top, 1.5f);
+    g.setColour(juce::Colour(0xffffe2b3).withAlpha(.7f)); g.drawEllipse(top.reduced(1.4f), 1);
+    g.setColour(juce::Colour(0xff5b311b).withAlpha(.6f)); g.drawEllipse(top.reduced(3.3f), .8f);
+    const auto tx = cx+std::sin(angle)*radius*.71f, ty = top.getCentreY()-std::cos(angle)*radius*.54f;
+    g.setColour(juce::Colour(0xff281208)); g.drawLine(cx+std::sin(angle)*radius*.15f, top.getCentreY()-std::cos(angle)*radius*.12f, tx, ty, 4);
+    g.setColour(ink); g.drawLine(cx+std::sin(angle)*radius*.17f, top.getCentreY()-std::cos(angle)*radius*.13f, tx, ty, 1.8f);
+    if (!s.isEnabled()) { g.setColour(juce::Colours::black.withAlpha(.35f)); g.fillPath(body); g.fillEllipse(top); }
 }
 void MixerLookAndFeel::drawLinearSlider(juce::Graphics& g, int x, int y, int w, int h, float position, float minimum, float maximum, juce::Slider::SliderStyle style, juce::Slider& s)
 {
     if (style != juce::Slider::LinearVertical && style != juce::Slider::LinearHorizontal)
     { LookAndFeel_V4::drawLinearSlider(g, x, y, w, h, position, minimum, maximum, style, s); return; }
-    if (style == juce::Slider::LinearVertical)
+    const bool vertical = style == juce::Slider::LinearVertical;
+    const auto cx = static_cast<float>(x)+static_cast<float>(w)*.5f, cy = static_cast<float>(y)+static_cast<float>(h)*.5f;
+    const auto track = vertical ? juce::Rectangle<float>(cx-3, static_cast<float>(y), 6, static_cast<float>(h))
+        : juce::Rectangle<float>(static_cast<float>(x), cy-2.5f, static_cast<float>(w), 5);
+    g.setColour(juce::Colour(0xffe3b47b)); g.fillRoundedRectangle(track.translated(1.5f, 1.5f), 2);
+    g.setColour(juce::Colour(0xff27150d)); g.fillRoundedRectangle(track, 2);
+    const bool send = s.getName().containsIgnoreCase("send");
+    const auto capWidth = vertical ? juce::jmin(static_cast<float>(w-2), send ? 20.0f : 27.0f) : 16.0f;
+    const auto capHeight = vertical ? (send ? 22.0f : 28.0f) : juce::jmin(11.0f, static_cast<float>(h)-5);
+    const auto rise = vertical ? 7.0f : 4.0f;
+    const juce::Rectangle<float> face((vertical ? cx : position)-capWidth*.5f, (vertical ? position : cy)-capHeight*.5f-rise*.25f, capWidth, capHeight);
+    const auto body = face.withTrimmedTop(2).withHeight(face.getHeight()+rise);
+    g.setColour(juce::Colours::black.withAlpha(.65f)); g.fillRoundedRectangle(body.translated(2, 3), 2);
+    woodSurface(g, body, panel.darker(.6f)); g.setColour(juce::Colours::black.withAlpha(.4f)); g.fillRoundedRectangle(body, 2);
+    woodSurface(g, face, panel.brighter(.18f)); g.setColour(juce::Colour(0xff3c1c0e)); g.drawRoundedRectangle(face, 2, 1);
+    g.setColour(juce::Colour(0xffffe1ad)); g.drawLine(face.getX()+1, face.getY()+1, face.getRight()-1, face.getY()+1, 1);
+    if (vertical)
     {
-        const float cx = static_cast<float>(x)+static_cast<float>(w)*.5f;
-        g.setColour(juce::Colour(0xffddc379)); g.drawLine(cx+3, static_cast<float>(y), cx+3, static_cast<float>(y+h), .8f);
-        g.setColour(juce::Colour(0xff28271e)); g.fillRoundedRectangle(cx-2.5f, static_cast<float>(y), 5, static_cast<float>(h), 2);
-        const bool sendFader = s.getName().containsIgnoreCase("send");
-        const auto width = sendFader ? 15.0f : 21.0f, height = sendFader ? 17.0f : 24.0f;
-        juce::Rectangle<float> thumb(cx-width*.5f, position-height*.5f, width, height);
-        g.setColour(juce::Colours::black.withAlpha(.7f)); g.fillRoundedRectangle(thumb.translated(2, 3).expanded(1), 2);
-        g.setGradientFill(juce::ColourGradient(juce::Colour(0xff737a73), thumb.getTopLeft(), juce::Colour(0xff151c18), thumb.getBottomRight(), false)); g.fillRoundedRectangle(thumb, 2);
-        g.setColour(juce::Colour(0xffb5bdb2)); g.drawLine(thumb.getX()+1, thumb.getY()+1, thumb.getRight()-1, thumb.getY()+1, .8f);
-        for (int rib = -2; rib <= 2; ++rib)
-        { g.setColour(juce::Colour(0xff101812)); g.drawHorizontalLine(juce::roundToInt(position)+rib*3, thumb.getX()+2, thumb.getRight()-2); }
-        g.setColour(juce::Colour(0xffe7e9db)); g.fillRect(thumb.getX()+2, position-1, width-4, 2.0f);
+        for (int rib : { -1, 1 }) { g.setColour(juce::Colour(0xff6e3c20)); g.drawHorizontalLine(juce::roundToInt(face.getCentreY())+rib*5, face.getX()+3, face.getRight()-3); }
+        g.setColour(juce::Colour(0xff35190c)); g.fillRect(face.getX()+2, face.getCentreY()-2, capWidth-4, 4.0f);
+        g.setColour(ink); g.fillRect(face.getX()+3, face.getCentreY()-.7f, capWidth-6, 1.4f);
     }
-    else
-    {
-        const auto cy = static_cast<float>(y)+static_cast<float>(h)*.5f;
-        g.setColour(dark); g.fillRoundedRectangle(static_cast<float>(x), cy-2, static_cast<float>(w), 4, 2);
-        g.setColour(juce::Colour(0xff373d35)); g.fillRoundedRectangle(position-4, cy-6, 8, 12, 1);
-        g.setColour(juce::Colour(0xffedeede)); g.fillRect(position-1, cy-5, 2.0f, 9.0f);
-    }
+    else { g.setColour(juce::Colour(0xff35190c)); g.fillRect(position-2, face.getY()+1, 4.0f, capHeight-2); g.setColour(ink); g.fillRect(position-.7f, face.getY()+2, 1.4f, capHeight-4); }
 }
 
 MixerStrip::MixerStrip(RaBubanjProcessor& p, int busToUse) : processor(p), bus(busToUse),
