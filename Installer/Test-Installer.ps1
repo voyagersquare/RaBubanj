@@ -124,12 +124,41 @@ Get-Content -LiteralPath "$logs\pluginval-stderr.txt"
 Assert-True ($result.ExitCode -eq 0) 'Installed VST3 failed pluginval strictness 5'
 
 # Launch only the installed standalone owned by this test; no audio hardware is assumed.
+# Process.MainWindowHandle omits owned windows. Enumerate visible windows of this PID
+# instead, and allow asynchronous JUCE startup to finish after WaitForInputIdle.
+Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+public static class RaBubanjSmokeWindow {
+    private delegate bool EnumWindowsProc(IntPtr window, IntPtr parameter);
+    [DllImport("user32.dll")] private static extern bool EnumWindows(EnumWindowsProc callback, IntPtr parameter);
+    [DllImport("user32.dll")] private static extern bool IsWindowVisible(IntPtr window);
+    [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(IntPtr window, out uint processId);
+    public static IntPtr Find(int processId) {
+        IntPtr found = IntPtr.Zero;
+        EnumWindows((window, parameter) => {
+            uint owner; GetWindowThreadProcessId(window, out owner);
+            if (owner == (uint)processId && IsWindowVisible(window)) { found = window; return false; }
+            return true;
+        }, IntPtr.Zero);
+        return found;
+    }
+}
+'@
 $application = Start-Process -FilePath (Join-Path $appRoot 'RaBubanj.exe') -PassThru
 try {
     Assert-True ($application.WaitForInputIdle(30000)) 'Standalone did not become responsive'
-    $application.Refresh()
-    Assert-True (-not $application.HasExited -and $application.MainWindowHandle -ne [IntPtr]::Zero) 'Installed Standalone did not create its window'
-    Write-Output 'Installed Standalone launch: PASS'
+    $startup = [Diagnostics.Stopwatch]::StartNew()
+    $window = [IntPtr]::Zero
+    while ($startup.Elapsed.TotalSeconds -lt 30) {
+        $application.Refresh()
+        if ($application.HasExited) { throw "Standalone exited during startup: $($application.ExitCode)" }
+        $window = [RaBubanjSmokeWindow]::Find($application.Id)
+        if ($window -ne [IntPtr]::Zero) { break }
+        Start-Sleep -Milliseconds 200
+    }
+    Assert-True ($window -ne [IntPtr]::Zero) 'Installed Standalone did not create a visible window within 30 seconds'
+    Write-Output "Installed Standalone launch: PASS (PID $($application.Id), window $window)"
 } finally {
     $application.Refresh()
     if (-not $application.HasExited) {
