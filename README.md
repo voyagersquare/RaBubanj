@@ -2,7 +2,9 @@
 
 Windows x64 VST3 and standalone drum sample instrument by Voyagersquare, with raised wood panels and metal controls, per-channel processing and a shared stereo Reverb. Windows installer with selectable VST3/Standalone components, plus a portable ZIP.
 
-Installer and portable package links will be added after Windows install/uninstall validation.
+[**Download Windows installer — VST3 + Standalone**](https://github.com/voyagersquare/RaBubanj/actions/runs/44883314452/artifacts/14699097022) · [Portable ZIP](https://github.com/voyagersquare/RaBubanj/actions/runs/44883314452/artifacts/14699106880) · [Validated Windows build](https://github.com/voyagersquare/RaBubanj/actions/runs/44883314452).
+
+Extract the installer ZIP and run **RaBubanj-0.16.1-Setup-x64.exe**. Choose VST3, Standalone or both.
 
 [Installer instructions in Croatian](docs/INSTALLER-HR.md) · [Full Windows instructions](docs/WINDOWS-HR.md) · [Validation](VALIDATION.md)
 
