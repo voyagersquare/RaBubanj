@@ -9,7 +9,10 @@ namespace rabubanj
 class StepPattern
 {
 public:
-    static constexpr int rows = 8, steps = 32;
+    static constexpr int rows = 8, steps = 128, defaultSteps = 32;
+    static int normaliseLength(int length) noexcept { return length == 64 || length == 128 ? length : defaultSteps; }
+    int getLength() const noexcept { return length.load(); }
+    bool setLength(int value) noexcept { const auto next = normaliseLength(value); return length.exchange(next) != next; }
     using Snapshot = std::array<uint8_t, rows*steps>;
     struct Cell { uint8_t strength = 0; int8_t timing = 0; };
     using TimedSnapshot = std::array<Cell, rows*steps>;
@@ -57,6 +60,7 @@ private:
     static bool valid(int row, int step) noexcept { return row >= 0 && row < rows && step >= 0 && step < steps; }
     // Strength and timing of each cell are published atomically together.
     std::array<std::atomic<uint16_t>, rows*steps> cells {};
+    std::atomic<int> length { defaultSteps };
 };
 struct SequenceTransport
 {
@@ -69,7 +73,8 @@ class SequenceCursor
 {
 public:
     struct Event { int offset = 0, step = 0; };
-    SequenceCursor(SequenceTransport transport, double sampleRate, int samples) noexcept : host(transport), count(samples)
+    SequenceCursor(SequenceTransport transport, double sampleRate, int samples, int length = StepPattern::defaultSteps) noexcept
+        : host(transport), count(samples), stepCount(StepPattern::normaliseLength(length))
     {
         valid = host.valid && host.playing && std::isfinite(host.ppq) && std::abs(host.ppq) < 1e12
             && std::isfinite(host.bpm) && host.bpm >= 1 && host.bpm <= 1000 && sampleRate >= 8000 && samples > 0;
@@ -107,7 +112,7 @@ public:
         return wrap(static_cast<int64_t>(std::floor(ppq*4+1e-9)));
     }
 private:
-    static int wrap(int64_t step) noexcept { return static_cast<int>((step%32+32)%32); }
+    int wrap(int64_t step) const noexcept { return static_cast<int>((step%stepCount+stepCount)%stepCount); }
     void beginSegment() noexcept
     {
         boundarySample = loop ? segmentSample+(host.loopEnd-segmentPpq)*samplesPerBeat : static_cast<double>(count);
@@ -115,20 +120,21 @@ private:
         nextStep = static_cast<int64_t>(std::ceil((segmentPpq+(segmentMinimum-.5-segmentSample)/samplesPerBeat)*4-1e-9));
     }
     SequenceTransport host;
-    int count = 0;
+    int count = 0, stepCount = StepPattern::defaultSteps;
     bool valid = false, loop = false;
     double samplesPerBeat = 0, segmentSample = 0, segmentPpq = 0, segmentMinimum = 0, segmentLimit = 0, boundarySample = 0;
     int64_t nextStep = 0;
 };
 
-// Each active cell contributes one regular stream and at most two host-loop edge streams.
+// Each active cell contributes one regular stream and at most one host-loop edge stream.
+// Negative timing crosses only the start edge; positive timing crosses only the end edge.
 // A fixed heap orders individual hits, including negative offsets across pattern/host-loop edges.
 class NoteSequenceCursor
 {
 public:
     struct Event { int offset = 0, row = 0, step = 0, strength = 0; };
-    NoteSequenceCursor(SequenceTransport transport, double rate, int samples, const StepPattern::TimedSnapshot& cells) noexcept
-        : host(transport), pattern(cells), count(samples)
+    NoteSequenceCursor(SequenceTransport transport, double rate, int samples, const StepPattern::TimedSnapshot& cells, int length = StepPattern::defaultSteps) noexcept
+        : host(transport), pattern(cells), count(samples), stepCount(StepPattern::normaliseLength(length)), patternBeats(stepCount*.25)
     {
         valid = host.valid && host.playing && std::isfinite(host.ppq) && std::abs(host.ppq) < 1e12
             && std::isfinite(host.bpm) && host.bpm >= 1 && host.bpm <= 1000 && rate >= 8000 && samples > 0;
@@ -155,7 +161,7 @@ public:
             { node.cycle += host.loopEnd-host.loopStart; node.beat = node.first+node.cycle; }
             heap[static_cast<size_t>(used++)] = node; std::push_heap(heap.begin(), heap.begin()+used, Later{});
             if (offset < 0) continue;
-            event = { static_cast<int>(offset), current.cell/32, current.cell%32, pattern[static_cast<size_t>(current.cell)].strength }; return true;
+            event = { static_cast<int>(offset), current.cell/StepPattern::steps, current.cell%StepPattern::steps, pattern[static_cast<size_t>(current.cell)].strength }; return true;
         }
         return false;
     }
@@ -167,26 +173,27 @@ private:
     void build(double threshold) noexcept
     {
         used = 0; const auto length = host.loopEnd-host.loopStart;
-        for (int cell = 0; cell < 256; ++cell)
+        for (int row = 0; row < StepPattern::rows; ++row) for (int step = 0; step < stepCount; ++step)
         {
+            const auto cell = row*StepPattern::steps+step;
             const auto& value = pattern[static_cast<size_t>(cell)]; if (value.strength == 0) continue;
-            const auto base = static_cast<double>(cell%32)*.25, shift = static_cast<double>(value.timing)*.0025, shifted = base+shift;
+            const auto base = static_cast<double>(step)*.25, shift = static_cast<double>(value.timing)*.0025, shifted = base+shift;
             if (!loop || preRoll)
-            { Node n; n.cell = cell; n.beat = shifted+8*std::ceil((threshold-shifted)/8-1e-10); add(n); continue; }
+            { Node n; n.cell = cell; n.increment = patternBeats; n.beat = shifted+patternBeats*std::ceil((threshold-shifted)/patternBeats-1e-10); add(n); continue; }
             const auto low = std::max(host.loopStart, host.loopStart+shift), high = std::min(host.loopEnd, host.loopEnd+shift);
-            const auto first = shifted+8*std::ceil((low-shifted)/8-1e-10);
+            const auto first = shifted+patternBeats*std::ceil((low-shifted)/patternBeats-1e-10);
             if (first < high-1e-9)
             {
-                Node n; n.cell = cell; n.first = first; n.limit = high; n.regularLoop = true;
-                n.beat = first+8*std::max(0.0, std::ceil((threshold-first)/8-1e-10));
+                Node n; n.cell = cell; n.increment = patternBeats; n.first = first; n.limit = high; n.regularLoop = true;
+                n.beat = first+patternBeats*std::max(0.0, std::ceil((threshold-first)/patternBeats-1e-10));
                 if (n.beat >= high-1e-9) { n.cycle = length; n.beat = first+length; }
                 // A rounded event immediately before the loop start belongs to sample zero.
-                const auto last = first+8*(std::ceil((high-first)/8-1e-10)-1);
+                const auto last = first+patternBeats*(std::ceil((high-first)/patternBeats-1e-10)-1);
                 if (last-length >= threshold && last-length < n.beat) { n.cycle = -length; n.beat = last-length; }
                 add(n);
             }
-            const auto firstNominal = base+8*std::ceil((host.loopStart-base)/8-1e-10);
-            const auto lastNominal = base+8*(std::ceil((host.loopEnd-base)/8-1e-10)-1);
+            const auto firstNominal = base+patternBeats*std::ceil((host.loopStart-base)/patternBeats-1e-10);
+            const auto lastNominal = base+patternBeats*(std::ceil((host.loopEnd-base)/patternBeats-1e-10)-1);
             for (int edge = 0; edge < 2; ++edge)
             {
                 const auto nominal = edge == 0 ? firstNominal : lastNominal;
@@ -201,9 +208,9 @@ private:
     }
     SequenceTransport host;
     const StepPattern::TimedSnapshot& pattern;
-    std::array<Node, 768> heap {};
-    int used = 0, count = 0;
-    double spq = 0;
+    std::array<Node, StepPattern::rows*StepPattern::steps*2> heap {};
+    int used = 0, count = 0, stepCount = StepPattern::defaultSteps;
+    double spq = 0, patternBeats = 8;
     bool valid = false, loop = false, preRoll = false;
 };
 }

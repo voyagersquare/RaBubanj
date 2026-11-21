@@ -16,16 +16,20 @@ private:
     juce::Slider timing;
     juce::TextButton close { "X" };
 };
-class StepGrid final : public juce::Component, private juce::Timer
+class StepGrid final : public juce::Component, private juce::Timer, private juce::ScrollBar::Listener
 {
 public:
     explicit StepGrid(RaBubanjProcessor&);
-    ~StepGrid() override { stopTimer(); }
+    ~StepGrid() override { stopTimer(); horizontalScroll.removeListener(this); }
     void refresh();
     void paint(juce::Graphics&) override;
+    void resized() override;
     void mouseDown(const juce::MouseEvent&) override;
     void mouseDrag(const juce::MouseEvent&) override;
     void mouseUp(const juce::MouseEvent&) override;
+    void mouseWheelMove(const juce::MouseEvent&, const juce::MouseWheelDetails&) override;
+    void scrollToStep(int firstStep);
+    int getFirstVisibleStep() const noexcept { return firstVisibleStep; }
     juce::Rectangle<float> cellBounds(int row, int step) const;
     juce::Rectangle<float> padBounds(int row) const;
     int getSelectedPad() const noexcept { return selectedPad; }
@@ -35,7 +39,11 @@ private:
     void stroke(juce::Point<int>);
     void timerCallback() override;
     void openTimingEditor();
+    void scrollBarMoved(juce::ScrollBar*, double start) override { scrollToStep(juce::roundToInt(start)); }
+    void updateScrollBar();
     RaBubanjProcessor& processor;
+    juce::ScrollBar horizontalScroll { false };
+    int firstVisibleStep = 0, displayedPattern = -1, displayedLength = 32;
     juce::Point<int> last { -1, -1 };
     int selectedPad = 0;
     int editPattern = 0;
@@ -83,7 +91,7 @@ private:
     StepGrid grid;
     PadWaveform waveform;
     juce::TextButton enabled { "SEQ ON" };
-    juce::ComboBox patternChoice;
+    juce::ComboBox patternChoice, lengthChoice;
     MidiPatternDrag midiDrag;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> enabledAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> patternAttachment;

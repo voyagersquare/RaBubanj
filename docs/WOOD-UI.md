@@ -20,3 +20,5 @@ The dark-red RaBubanj wordmark uses embedded Great Vibes lettering inspired by t
 The sequencer is a dedicated page below the shared header. Mixer controls and EQ panels are hidden until MIXER or the red X returns to the mixer; no cut-off mixer edges remain. The page fills the working area at all supported sizes and cannot be dragged over other controls. Its title, transport status, timing popup captions and footer use larger bold black print on wood. Dark screens keep light text.
 
 The grid has labelled eight-step groups and a stronger divider between steps 16 and 17. Four-dark/four-light cells remain. Grid, waveform and EQ interiors use an opaque solid dark screen material; original wood remains on their carved frames.
+
+Long patterns retain the same 32-column on-screen cell size. PAD labels stay fixed while the grid scrolls horizontally by wheel or scrollbar. The length choice and VIEW range appear above the grid. Group headings/bar separators continue to step 128.

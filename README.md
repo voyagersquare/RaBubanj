@@ -1,16 +1,19 @@
-# RaBubanj 0.15.0
+# RaBubanj 0.16.0
 
 Windows x64 VST3 and standalone drum sample instrument by Voyagersquare, with raised wood panels and metal controls, per-channel processing and a shared stereo Reverb. Portable ZIP, without an installer.
 
-[**Download Windows x64 ZIP — VST3 + standalone, no installer**](https://github.com/voyagersquare/RaBubanj/actions/runs/44879091226/artifacts/14697371613) · [Successful Windows build](https://github.com/voyagersquare/RaBubanj/actions/runs/44879091226) · [Validation](VALIDATION.md).
+Portable Windows packages are produced by the [Windows workflow](https://github.com/voyagersquare/RaBubanj/actions/workflows/windows.yml); see [validation](VALIDATION.md).
 
 [Windows instructions in Croatian](docs/WINDOWS-HR.md) · [Validation](VALIDATION.md)
 
-![RaBubanj 0.15 PAD mixer and spectrum displays](docs/preview.png)
+![RaBubanj 0.16 PAD mixer and spectrum displays](docs/preview.png)
 
 ## Step sequencer
 
-- **STEP SEQ** opens a dedicated sequencer page that replaces the mixer below the shared header. Click **MIXER** or the **red X** to return; mixer controls and EQ panels are hidden while sequencing. It has **32 sixteenth-note steps × 8 rows**. **PAD 1–PAD 8 labels are on the left.** One pattern is two bars in 4/4.
+[64-step preview](docs/sequencer-64-steps.png) · [128-step preview, scrolled to the end](docs/sequencer-128-steps.png).
+
+- **STEP SEQ** opens a dedicated sequencer page that replaces the mixer below the shared header. Click **MIXER** or the **red X** to return; mixer controls and EQ panels are hidden while sequencing. It offers **32, 64 or 128 sixteenth-note steps × 8 rows**, selected independently for each pattern with the **STEPS dropdown**. **PAD 1–PAD 8 labels are on the left.** Patterns last **2, 4 or 8 bars in 4/4**, respectively.
+- **Scroll longer patterns:** 32 cells remain visible at a readable size. Hover the grid and use the mouse wheel (vertical or horizontal), or drag the horizontal scrollbar, to reach the final step. PAD labels stay fixed on the left; the **VIEW** readout shows the visible range. Shortening a pattern retains inactive tail notes and timing; extending restores them. Inactive steps are excluded from playback and MIDI export.
 - **Left-click** an empty cell to write the strongest hit. Repeated clicks on the same cell cycle **127 → 88 → 48 → 32 → 127**. Right-click is the only erase action; cycling never deletes a note.
 - **Right-click** erases. Hold and drag the right button to erase several cells, including intervening cells during fast drags. **Hold and drag left** to write strongest notes into empty cells, including intervening cells in fast strokes. Existing notes keep their velocity and timing; revisiting them does not cycle them.
 - **Hold a note for 650 ms without moving** to open its **TIMING** slider. Choose **−50% to +50% of a sixteenth-note step**; negative is earlier, positive is later, and 0% is on the grid. The readout also shows milliseconds at the current DAW tempo. Double-click the slider to reset to 0. A long press preserves note velocity; a long press on an empty cell creates a strong note. Click the grid or X to dismiss. A small cyan/orange mark identifies shifted notes.
@@ -26,11 +29,11 @@ Windows x64 VST3 and standalone drum sample instrument by Voyagersquare, with ra
 
 [Per-note timing slider preview](docs/note-timing.png).
 
-New instances have four blank patterns. Loading a 0.7 project moves its old pattern into **Pattern 1**, preserving the actual MIDI velocities 48/88/127; Patterns 2–4 remain blank. Projects from before the sequencer restore all patterns blank. 0.8/0.9 projects retain all four patterns with zero timing offsets. Closing the sequencer window does not erase or disable the pattern.
+New instances have four blank 32-step patterns. Each pattern saves its own length and all 128 columns. Existing projects through 0.15 migrate to 32 steps, preserving their notes and timing. State schema 9 uses a 128-column row stride; schemas 6–8 are read with their original 32-column stride. Loading a 0.7 project moves its old pattern into **Pattern 1**, preserving the actual MIDI velocities 48/88/127; Patterns 2–4 remain blank. Projects from before the sequencer restore all patterns blank. 0.8/0.9 projects retain all four patterns with zero timing offsets. Closing the sequencer window does not erase or disable the pattern.
 
-Timing shifts follow tempo as a percentage of one step. At 120 BPM the range is ±62.5 ms. Early notes at step 1 wrap to the end of the two-bar pattern; they cannot sound before the DAW starts. Host-loop boundary notes are shifted around the host loop itself, including shorter/non-grid loops. An exported MIDI clip wraps early step-1 notes to its end and keeps its exact eight-beat length.
+Timing shifts follow tempo as a percentage of one step. At 120 BPM the range is ±62.5 ms. Early notes at step 1 wrap to the end of the selected pattern; they cannot sound before the DAW starts. Host-loop boundary notes are shifted around the host loop itself, including shorter/non-grid loops. An exported MIDI clip wraps early step-1 notes to its end and keeps its exact 8/16/32-beat length.
 
-The sequencer requires an active DAW audio engine and a monitored instrument track. Standalone supports pad audition/external MIDI but supplies no DAW transport for the sequencer. One-shot and Reverb tails may decay after Stop. MIDI export uses one type-0 track, 960 PPQ, channel 10, a 1/32-note gate and an explicit 8-beat end marker. Export files remain in the OS temporary `RaBubanj-MIDI` folder for deferred host reading.
+The sequencer requires an active DAW audio engine and a monitored instrument track. Standalone supports pad audition/external MIDI but supplies no DAW transport for the sequencer. One-shot and Reverb tails may decay after Stop. MIDI export uses one type-0 track, 960 PPQ, channel 10, a 1/32-note gate and an explicit 8/16/32-beat end marker matching the selected length. Export files remain in the OS temporary `RaBubanj-MIDI` folder for deferred host reading.
 
 ## Wood panels and metal controls
 
@@ -38,7 +41,7 @@ The sequencer requires an active DAW audio engine and a monitored instrument tra
 - **Flat caption controls** replace raised metal pushbuttons: STEP SEQ, MIDI/keyboard modes, EQ BYPASS/RESET, channel names, M/S and PLAY. The sequencer uses the same flat treatment for SEQ ON/OFF, DRAG MIDI, pattern selection, PAD labels and close controls. They look like the dark REVERB/PAD legend plates and retain their click actions, meters, state feedback and keyboard focus behaviour.
 - Rotary knobs retain the supplied-reference silhouette: tall fluted metal cylinders, black bases, coloured matte top discs and thick position bars. They are **15% larger than 0.12** (80.5% of the original reference-model artwork size). Colours remain SIZE teal, DAMPING off-white, WIDTH burgundy, PITCH blue, DRIVE red and COMP purple.
 - Faders keep the contoured saddle profile, dark end cheeks, brushed aluminium centre and white index. PAN/TIMING use the matching horizontal profile.
-- **Sequencer cells are flat again**, with **four dark steps followed by four light steps**, starting dark at step 1. Eight-step separators and bar/range headings clarify the two-bar layout, with a stronger divider after step 16. Four velocity bar heights/colours, the playhead and per-note timing markers retain their meanings.
+- **Sequencer cells are flat again**, with **four dark steps followed by four light steps**, starting dark at step 1. Eight-step separators and bar/range headings clarify the layout, with stronger dividers every 16 steps. Four velocity bar heights/colours, the playhead and per-note timing markers retain their meanings.
 - Larger white bold command labels stay on dark contrast plates. PLAY still lights yellow; close controls stay red. Wood texture, raised panel frames and original sample/sequence workflows remain.
 - **Larger black lettering on wood:** channel/master EQ headings, the six-band caption, mixer instructions, sample-source rows, PAN/dB/SEND, WET RETURN/STEREO OUT and strip routing captions. Sequencer titles, tempo/status, timing popup captions and editing help use larger black wood lettering too. White lettering remains on dark controls and graph readouts. Waveform, grid and EQ screen interiors are solid dark for clear data contrast. The crossed-out bottom-right `C1-G1 MIDI / SAMPLE PLAYER` footer tag is removed.
 - **RaBubanj wordmark:** dark red calligraphic lettering inspired by the supplied script example. The bundled **Great Vibes** font is under SIL OFL 1.1; the logo is rendered as cached glyph outlines and needs no system font installation.
@@ -121,7 +124,7 @@ GitHub Actions builds both targets, runs the DSP tests, and validates the VST3 w
 
 A full build runs nine suites: drum engine/pitch, parametric EQ, legacy source regression, processor MIDI/state, mixer/editor, sample import/recall, channel colour/spectrum, sequencer timing and sequencer/MIDI/editor integration. The colour/spectrum suite checks neutral bypass, compressor calibration and stereo linking, saturation harmonics, exact pitch-rate conversion, FFT frequency/dBFS calibration, anti-phase stereo, decay, concurrent buffers, real processor taps and state recall. UI tests cover name meters without triggering, yellow PLAY buttons, curve/gain menu actions and cancellation, per-channel knob binding and minimum/default/maximum bounds.
 
-`mixer_tests <absolute-directory>` exports actual JUCE editor snapshots. `sequencer_integration_tests <absolute-directory>` exports sequencer and window previews using a demonstration pattern and simulated host transport. Sequencer coverage includes fractional-BPM/block-boundary accuracy, loops inside a block, start/stop, seeks, pre-roll, same-offset panic, MIDI file parsing, click velocity cycling, left-drag painting, stationary long-press timing, early/late audio offsets and MIDI export, right-drag erasing, four-pattern recall/migration, dedicated-page layout, mixer visibility restoration, MIXER/X navigation and Space forwarding. Native Windows CI also runs pluginval strictness 5 before packaging.
+`mixer_tests <absolute-directory>` exports actual JUCE editor snapshots. `sequencer_integration_tests <absolute-directory>` exports sequencer and window previews using a demonstration pattern and simulated host transport. Sequencer coverage includes fractional-BPM/block-boundary accuracy, loops inside a block, start/stop, seeks, pre-roll, same-offset panic, MIDI file parsing, click velocity cycling, left-drag painting, stationary long-press timing, early/late audio offsets and MIDI export, right-drag erasing, four-pattern recall/migration, dedicated-page layout, mixer visibility restoration, MIXER/X navigation, 32/64/128-step length/phase/recall/MIDI, tail retention, mouse-wheel/scrollbar navigation, scrolled click/paint/erase/timing and Space forwarding. Native Windows CI also runs pluginval strictness 5 before packaging.
 
 ## License
 

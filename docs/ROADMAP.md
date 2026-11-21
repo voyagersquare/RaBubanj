@@ -89,3 +89,7 @@ Larger black printed captions and sample-source labels, removed lower-right foot
 ## 0.15 — clearer sequencer page and calmer materials
 
 Dedicated full working-area sequencer page with MIXER/X navigation and hidden mixer/EQ controls. Larger black wood captions; labelled eight-step groups and a stronger bar midpoint. Solid waveform, grid and EQ screen interiors. A matte red-brown finish softens grain contrast while preserving the original JPEG and metal controls.
+
+## 0.16 — 32/64/128-step patterns
+
+Independent saved length per pattern; matching DAW phase and MIDI clip length. Horizontal wheel/scrollbar navigation with fixed PAD labels and readable 32-column viewport. Inactive tails survive shortening. Schema-9 capacity expansion preserves old 32-step notes and signed microtiming.

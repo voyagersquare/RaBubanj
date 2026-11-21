@@ -21,23 +21,54 @@ void NoteTimingEditor::paint(juce::Graphics& g)
     woodText(g, "EARLIER               TIMING               LATER", { 16, 34, getWidth()-32, 20 }, 12, juce::Justification::centred);
     woodText(g, "DOUBLE-CLICK SLIDER: RESET TO GRID", { 10, 111, getWidth()-20, 18 }, 12, juce::Justification::centred);
 }
-StepGrid::StepGrid(RaBubanjProcessor& p) : processor(p) { setName("32 step grid"); setWantsKeyboardFocus(false); }
-juce::Rectangle<float> StepGrid::plot() const { return getLocalBounds().toFloat().reduced(8, 4).withTrimmedLeft(86).withTrimmedTop(50); }
+StepGrid::StepGrid(RaBubanjProcessor& p) : processor(p)
+{
+    setName("Step grid"); setWantsKeyboardFocus(false);
+    horizontalScroll.setName("Sequence horizontal scroll"); horizontalScroll.setWantsKeyboardFocus(false);
+    horizontalScroll.setSingleStepSize(4); horizontalScroll.addListener(this); addChildComponent(horizontalScroll);
+    horizontalScroll.setColour(juce::ScrollBar::backgroundColourId, dark);
+    horizontalScroll.setColour(juce::ScrollBar::thumbColourId, axis); refresh();
+}
+void StepGrid::resized() { updateScrollBar(); }
+void StepGrid::updateScrollBar()
+{
+    const auto length = processor.getPattern().getLength(); firstVisibleStep = juce::jlimit(0, length-32, firstVisibleStep);
+    horizontalScroll.setRangeLimits(0, length, juce::dontSendNotification);
+    horizontalScroll.setCurrentRange(firstVisibleStep, 32, juce::dontSendNotification);
+    const auto r = plot(); horizontalScroll.setBounds(juce::roundToInt(r.getX()), getHeight()-19, juce::roundToInt(r.getWidth()), 14);
+    horizontalScroll.setVisible(length > 32);
+}
+void StepGrid::scrollToStep(int step)
+{
+    const auto next = juce::jlimit(0, processor.getPattern().getLength()-32, step);
+    if (firstVisibleStep == next) return;
+    firstVisibleStep = next; timingEditor.reset(); updateScrollBar(); repaint();
+}
+void StepGrid::mouseWheelMove(const juce::MouseEvent&, const juce::MouseWheelDetails& wheel)
+{
+    if (drawing || leftPending) return;
+    const auto delta = std::abs(wheel.deltaX) > std::abs(wheel.deltaY) ? wheel.deltaX : wheel.deltaY;
+    if (delta == 0) return;
+    const auto distance = juce::jmax(1, juce::roundToInt(std::abs(delta)*32));
+    scrollToStep(firstVisibleStep+(delta < 0 ? distance : -distance));
+}
+juce::Rectangle<float> StepGrid::plot() const { return getLocalBounds().toFloat().reduced(8, 4).withTrimmedLeft(86).withTrimmedTop(50).withTrimmedBottom(processor.getPattern().getLength() > 32 ? 20.0f : 0.0f); }
 juce::Rectangle<float> StepGrid::cellBounds(int row, int step) const
 {
-    const auto r = plot(); return { r.getX()+static_cast<float>(step)*r.getWidth()/32, r.getY()+static_cast<float>(row)*r.getHeight()/8, r.getWidth()/32, r.getHeight()/8 };
+    const auto r = plot(); return { r.getX()+static_cast<float>(step-firstVisibleStep)*r.getWidth()/32, r.getY()+static_cast<float>(row)*r.getHeight()/8, r.getWidth()/32, r.getHeight()/8 };
 }
 juce::Rectangle<float> StepGrid::padBounds(int row) const
-{ const auto box = cellBounds(row, 0); return { plot().getX()-82, box.getY(), 74, box.getHeight() }; }
+{ const auto r = plot(); return { r.getX()-82, r.getY()+static_cast<float>(row)*r.getHeight()/8, 74, r.getHeight()/8 }; }
 juce::Point<int> StepGrid::cellAt(juce::Point<float> p, bool clamp) const
 {
     const auto r = plot(); if (!clamp && !r.contains(p)) return { -1, -1 };
     if (r.getWidth() <= 0 || r.getHeight() <= 0) return { -1, -1 };
-    return { juce::jlimit(0, 31, static_cast<int>(std::floor((p.x-r.getX())*32/r.getWidth()))), juce::jlimit(0, 7, static_cast<int>(std::floor((p.y-r.getY())*8/r.getHeight()))) };
+    return { juce::jlimit(firstVisibleStep, firstVisibleStep+31, firstVisibleStep+static_cast<int>(std::floor((p.x-r.getX())*32/r.getWidth()))), juce::jlimit(0, 7, static_cast<int>(std::floor((p.y-r.getY())*8/r.getHeight()))) };
 }
 void StepGrid::stroke(juce::Point<int> cell)
 {
     if (cell.x < 0 || cell.y < 0) return;
+    cell.x = juce::jmin(cell.x, processor.getPattern(editPattern).getLength()-1);
     auto previous = last.x < 0 ? cell : last;
     const auto dx = std::abs(cell.x-previous.x), dy = -std::abs(cell.y-previous.y);
     const int sx = previous.x < cell.x ? 1 : -1, sy = previous.y < cell.y ? 1 : -1;
@@ -95,6 +126,17 @@ void StepGrid::mouseUp(const juce::MouseEvent& e)
 }
 void StepGrid::refresh()
 {
+    const auto selected = processor.getSelectedPattern(), length = processor.getPattern().getLength();
+    if (selected != displayedPattern || length != displayedLength)
+    {
+        if (selected == displayedPattern && length != displayedLength)
+        {
+            stopTimer(); if (changed) processor.sequenceEdited();
+            drawing = changed = leftPending = longOpened = false; last = { -1, -1 };
+        }
+        if (selected != displayedPattern) firstVisibleStep = 0;
+        displayedPattern = selected; displayedLength = length; timingEditor.reset(); updateScrollBar();
+    }
     if (timingEditor && timingEditor->patternIndex != processor.getSelectedPattern()) timingEditor.reset();
     if (timingEditor) timingEditor->refresh();
     repaint();
@@ -103,18 +145,21 @@ void StepGrid::paint(juce::Graphics& g)
 {
     insetPanel(g, getLocalBounds().toFloat(), true); const auto r = plot(); const auto playing = processor.getPlayingStep();
     const auto cells = processor.getPattern().timedSnapshot();
-    for (int group = 0; group < 4; ++group)
+    {
+    juce::Graphics::ScopedSaveState saved(g);
+    g.reduceClipRegion(juce::Rectangle<float>(r.getX(), 5, r.getWidth(), r.getBottom()-5).toNearestInt());
+    for (int group = firstVisibleStep/8; group <= (firstVisibleStep+31)/8; ++group)
     {
         const auto first = cellBounds(0, group*8), lastBox = cellBounds(0, group*8+7);
         const auto heading = juce::Rectangle<float>(first.getX(), 8, lastBox.getRight()-first.getX(), 19);
         text(g, "BAR "+juce::String(group/2+1)+"  /  "+juce::String(group*8+1)+"–"+juce::String(group*8+8), heading.toNearestInt(), 13, axis, juce::Justification::centred, true);
         if (group > 0)
         {
-            g.setColour(group == 2 ? gold.withAlpha(.85f) : axis.withAlpha(.55f));
-            g.fillRect(first.getX()-(group == 2 ? 1.5f : 1), 8.0f, group == 2 ? 3.0f : 2.0f, r.getBottom()-8);
+            g.setColour(group%2 == 0 ? gold.withAlpha(.85f) : axis.withAlpha(.55f));
+            g.fillRect(first.getX()-(group%2 == 0 ? 1.5f : 1), 8.0f, group%2 == 0 ? 3.0f : 2.0f, r.getBottom()-8);
         }
     }
-    for (int step = 0; step < 32; ++step)
+    for (int step = firstVisibleStep; step < firstVisibleStep+32; ++step)
     {
         const auto box = cellBounds(0, step);
         if (step == playing) { g.setColour(gold.withAlpha(.18f)); g.fillRect(box.withHeight(r.getHeight()).expanded(0, 1)); }
@@ -122,7 +167,7 @@ void StepGrid::paint(juce::Graphics& g)
         for (int row = 0; row < 8; ++row)
         {
             auto cell = cellBounds(row, step).reduced(2, 3);
-            const auto point = cells[static_cast<size_t>(row*32+step)]; const auto value = point.strength;
+            const auto point = cells[static_cast<size_t>(row*rabubanj::StepPattern::steps+step)]; const auto value = point.strength;
             g.setColour(step/4%2 == 0 ? juce::Colour(0xff302e24) : juce::Colour(0xff62563a));
             g.fillRoundedRectangle(cell, 2);
             if (value > 0)
@@ -139,6 +184,7 @@ void StepGrid::paint(juce::Graphics& g)
             g.setColour(step == playing ? gold : juce::Colour(0xff6e5b2b)); g.drawRoundedRectangle(cell, 2, step == playing ? 1.4f : .7f);
         }
     }
+    }
     for (int row = 0; row < 8; ++row)
     {
         const auto label = padBounds(row).reduced(0, 3);
@@ -150,7 +196,7 @@ void StepGrid::paint(juce::Graphics& g)
 MidiPatternDrag::MidiPatternDrag(RaBubanjProcessor& p) : TextButton("DRAG MIDI"), processor(p)
 {
     setName("Drag sequence MIDI"); setWantsKeyboardFocus(false);
-    setTooltip("Drag the selected two-bar MIDI pattern into the DAW. Switch SEQ OFF when playing the exported MIDI clip to avoid doubled hits.");
+    setTooltip("Drag the selected MIDI pattern (32, 64 or 128 steps) into the DAW. Switch SEQ OFF when playing the exported MIDI clip to avoid doubled hits.");
 }
 void MidiPatternDrag::mouseDown(const juce::MouseEvent& e) { started = false; TextButton::mouseDown(e); }
 void MidiPatternDrag::mouseDrag(const juce::MouseEvent& e)
@@ -176,6 +222,15 @@ SequencerPanel::SequencerPanel(RaBubanjProcessor& p) : processor(p), grid(p), wa
     patternChoice.setTooltip("Select one of four independent patterns. Playback keeps its DAW phase; MIDI export uses this pattern.");
     for (int i = 0; i < 4; ++i) patternChoice.addItem("Pattern "+juce::String(i+1), i+1);
     addAndMakeVisible(patternChoice);
+    lengthChoice.setName("Pattern length"); lengthChoice.setWantsKeyboardFocus(false);
+    lengthChoice.setTooltip("Length of this pattern. Scroll the grid with the mouse wheel or the horizontal bar to reach later steps.");
+    for (int length : { 32, 64, 128 }) lengthChoice.addItem(juce::String(length)+" STEPS", length);
+    lengthChoice.onChange = [this]
+    {
+        if (processor.getPattern().setLength(lengthChoice.getSelectedId())) processor.sequenceEdited();
+        grid.refresh(); repaint();
+    };
+    addAndMakeVisible(lengthChoice);
     patternAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(p.parameters, "seqPattern", patternChoice);
     setSize(1160, 620); refresh(); startTimerHz(30);
 }
@@ -185,13 +240,15 @@ void SequencerPanel::refresh()
 {
     enabled.setButtonText(enabled.getToggleState() ? "SEQ ON" : "SEQ OFF");
 
+    lengthChoice.setSelectedId(processor.getPattern().getLength(), juce::dontSendNotification);
     waveform.update(grid.getSelectedPad(), isShowing()); grid.refresh(); repaint();
 }
 void SequencerPanel::resized()
 {
     auto header = getLocalBounds().reduced(16, 12).removeFromTop(29);
     enabled.setBounds(header.removeFromLeft(90)); header.removeFromLeft(18);
-    patternChoice.setBounds(header.removeFromLeft(220));
+    patternChoice.setBounds(header.removeFromLeft(220)); header.removeFromLeft(18);
+    lengthChoice.setBounds(header.removeFromLeft(145));
     midiDrag.setBounds(header.removeFromRight(122));
     grid.setBounds(getLocalBounds().reduced(12).withTrimmedTop(68).withTrimmedBottom(170));
     waveform.setBounds(12, getHeight()-168, getWidth()-24, 128);
@@ -200,8 +257,9 @@ void SequencerPanel::paint(juce::Graphics& g)
 {
     raisedPanel(g, getLocalBounds().toFloat(), panel);
     const auto status = !processor.hasSequenceHostPosition() ? "WAITING FOR DAW" : processor.isSequenceHostPlaying() ? "DAW PLAY" : "DAW STOP";
-    woodText(g, juce::String(status)+"  /  "+juce::String(processor.getHostBpm(), 2)+" BPM  /  1/16  /  2 BARS", { 20, 43, getWidth()-40, 26 }, 14);
-    woodText(g, "LEFT: CLICK / CYCLE VELOCITY   DRAG: WRITE   HOLD: NOTE TIMING   RIGHT / DRAG: ERASE", { 20, getHeight()-34, getWidth()-40, 24 }, 14);
+    const auto length = processor.getPattern().getLength(), first = grid.getFirstVisibleStep();
+    woodText(g, juce::String(status)+"  /  "+juce::String(processor.getHostBpm(), 2)+" BPM  /  1/16  /  "+juce::String(length/16)+" BARS  /  VIEW "+juce::String(first+1)+"–"+juce::String(first+32)+" / "+juce::String(length), { 20, 43, getWidth()-40, 26 }, 14);
+    woodText(g, "LEFT: CLICK / CYCLE VELOCITY   DRAG: WRITE   HOLD: NOTE TIMING   RIGHT / DRAG: ERASE   WHEEL: SCROLL", { 20, getHeight()-34, getWidth()-40, 24 }, 14);
 }
 void PadWaveform::update(int pad, bool active)
 {

@@ -1,6 +1,6 @@
-# RaBubanj 0.15.0 — Windows x64, bez instalera
+# RaBubanj 0.16.0 — Windows x64, bez instalera
 
-1. Preuzmi ZIP `RaBubanj-0.15.0-Windows-x64` iz uspješnog GitHub Actions builda i raspakiraj ga.
+1. Preuzmi ZIP `RaBubanj-0.16.0-Windows-x64` iz uspješnog GitHub Actions builda i raspakiraj ga.
 2. Zatvori DAW i kopiraj cijelu mapu **RaBubanj.vst3** u `C:\Program Files\Common Files\VST3\`. Zamijeni cijeli prethodni paket.
 3. Ponovno skeniraj VST3 instrumente u 64-bitnom DAW-u, dodaj RaBubanj na MIDI traku i uključi arm/monitoring.
 4. `RaBubanj.exe` je samostalna aplikacija, bez instalera; u njoj odaberi audio i MIDI uređaj.
@@ -11,34 +11,38 @@ Osam zvučnih kanala sada su **PAD 1–PAD 8**. Isti nazivi prikazuju se u kanal
 
 ## Step sekvencer
 
-1. Klikni **STEP SEQ** za otvaranje zasebnog prikaza koji zamjenjuje mikser ispod zaglavlja. Gornji gumb tada piše **MIXER**; on ili **crveni X** vraćaju mikser. Prikaz ima **32 koraka i 8 redova**, s oznakama **PAD 1–PAD 8 lijevo**. Koraci su šesnaestinke; obrazac traje dva takta u 4/4.
+1. Klikni **STEP SEQ** za otvaranje zasebnog prikaza koji zamjenjuje mikser ispod zaglavlja. Gornji gumb tada piše **MIXER**; on ili **crveni X** vraćaju mikser. Izbornikom **32 / 64 / 128 STEPS** biraš duljinu svakog patterna zasebno; prikaz ima **8 redova**, s oznakama **PAD 1–PAD 8 lijevo**. Koraci su šesnaestinke; obrazac traje **2, 4 ili 8 taktova u 4/4**.
 2. U padajućem izborniku odaberi **Pattern 1, Pattern 2, Pattern 3 ili Pattern 4**. Svaki pamti zasebne korake. Promjena se čuje od sljedećeg audio bloka i zadržava položaj prema DAW-u.
 3. **Lijevi klik upisuje najjači udarac.** Na istoj noti drugi klik daje srednji, treći slabiji, četvrti najslabiji, a peti ponovno najjači udarac: **127 → 88 → 48 → 32 → 127**. Jačina se vidi po visini i svjetlini ispunjenog polja. Gumbi SLABA/SREDNJA/JAKA su uklonjeni.
 4. **Desni klik briše korak.** Drži desnu tipku i povlači za brisanje više koraka. Brzo povlačenje briše i korake između položaja miša. **Drži lijevu tipku i povlači** za upis najjačih nota u prazne ćelije. Brzo povlačenje popunjava i preskočene ćelije. Postojeće note zadržavaju jačinu i pomak; prelazak preko njih ne mijenja velocity.
 5. Uz **SEQ ON**, DAW razmaknicom pokrećeš kao i prije. Sekvencer prati njegov tempo, položaj, Play/Stop i loop. Uključi monitoring/arm instrument trake i audio engine DAW-a.
-6. Povuci **DRAG MIDI** na MIDI traku za izvoz odabranog patterna. Izvezeni klip zadržava sve četiri jačine i trenutačni MIDI raspored. Pri sviranju izvezenog klipa postavi **SEQ OFF** da ne sviraju istodobno klip i interni obrazac.
+6. Povuci **DRAG MIDI** na MIDI traku za izvoz odabranog patterna. Izvezeni klip zadržava sve četiri jačine i trenutačni MIDI raspored i odabranu duljinu patterna. Pri sviranju izvezenog klipa postavi **SEQ OFF** da ne sviraju istodobno klip i interni obrazac.
+
+**Skrolanje:** iznad mreže odaberi 64 ili 128 STEPS. U mreži ostaju vidljiva 32 koraka; kotačićem miša (prema dolje za kasnije korake) ili donjim vodoravnim klizačem dolaziš do posljednjeg koraka. Oznake PAD ostaju lijevo. VIEW pokazuje vidljivi raspon, primjerice 97–128 / 128.
+
+**Skraćivanje čuva note:** pri promjeni sa 128 na 32 koraka kasnije note i njihovi pomaci ostaju spremljeni. Dok su izvan odabrane duljine ne sviraju i ne izvoze se; produljivanjem ih vraćaš. Svaki pattern pamti vlastitu duljinu. Stariji projekti zadržavaju 32 koraka.
 
 Klik na oznaku **PAD 1–PAD 8** lijevo jednom reproducira trenutačni sempl i odabire taj pad. Odabrana oznaka je svjetlija i odabir se prikazuje i u glavnom mikseru/EQ-u.
 
-Na dnu povećanog prozora nalazi se **živi waveform odabranog pada**: otprilike posljednja sekunda stereo signala nakon Pitch/Drive/Comp/EQ-a, prije glasnoće i panorame. Prati udarce sekvence, MIDI-ja i preslušavanja. Klik na drugi PAD briše stari prikaz i prati novi zvuk. Dok nema audio obrade, prikaz zadržava posljednji primljeni signal. Svjetlije skupine po četiri koraka ostaju. Razdjelnici svakih osam koraka te jači razdjelnik nakon 16. koraka i oznake taktova olakšavaju praćenje ritma. Waveform, mreža i EQ zasloni imaju jednobojnu tamnu unutrašnjost.
+Na dnu povećanog prozora nalazi se **živi waveform odabranog pada**: otprilike posljednja sekunda stereo signala nakon Pitch/Drive/Comp/EQ-a, prije glasnoće i panorame. Prati udarce sekvence, MIDI-ja i preslušavanja. Klik na drugi PAD briše stari prikaz i prati novi zvuk. Dok nema audio obrade, prikaz zadržava posljednji primljeni signal. Svjetlije skupine po četiri koraka ostaju. Razdjelnici svakih osam koraka te jači razdjelnici svakih 16 koraka i oznake taktova olakšavaju praćenje ritma. Waveform, mreža i EQ zasloni imaju jednobojnu tamnu unutrašnjost.
 
 **Dugi pritisak na notu (0,65 sekundi), bez pomicanja miša**, otvara **TIMING** kliznik. Negativna vrijednost aktivira udarac ranije, pozitivna kasnije, a 0% ostaje na mreži. Raspon je **−50% do +50% jednog koraka**, uz prikaz milisekundi prema trenutačnom tempu (na 120 BPM: ±62,5 ms). Dvoklik na kliznik vraća 0%. Dugi pritisak ne mijenja velocity; na praznoj ćeliji najprije upisuje najjaču notu. X ili klik na mrežu zatvara mali panel. Oznaka na noti pokazuje pomak ranije/kasnije.
 
 Pomak se sprema za svaku notu i pattern te prenosi u MIDI izvoz. Rani prvi korak kružno prelazi na kraj dvotaktnog obrasca; prije početka reprodukcije DAW-a zvuk se ne može čuti unaprijed. Pri aktivnom DAW loopu pomak prati rubove tog loopa. Projekti iz 0.8/0.9 zadržavaju sve pattern-e s početnim pomakom 0%.
 
-Sva četiri patterna, pomaci nota, odabrani pattern i SEQ ON/OFF spremaju se u projekt. Novi plugin počinje četirima praznim patternima. Pri otvaranju projekta iz 0.7 njegov obrazac prelazi u Pattern 1 uz očuvane stare jačine 48/88/127, dok ostali ostaju prazni. Stariji projekti bez sekvencera također se otvaraju prazni. Zatvaranje prozora ne briše obrazac niti ga isključuje. Stop zaustavlja nove udarce; repovi semplova i reverba mogu prirodno odjeknuti.
+Sva četiri patterna, njihove duljine, pomaci nota, odabrani pattern i SEQ ON/OFF spremaju se u projekt. Novi plugin počinje četirima praznim patternima. Pri otvaranju projekta iz 0.7 njegov obrazac prelazi u Pattern 1 uz očuvane stare jačine 48/88/127, dok ostali ostaju prazni. Stariji projekti bez sekvencera također se otvaraju prazni. Zatvaranje prozora ne briše obrazac niti ga isključuje. Stop zaustavlja nove udarce; repovi semplova i reverba mogu prirodno odjeknuti.
 
-MIDI izvoz je datoteka jednog tracka, 960 PPQ, kanal 10, duljine osam beatova. Privremene datoteke ostaju u OS temp mapi `RaBubanj-MIDI`. Samostalni EXE nema DAW transport za sekvencer, ali zadržava preslušavanje padova i vanjski MIDI ulaz.
+MIDI izvoz je datoteka jednog tracka, 960 PPQ, kanal 10, duljine 8, 16 ili 32 beata, prema odabranih 32, 64 ili 128 koraka. Privremene datoteke ostaju u OS temp mapi `RaBubanj-MIDI`. Samostalni EXE nema DAW transport za sekvencer, ali zadržava preslušavanje padova i vanjski MIDI ulaz.
 
 ## Drveni paneli i metalne kontrole
 
-Kućište, kanalni paneli, EQ okviri te Reverb/FX i sekvencer koriste izvornu drvenu teksturu iz poslane arhive. JPEG je ugrađen bez izmjene datoteke; prilagodba prikaza zadržava omjer slike, uz odvojeno osvjetljenje reljefa. Drvena tekstura u verziji 0.15 mirnija je, s manje izraženim godovima zahvaljujući mat crvenosmeđem sloju pri iscrtavanju; izvorni JPEG ostaje nepromijenjen.
+Kućište, kanalni paneli, EQ okviri te Reverb/FX i sekvencer koriste izvornu drvenu teksturu iz poslane arhive. JPEG je ugrađen bez izmjene datoteke; prilagodba prikaza zadržava omjer slike, uz odvojeno osvjetljenje reljefa. Drvena tekstura u verziji 0.16 mirnija je, s manje izraženim godovima zahvaljujući mat crvenosmeđem sloju pri iscrtavanju; izvorni JPEG ostaje nepromijenjen.
 
 Zaokružene metalne tipke zamijenjene su **ravnim bijelim natpisima na tamnim podlogama**, poput REVERB/PAD naslova: STEP SEQ, MIDI/KEYS, EQ BYPASS/RESET, nazivi kanala, M/S i PLAY. Isto vrijedi u sekvenceru za SEQ ON/OFF, DRAG MIDI, izbor patterna, PAD oznake i X. Klikovi i sve dosadašnje funkcije ostaju; PLAY pri pritisku svijetli žuto, X je crven, aktivna stanja i kanalni metri i dalje se prikazuju.
 
 Kružni metalni gumbi s obojenim gornjim plohama **povećani su za 15% u odnosu na 0.12**, uz zadržane proporcije. Boje: SIZE tirkizna, DAMPING bijela, WIDTH bordo, PITCH plava, DRIVE crvena i COMP ljubičasta. Profilirani faderi ostaju prema primjeru konzole. Veliki natpisi iznad kontrola ostaju podebljani i kontrastni.
 
-Ćelije sekvencera vraćene su na **jednostavan ravan izgled**: prve četiri su tamnije, sljedeće četiri svjetlije i tako do 32. Četiri jačine udarca, pomaci nota, uređivanje i MIDI izvoz ostaju kao prije.
+Ćelije sekvencera vraćene su na **jednostavan ravan izgled**: prve četiri su tamnije, sljedeće četiri svjetlije i tako do kraja odabrane duljine. Četiri jačine udarca, pomaci nota, uređivanje i MIDI izvoz ostaju kao prije.
 
 ## Veći crni natpisi i novi naziv
 

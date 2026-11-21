@@ -36,11 +36,25 @@ int main(int argc, char** argv)
         for (int row = 0; row < 8; ++row) require(p.getHitCount(row) == before[static_cast<size_t>(row)]+(row == index ? 1u : 0u), "only the selected pattern may generate notes");
     }
     for (int index = 0; index < 4; ++index) p.getPattern(index).setTiming(index, 0, index*25-50);
+    const std::array<int,4> lengths { 32, 64, 128, 64 };
+    for (int index = 0; index < 4; ++index)
+    {
+        p.getPattern(index).setLength(lengths[static_cast<size_t>(index)]);
+        p.getPattern(index).set(7, lengths[static_cast<size_t>(index)]-1, 4);
+        p.getPattern(index).setTiming(7, lengths[static_cast<size_t>(index)]-1, -25);
+    }
+    p.getPattern(0).set(7,127,2); p.getPattern(0).setTiming(7,127,34);
     set(p, "seqPattern", 2); juce::MemoryBlock state; p.getStateInformation(state);
     RaBubanjProcessor restored; restored.setStateInformation(state.getData(), static_cast<int>(state.getSize()));
     require(restored.getSelectedPattern() == 2, "selected pattern must recall");
+    require(restored.getPattern(0).getLength() == 32 && restored.getPattern(0).get(7,127) == 2 && restored.getPattern(0).getTiming(7,127) == 34,
+        "project recall must retain inactive tail notes and timing without extending the pattern");
     for (int index = 0; index < 4; ++index) require(restored.getPattern(index).snapshot() == p.getPattern(index).snapshot(), "all four patterns must recall independently");
     for (int index = 0; index < 4; ++index) require(restored.getPattern(index).getTiming(index, 0) == index*25-50, "all four patterns must recall independent signed timing offsets");
+    for (int index = 0; index < 4; ++index)
+        require(restored.getPattern(index).getLength() == lengths[static_cast<size_t>(index)] && restored.getPattern(index).getTiming(7,lengths[static_cast<size_t>(index)]-1) == -25,
+            "each pattern must recall its length, final-step notes and timing");
+    for (int index = 0; index < 4; ++index) p.getPattern(index).setLength(32);
     auto old = p.parameters.copyState(); old.setProperty("schemaVersion", 5, nullptr);
     for (const auto* id : { "seqEnabled", "seqPattern" }) if (auto child = old.getChildWithProperty("id", id); child.isValid()) old.removeChild(child, nullptr);
     juce::AudioProcessor::copyXmlToBinary(*old.createXml(), state); restored.setStateInformation(state.getData(), static_cast<int>(state.getSize()));
@@ -58,6 +72,22 @@ int main(int argc, char** argv)
     bank.setProperty("cells", sevenCells, nullptr); banks.addChild(bank, -1, nullptr); seven.addChild(banks, -1, nullptr);
     juce::AudioProcessor::copyXmlToBinary(*seven.createXml(), state); restored.setStateInformation(state.getData(), static_cast<int>(state.getSize()));
     require(restored.getPattern(2).get(1, 19) == 3 && restored.getPattern(2).getTiming(1, 19) == 0, "0.8/0.9 banks must retain notes with neutral timing");
+    // The actual 0.15 format has a 32-column row stride and signed timing (schema 8).
+    auto eight = p.parameters.copyState(); eight.setProperty("schemaVersion", 8, nullptr);
+    juce::ValueTree oldBanks("SEQUENCER"), oldBank("PATTERN"); juce::String oldCells; juce::StringArray oldTiming;
+    for (int cell = 0; cell < 256; ++cell) { oldCells += cell == 255 ? "2" : cell == 32 ? "4" : "0"; oldTiming.add(cell == 255 ? "-37" : cell == 32 ? "24" : "0"); }
+    oldBank.setProperty("index", 3, nullptr); oldBank.setProperty("cells", oldCells, nullptr); oldBank.setProperty("timing", oldTiming.joinIntoString(","), nullptr);
+    oldBanks.addChild(oldBank,-1,nullptr); eight.addChild(oldBanks,-1,nullptr);
+    juce::AudioProcessor::copyXmlToBinary(*eight.createXml(),state); restored.setStateInformation(state.getData(),static_cast<int>(state.getSize()));
+    require(restored.getPattern(3).getLength() == 32 && restored.getPattern(3).get(7,31) == 2 && restored.getPattern(3).getTiming(7,31) == -37
+        && restored.getPattern(3).get(1,0) == 4 && restored.getPattern(3).getTiming(1,0) == 24, "0.15 projects must migrate every row and signed timing correctly");
+    for (int row = 0; row < 8; ++row) for (int step = 32; step < 128; ++step)
+        require(restored.getPattern(3).get(row,step) == 0 && restored.getPattern(3).getTiming(row,step) == 0, "old projects must not invent extended notes");
+    auto corrupt = p.parameters.copyState(); corrupt.setProperty("schemaVersion",9,nullptr);
+    juce::ValueTree badBanks("SEQUENCER"), badBank("PATTERN"); badBank.setProperty("index",0,nullptr); badBank.setProperty("steps",999,nullptr);
+    badBank.setProperty("cells","invalid",nullptr); badBank.setProperty("timing","invalid",nullptr); badBanks.addChild(badBank,-1,nullptr); corrupt.addChild(badBanks,-1,nullptr);
+    juce::AudioProcessor::copyXmlToBinary(*corrupt.createXml(),state); restored.setStateInformation(state.getData(),static_cast<int>(state.getSize()));
+    require(restored.getPattern(0).getLength() == 32 && restored.getPattern(0).get(0,0) == 0, "malformed new length/cell data must restore safely");
     set(p, "seqPattern", 0); p.getPattern().replace({});
     p.getPattern().set(0, 0, 4); p.getPattern().set(2, 8, 3); p.getPattern().set(4, 16, 2); p.getPattern().set(7, 31, 1);
     set(p, "midiMap", 0); head.bpm = 93; head.playing = false; p.processBlock(audio, midi);
@@ -94,6 +124,28 @@ int main(int argc, char** argv)
     { auto input = file.createInputStream(); juce::MidiFile data; require(input && data.readFrom(*input), "wrapped MIDI must parse");
       for (int i = 0; i < data.getTrack(0)->getNumEvents(); ++i) { const auto& message = data.getTrack(0)->getEventPointer(i)->message; if (message.isNoteOn()) require(message.getTimeStamp() == 7560, "early first note must wrap to the end of the two-bar MIDI clip"); }
       require(data.getTrack(0)->getEndTime() == 7680, "shifted MIDI must keep its eight-beat length"); }
+    for (int length : { 64, 128 })
+    {
+        auto& pattern = p.getPattern(); pattern.replace({}); pattern.setLength(length);
+        pattern.set(7, length-1, 2); pattern.setTiming(7,length-1,25); pattern.set(0,0,4); pattern.setTiming(0,0,-50);
+        require(p.writeSequenceMidi(file), "long pattern MIDI must export");
+        auto input = file.createInputStream(); juce::MidiFile data; require(input && data.readFrom(*input), "long MIDI must parse"); int notes = 0;
+        for (int i = 0; i < data.getTrack(0)->getNumEvents(); ++i)
+        {
+            const auto& message = data.getTrack(0)->getEventPointer(i)->message;
+            if (message.isNoteOn())
+            {
+                ++notes; const auto expected = message.getNoteNumber() == 36 ? length*240-120 : (length-1)*240+60;
+                require(message.getTimeStamp() == expected, "long MIDI must retain final-step and wrapped early-note times");
+            }
+        }
+        require(notes == 2 && data.getTrack(0)->getEndTime() == length*240, "MIDI clip length must match four/eight bars");
+        pattern.setLength(32); require(p.writeSequenceMidi(file), "shortened pattern must export");
+        input = file.createInputStream(); juce::MidiFile shortData; require(input && shortData.readFrom(*input), "short MIDI must parse"); notes = 0;
+        for (int i = 0; i < shortData.getTrack(0)->getNumEvents(); ++i) if (shortData.getTrack(0)->getEventPointer(i)->message.isNoteOn()) ++notes;
+        require(notes == 1 && shortData.getTrack(0)->getEndTime() == 7680, "inactive tail notes must be excluded from shortened MIDI exports");
+    }
+    p.getPattern().setLength(32);
     require(file.deleteFile(), "temporary MIDI must clean up"); set(p, "seqPattern", 0);
     // Verify the actual processor/audio onset, not just the pure timing iterator.
     p.getPattern().replace({}); p.getPattern().set(1, 1, 4); head.bpm = 120; head.playing = true;
@@ -103,6 +155,19 @@ int main(int argc, char** argv)
         p.releaseResources(); p.prepareToPlay(48000, 512); p.processBlock(audio, midi);
         require(audio.getMagnitude(0, 240) == 0 && audio.getMagnitude(241, 271) > .001f, "processor must render early and late notes at their shifted sample offset");
     }
+    for (int length : { 64, 128 })
+    {
+        auto& pattern = p.getPattern(); pattern.replace({}); pattern.setLength(length); pattern.set(0,length-1,4); pattern.set(0,0,4);
+        for (int step : { length-1, length })
+        {
+            head.ppq = step*.25-.01; p.releaseResources(); p.prepareToPlay(48000,512); const auto before = p.getHitCount(0); p.processBlock(audio,midi);
+            require(p.getHitCount(0) == before+1 && audio.getMagnitude(0,240) == 0 && audio.getMagnitude(241,271) > .01f
+                && p.getPlayingStep() == step%length, "actual audio and playhead must reach the final long-pattern step and wrap sample accurately");
+        }
+        pattern.replace({}); pattern.set(0,length-1,4); pattern.setLength(32); head.ppq = (length-1)*.25;
+        const auto before = p.getHitCount(0); p.processBlock(audio,midi); require(p.getHitCount(0) == before, "inactive tails must not play after shortening");
+    }
+    p.getPattern().setLength(32);
     head.playing = false; p.getPattern().replace({});
     SequencerPanel panel(p); panel.setSize(1160, 620); StepGrid* grid = nullptr;
     for (auto* child : panel.getChildren()) if (auto* g = dynamic_cast<StepGrid*>(child)) grid = g;
@@ -116,7 +181,7 @@ int main(int argc, char** argv)
     for (auto* child : panel.getChildren())
     {
         require(!child->getName().startsWith("Velocity "), "velocity brush buttons must be removed");
-        if (auto* box = dynamic_cast<juce::ComboBox*>(child)) selector = box;
+        if (auto* box = dynamic_cast<juce::ComboBox*>(child); box && box->getName() == "Pattern selector") selector = box;
     }
     require(selector && selector->getNumItems() == 4, "pattern dropdown must offer four choices");
     selector->setSelectedId(3, juce::sendNotificationSync); require(p.getSelectedPattern() == 2, "dropdown must select the active pattern");
@@ -151,6 +216,40 @@ int main(int argc, char** argv)
     grid->mouseDrag(event(4, 31, juce::ModifierKeys::rightButtonModifier, true)); grid->mouseUp(event(4, 31, 0, false));
     require(p.getPattern(0).get(4, 31) == 0 && p.getPattern(1).get(4, 31) == 4, "a drag gesture must remain bound to its original pattern");
     set(p, "seqPattern", 0);
+    // Longer patterns remain editable at the same cell size with fixed PAD labels.
+    juce::ComboBox* lengthChoice = nullptr;
+    for (auto* child : panel.getChildren()) if (auto* box = dynamic_cast<juce::ComboBox*>(child); box && box->getName() == "Pattern length") lengthChoice = box;
+    require(lengthChoice && lengthChoice->getNumItems() == 3, "length dropdown must offer 32, 64 and 128 steps");
+    const auto padBeforeScroll = grid->padBounds(7);
+    for (int length : { 64, 128 })
+    {
+        lengthChoice->setSelectedId(length,juce::sendNotificationSync); require(p.getPattern().getLength() == length, "length choice must update this pattern");
+        grid->scrollToStep(0); juce::MouseWheelDetails wheel {}; wheel.deltaY = -.25f;
+        for (int turn = 0; turn < 40; ++turn) grid->mouseWheelMove(event(0,0,0,false),wheel);
+        require(grid->getFirstVisibleStep() == length-32 && grid->getLocalBounds().toFloat().contains(grid->cellBounds(7,length-1)), "mouse wheel must reach the last step without shrinking cells");
+        wheel.deltaY = 0; wheel.deltaX = .25f; grid->mouseWheelMove(event(0,length-1,0,false),wheel);
+        require(grid->getFirstVisibleStep() < length-32, "horizontal wheel input must navigate the same grid");
+        wheel.deltaX = -.25f; grid->mouseWheelMove(event(0,length-1,0,false),wheel); wheel.deltaX = 0;
+        require(grid->getFirstVisibleStep() == length-32, "horizontal wheel input must reach the end again");
+        require(grid->padBounds(7).getX() == padBeforeScroll.getX(), "PAD labels must stay fixed on the left while scrolling");
+        p.getPattern().set(7,length-1,0); grid->mouseDown(event(7,length-1,juce::ModifierKeys::leftButtonModifier,false)); grid->mouseUp(event(7,length-1,0,false));
+        require(p.getPattern().get(7,length-1) == 4, "last step must accept a click at its scrolled coordinates");
+        grid->mouseDown(event(7,length-1,juce::ModifierKeys::leftButtonModifier,false)); grid->mouseUp(event(7,length-1,0,false,700));
+        NoteTimingEditor* popup = nullptr; for (auto* child : grid->getChildren()) if (auto* timing = dynamic_cast<NoteTimingEditor*>(child)) popup = timing;
+        require(popup && popup->isVisible(), "last step must support long-press timing");
+        wheel.deltaY = .25f; grid->mouseWheelMove(event(0,length-1,0,false),wheel); require(grid->getFirstVisibleStep() < length-32, "wheel must also return after opening timing");
+        juce::ScrollBar* bar = nullptr; for (auto* child : grid->getChildren()) if (auto* scroll = dynamic_cast<juce::ScrollBar*>(child)) bar = scroll;
+        require(bar && bar->isVisible(), "long patterns must expose a horizontal scrollbar");
+        bar->setCurrentRangeStart(length-32,juce::sendNotificationSync); require(grid->getFirstVisibleStep() == length-32, "scrollbar must navigate to the final page");
+        for (int step = length-32; step < length; ++step) p.getPattern().set(6,step,0);
+        grid->mouseDown(event(6,length-32,juce::ModifierKeys::leftButtonModifier,false)); grid->mouseDrag(event(6,length-1,juce::ModifierKeys::leftButtonModifier,true)); grid->mouseUp(event(6,length-1,0,false));
+        for (int step = length-32; step < length; ++step) require(p.getPattern().get(6,step) == 4, "left paint must address the scrolled tail cells");
+        grid->mouseDown(event(6,length-1,juce::ModifierKeys::rightButtonModifier,false)); grid->mouseDrag(event(6,length-32,juce::ModifierKeys::rightButtonModifier,true)); grid->mouseUp(event(6,length-32,0,false));
+        for (int step = length-32; step < length; ++step) require(p.getPattern().get(6,step) == 0, "right erase must address the scrolled tail cells");
+    }
+    selector->setSelectedId(2,juce::sendNotificationSync); panel.refresh(); require(lengthChoice->getSelectedId() == 32 && grid->getFirstVisibleStep() == 0, "switching banks must show that bank's length and return to its first step");
+    selector->setSelectedId(1,juce::sendNotificationSync); panel.refresh(); require(lengthChoice->getSelectedId() == 128, "each bank must keep its own length");
+    lengthChoice->setSelectedId(32,juce::sendNotificationSync); require(grid->getFirstVisibleStep() == 0, "shortening must clamp the scroll range");
     // PAD labels select and audition exactly once without modifying any pattern cell.
     const auto patternBeforePad = p.getPattern().snapshot(); p.getPattern().replace({});
     for (int row = 0; row < 8; ++row)
@@ -240,6 +339,33 @@ int main(int argc, char** argv)
             editor->setSize(size.x, size.y);
             save(*editor, ("RaBubanj-sequencer-"+juce::String(size.x)+".png").toRawUTF8());
         }
+        editor->setSize(1280,820);
+        for (auto* child : window->getChildren()) if (auto* contents = dynamic_cast<SequencerPanel*>(child))
+        {
+            for (auto* component : contents->getChildren()) if (auto* scrolledGrid = dynamic_cast<StepGrid*>(component))
+            {
+                for (int length : { 64, 128 })
+                {
+                    p.getPattern().setLength(length);
+                    for (int step = 32; step < length; ++step)
+                    {
+                        if (step%8 == 0) p.getPattern().set(0,step,4);
+                        if (step%16 == 8) p.getPattern().set(1,step,3);
+                        if (step%2 == 0) p.getPattern().set(2,step,step%4 ? 2 : 3);
+                    }
+                    p.getPattern().set(7,length-1,3); p.getPattern().setTiming(7,length-1,25);
+                    contents->refresh(); scrolledGrid->scrollToStep(length-32);
+                    save(*editor, ("RaBubanj-sequencer-"+juce::String(length)+"-steps.png").toRawUTF8());
+                    if (length == 128)
+                    {
+                        editor->setSize(1120,740); save(*editor,"RaBubanj-sequencer-128-minimum.png");
+                        editor->setSize(1800,1160); save(*editor,"RaBubanj-sequencer-128-large.png");
+                    }
+                }
+                p.getPattern().setLength(32); contents->refresh();
+            }
+        }
+        panel.refresh();
         grid->mouseDown(event(1, 8, juce::ModifierKeys::leftButtonModifier, false)); grid->mouseUp(event(1, 8, 0, false, 700));
         for (auto* child : grid->getChildren()) if (auto* popup = dynamic_cast<NoteTimingEditor*>(child)) for (auto* control : popup->getChildren()) if (auto* slider = dynamic_cast<juce::Slider*>(control)) slider->setValue(20, juce::sendNotificationSync);
         save(panel, "RaBubanj-note-timing.png");
