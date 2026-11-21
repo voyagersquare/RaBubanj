@@ -85,3 +85,7 @@ Flat legend-style commands across the main editor and sequencer, retaining all a
 ## 0.14 — black wood lettering and calligraphic wordmark
 
 Larger black printed captions and sample-source labels, removed lower-right footer tag, and a dark-red script RaBubanj logo using an embedded OFL font. A slightly darker red-brown finish warms the original wood image at paint time. Existing controls, state and audio workflows retained.
+
+## 0.15 — clearer sequencer page and calmer materials
+
+Dedicated full working-area sequencer page with MIXER/X navigation and hidden mixer/EQ controls. Larger black wood captions; labelled eight-step groups and a stronger bar midpoint. Solid waveform, grid and EQ screen interiors. A matte red-brown finish softens grain contrast while preserving the original JPEG and metal controls.

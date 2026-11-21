@@ -1,6 +1,6 @@
-# RaBubanj 0.14.0 — Windows x64, bez instalera
+# RaBubanj 0.15.0 — Windows x64, bez instalera
 
-1. Preuzmi ZIP `RaBubanj-0.14.0-Windows-x64` iz uspješnog GitHub Actions builda i raspakiraj ga.
+1. Preuzmi ZIP `RaBubanj-0.15.0-Windows-x64` iz uspješnog GitHub Actions builda i raspakiraj ga.
 2. Zatvori DAW i kopiraj cijelu mapu **RaBubanj.vst3** u `C:\Program Files\Common Files\VST3\`. Zamijeni cijeli prethodni paket.
 3. Ponovno skeniraj VST3 instrumente u 64-bitnom DAW-u, dodaj RaBubanj na MIDI traku i uključi arm/monitoring.
 4. `RaBubanj.exe` je samostalna aplikacija, bez instalera; u njoj odaberi audio i MIDI uređaj.
@@ -11,7 +11,7 @@ Osam zvučnih kanala sada su **PAD 1–PAD 8**. Isti nazivi prikazuju se u kanal
 
 ## Step sekvencer
 
-1. Klikni **STEP SEQ** za otvaranje; ponovni klik ili **crveni X** zatvara prikaz. Prozor ima **32 koraka i 8 redova**, s oznakama **PAD 1–PAD 8 lijevo**. Koraci su šesnaestinke; obrazac traje dva takta u 4/4.
+1. Klikni **STEP SEQ** za otvaranje zasebnog prikaza koji zamjenjuje mikser ispod zaglavlja. Gornji gumb tada piše **MIXER**; on ili **crveni X** vraćaju mikser. Prikaz ima **32 koraka i 8 redova**, s oznakama **PAD 1–PAD 8 lijevo**. Koraci su šesnaestinke; obrazac traje dva takta u 4/4.
 2. U padajućem izborniku odaberi **Pattern 1, Pattern 2, Pattern 3 ili Pattern 4**. Svaki pamti zasebne korake. Promjena se čuje od sljedećeg audio bloka i zadržava položaj prema DAW-u.
 3. **Lijevi klik upisuje najjači udarac.** Na istoj noti drugi klik daje srednji, treći slabiji, četvrti najslabiji, a peti ponovno najjači udarac: **127 → 88 → 48 → 32 → 127**. Jačina se vidi po visini i svjetlini ispunjenog polja. Gumbi SLABA/SREDNJA/JAKA su uklonjeni.
 4. **Desni klik briše korak.** Drži desnu tipku i povlači za brisanje više koraka. Brzo povlačenje briše i korake između položaja miša. **Drži lijevu tipku i povlači** za upis najjačih nota u prazne ćelije. Brzo povlačenje popunjava i preskočene ćelije. Postojeće note zadržavaju jačinu i pomak; prelazak preko njih ne mijenja velocity.
@@ -20,7 +20,7 @@ Osam zvučnih kanala sada su **PAD 1–PAD 8**. Isti nazivi prikazuju se u kanal
 
 Klik na oznaku **PAD 1–PAD 8** lijevo jednom reproducira trenutačni sempl i odabire taj pad. Odabrana oznaka je svjetlija i odabir se prikazuje i u glavnom mikseru/EQ-u.
 
-Na dnu povećanog prozora nalazi se **živi waveform odabranog pada**: otprilike posljednja sekunda stereo signala nakon Pitch/Drive/Comp/EQ-a, prije glasnoće i panorame. Prati udarce sekvence, MIDI-ja i preslušavanja. Klik na drugi PAD briše stari prikaz i prati novi zvuk. Dok nema audio obrade, prikaz zadržava posljednji primljeni signal. Svjetlije skupine po četiri koraka sada su izraženije.
+Na dnu povećanog prozora nalazi se **živi waveform odabranog pada**: otprilike posljednja sekunda stereo signala nakon Pitch/Drive/Comp/EQ-a, prije glasnoće i panorame. Prati udarce sekvence, MIDI-ja i preslušavanja. Klik na drugi PAD briše stari prikaz i prati novi zvuk. Dok nema audio obrade, prikaz zadržava posljednji primljeni signal. Svjetlije skupine po četiri koraka ostaju. Razdjelnici svakih osam koraka te jači razdjelnik nakon 16. koraka i oznake taktova olakšavaju praćenje ritma. Waveform, mreža i EQ zasloni imaju jednobojnu tamnu unutrašnjost.
 
 **Dugi pritisak na notu (0,65 sekundi), bez pomicanja miša**, otvara **TIMING** kliznik. Negativna vrijednost aktivira udarac ranije, pozitivna kasnije, a 0% ostaje na mreži. Raspon je **−50% do +50% jednog koraka**, uz prikaz milisekundi prema trenutačnom tempu (na 120 BPM: ±62,5 ms). Dvoklik na kliznik vraća 0%. Dugi pritisak ne mijenja velocity; na praznoj ćeliji najprije upisuje najjaču notu. X ili klik na mrežu zatvara mali panel. Oznaka na noti pokazuje pomak ranije/kasnije.
 
@@ -32,7 +32,7 @@ MIDI izvoz je datoteka jednog tracka, 960 PPQ, kanal 10, duljine osam beatova. P
 
 ## Drveni paneli i metalne kontrole
 
-Kućište, kanalni paneli, EQ okviri te Reverb/FX i sekvencer koriste izvornu drvenu teksturu iz poslane arhive. JPEG je ugrađen bez izmjene datoteke; prilagodba prikaza zadržava omjer slike, uz odvojeno osvjetljenje reljefa. Drvena tekstura u verziji 0.14 malo je tamnija i crvenkastija zahvaljujući prozirnom crvenosmeđem sloju pri iscrtavanju; izvorni JPEG ostaje nepromijenjen.
+Kućište, kanalni paneli, EQ okviri te Reverb/FX i sekvencer koriste izvornu drvenu teksturu iz poslane arhive. JPEG je ugrađen bez izmjene datoteke; prilagodba prikaza zadržava omjer slike, uz odvojeno osvjetljenje reljefa. Drvena tekstura u verziji 0.15 mirnija je, s manje izraženim godovima zahvaljujući mat crvenosmeđem sloju pri iscrtavanju; izvorni JPEG ostaje nepromijenjen.
 
 Zaokružene metalne tipke zamijenjene su **ravnim bijelim natpisima na tamnim podlogama**, poput REVERB/PAD naslova: STEP SEQ, MIDI/KEYS, EQ BYPASS/RESET, nazivi kanala, M/S i PLAY. Isto vrijedi u sekvenceru za SEQ ON/OFF, DRAG MIDI, izbor patterna, PAD oznake i X. Klikovi i sve dosadašnje funkcije ostaju; PLAY pri pritisku svijetli žuto, X je crven, aktivna stanja i kanalni metri i dalje se prikazuju.
 
@@ -43,6 +43,8 @@ Kružni metalni gumbi s obojenim gornjim plohama **povećani su za 15% u odnosu 
 ## Veći crni natpisi i novi naziv
 
 Natpisi otisnuti na drvenim površinama sada su veći i crni: EQ zaglavlja, 6-BAND PARAMETRIC, naslov miksera, nazivi semplova/Drop sample, PAN/dB/SEND, WET RETURN/STEREO OUT, POST SENDS/OUT 1/2 i donje upute. Bijeli natpisi na tamnim kontrolama i zaslonima ostaju čitljivi. Uklonjen je prekriženi natpis C1-G1 MIDI / SAMPLE PLAYER dolje desno; MIDI funkcije ostaju.
+
+Naslov sekvencera, tempo/status, upute i natpisi prozora za pomak note također imaju veća crna slova na drvu. Mikser i EQ nisu vidljivi iza sekvencera.
 
 Naziv RaBubanj prikazan je tamnocrvenom kaligrafijom prema primjeru. Ugrađen je font Great Vibes, pa nije potrebna instalacija fonta na računalu.
 

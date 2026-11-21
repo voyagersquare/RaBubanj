@@ -432,14 +432,29 @@ void RaBubanjEditor::bindChannelControls()
 }
 void RaBubanjEditor::showSequencer()
 {
-    if (!sequenceWindow) { sequenceWindow = std::make_unique<SequencerWindow>(processor); sequenceWindow->setLookAndFeel(&look); addChildComponent(*sequenceWindow); }
-    sequenceWindow->setBounds((getWidth()-juce::jmin(getWidth()-24, 1160))/2, juce::jmax(65, (getHeight()-650)/2), juce::jmin(getWidth()-24, 1160), 650);
-    sequenceWindow->setVisible(true); sequenceWindow->toFront(false); if (isShowing()) grabKeyboardFocus();
+    if (!sequenceWindow)
+    {
+        sequenceWindow = std::make_unique<SequencerWindow>(processor); sequenceWindow->setLookAndFeel(&look);
+        sequenceWindow->onClose = [this] { setSequencerVisible(false); }; addChildComponent(*sequenceWindow);
+    }
+    sequenceWindow->setBounds(getLocalBounds().reduced(22, 16).withTrimmedTop(61));
+    setSequencerVisible(true); sequenceWindow->toFront(false); if (isShowing()) grabKeyboardFocus();
+}
+void RaBubanjEditor::setSequencerVisible(bool visible)
+{
+    channelEq.setVisible(!visible); globalEq.setVisible(!visible);
+    for (auto& strip : strips) strip->setVisible(!visible);
+    for (auto* control : { &size, &damping, &width, &pitch, &drive, &compression }) control->setVisible(!visible);
+    if (sequenceWindow) sequenceWindow->setVisible(visible);
+    sequenceButton.setButtonText(visible ? "MIXER" : "STEP SEQ");
+    sequenceButton.setTooltip(visible ? "Return to mixer" : "Open step sequencer");
+    sequenceButton.setToggleState(visible, juce::dontSendNotification);
+    repaint();
 }
 void RaBubanjEditor::resized()
 {
     sequenceButton.setBounds(getWidth()-465, 23, 166, 24);
-    if (sequenceWindow) sequenceWindow->setBounds((getWidth()-juce::jmin(getWidth()-24, 1160))/2, juce::jmax(65, (getHeight()-650)/2), juce::jmin(getWidth()-24, 1160), 650);
+    if (sequenceWindow) sequenceWindow->setBounds(getLocalBounds().reduced(22, 16).withTrimmedTop(61));
     midiMode.setBounds(getWidth()-285, 23, 135, 24); keyboardMode.setBounds(getWidth()-141, 23, 119, 24);
     auto area = getLocalBounds().reduced(22, 16); area.removeFromTop(61);
     eqArea = area.removeFromTop(juce::jlimit(270, 335, getHeight()*36/100));
@@ -476,6 +491,7 @@ void RaBubanjEditor::paint(juce::Graphics& g)
     raisedPanel(g, { 4, 3, static_cast<float>(getWidth()-8), 55 }, panel, 1.0f);
     drawBrand(g, { 24, 6, 300, 44 });
     screw(g, 12, 28); screw(g, static_cast<float>(getWidth()-13), 28);
+    if (sequenceWindow && sequenceWindow->isVisible()) return;
     woodText(g, "MIXER  /  SELECT A CHANNEL TO EDIT ITS EQ", { mixerArea.getX(), mixerArea.getY()-25, 540, 20 }, 12);
     raisedPanel(g, reverbControlsArea.toFloat(), panel, 1.0f);
     raisedPanel(g, reservedArea.toFloat(), panel.darker(.1f), 1.0f);

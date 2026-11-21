@@ -179,24 +179,42 @@ int main(int argc, char** argv)
         require(tap.read(data.data(), 8192) == 8191, "scope queue must remain bounded when GUI stops consuming");
         tap.selectPad(3); tap.selectPad(2); require(tap.getToken() != token, "returning to a pad must use a new generation to reject stale audio");
     }
-    std::unique_ptr<RaBubanjEditor> editor(static_cast<RaBubanjEditor*>(p.createEditor())); editor->showSequencer();
+    std::unique_ptr<RaBubanjEditor> editor(static_cast<RaBubanjEditor*>(p.createEditor()));
+    editor->setVisible(true); editor->showSequencer();
     SequencerWindow* window = nullptr;
     for (auto* child : editor->getChildren()) if (auto* w = dynamic_cast<SequencerWindow*>(child)) window = w;
-    require(window && window->isVisible() && !window->isOnDesktop(), "sequencer must open as a child window within the host plugin view");
+    require(window && window->isVisible() && !window->isOnDesktop(), "sequencer must open inside the host plugin view");
+    auto checkMixerVisibility = [&](bool visible)
+    {
+        for (auto* child : editor->getChildren())
+            if (dynamic_cast<MixerStrip*>(child) || dynamic_cast<EqPanel*>(child) || dynamic_cast<juce::Slider*>(child))
+                require(child->isVisible() == visible, "switching pages must hide or restore all mixer controls and EQ panels");
+    };
+    checkMixerVisibility(false);
     require(!editor->keyPressed(juce::KeyPress(juce::KeyPress::spaceKey)) && !window->keyPressed(juce::KeyPress(juce::KeyPress::spaceKey)), "Space must remain unhandled for the DAW transport");
     for (auto size : { juce::Point<int>(1120, 740), juce::Point<int>(1280, 820), juce::Point<int>(1800, 1160) })
-    { editor->setSize(size.x, size.y); require(editor->getLocalBounds().contains(window->getBounds()), "sequencer window must remain inside resized plugin bounds"); }
+    {
+        editor->setSize(size.x, size.y);
+        require(editor->getLocalBounds().contains(window->getBounds()) && window->getWidth() >= editor->getWidth()-50 && window->getHeight() >= editor->getHeight()-100,
+            "sequencer page must fill the working area at every supported plugin size");
+        checkMixerVisibility(false);
+    }
     auto* close = window->getCloseButton();
     require(close && window->getComponentAt(close->getBounds().getCentre()) == close && close->onClick, "close control must be an unobstructed, directly wired button");
     p.getWaveformTap().selectPad(0); close->onClick(); require(!window->isVisible(), "clicking the close button must hide the sequencer");
+    checkMixerVisibility(true);
     require(rabubanj::WaveformTap::padForToken(p.getWaveformTap().getToken()) == -1, "closing the window must immediately disable its waveform capture");
     juce::TextButton* toggle = nullptr;
     for (auto* child : editor->getChildren()) if (auto* button = dynamic_cast<juce::TextButton*>(child); button && button->getName() == "Open step sequencer") toggle = button;
     require(toggle && toggle->onClick, "main STEP SEQ toggle must exist");
-    toggle->onClick(); require(window->isVisible(), "STEP SEQ must reopen a closed sequencer");
-    toggle->onClick(); require(!window->isVisible(), "STEP SEQ must hide an open sequencer");
+    toggle->onClick(); require(window->isVisible() && toggle->getButtonText() == "MIXER", "STEP SEQ must reopen the sequencer and offer a return to MIXER");
+    checkMixerVisibility(false);
+    require(editor->getComponentAt(toggle->getBounds().getCentre()) == toggle, "page navigation must remain accessible above the sequencer");
+    toggle->onClick(); require(!window->isVisible() && toggle->getButtonText() == "STEP SEQ", "MIXER must restore the mixer and the STEP SEQ caption");
+    checkMixerVisibility(true);
     editor->showSequencer(); window->setLookAndFeel(&editor->getLookAndFeel());
     window->getCloseButton()->onClick(); require(!window->isVisible(), "close action must survive look-and-feel changes");
+    checkMixerVisibility(true);
     if (argc > 1)
     {
         set(p, "midiMap", 0);
@@ -217,6 +235,11 @@ int main(int argc, char** argv)
             for (auto* component : contents->getChildren()) if (auto* wave = dynamic_cast<PadWaveform*>(component))
             { wave->update(0, true); p.audition(0); for (int block = 0; block < 30; ++block) { p.processBlock(audio, midi); wave->update(0, true); } }
         save(*editor, "RaBubanj-sequencer-window.png");
+        for (auto size : { juce::Point<int>(1120, 740), juce::Point<int>(1800, 1160) })
+        {
+            editor->setSize(size.x, size.y);
+            save(*editor, ("RaBubanj-sequencer-"+juce::String(size.x)+".png").toRawUTF8());
+        }
         grid->mouseDown(event(1, 8, juce::ModifierKeys::leftButtonModifier, false)); grid->mouseUp(event(1, 8, 0, false, 700));
         for (auto* child : grid->getChildren()) if (auto* popup = dynamic_cast<NoteTimingEditor*>(child)) for (auto* control : popup->getChildren()) if (auto* slider = dynamic_cast<juce::Slider*>(control)) slider->setValue(20, juce::sendNotificationSync);
         save(panel, "RaBubanj-note-timing.png");

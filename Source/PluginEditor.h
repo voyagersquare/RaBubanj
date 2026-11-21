@@ -83,6 +83,7 @@ private:
     EqPanel channelEq, globalEq;
     std::array<std::unique_ptr<MixerStrip>, rabubanj::eqBusCount> strips;
     void bindChannelControls();
+    void setSequencerVisible(bool);
     juce::Slider size, damping, width, pitch, drive, compression;
     int colourBus = -1;
     using SliderAttachment = juce::AudioProcessorValueTreeState::SliderAttachment;

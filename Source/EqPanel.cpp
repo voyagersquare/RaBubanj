@@ -153,7 +153,7 @@ int EqPanel::Graph::nearest(juce::Point<float> position) const
 void EqPanel::Graph::paint(juce::Graphics& g)
 {
     const auto bounds = getLocalBounds().toFloat(); const auto r = plot();
-    insetPanel(g, bounds);
+    insetPanel(g, bounds, true);
     const auto settings = owner.processor.getEqSettings(owner.busIndex);
     const auto rate = owner.processor.getDisplaySampleRate();
     auto xFor = [&](float f) { return r.getX() + r.getWidth()*std::log10(f/20.0f)/3.0f; };

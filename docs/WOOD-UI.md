@@ -1,6 +1,6 @@
 # Wood panels and metal controls
 
-The housing, channel sections, EQ frames and sequencer enclosure use the original user-supplied JPEG. See [asset provenance and checksum](../Assets/README.md). The source image is not edited, recoloured or regenerated; its natural grain is drawn at uniform scale and cropped as needed. A 20% red-brown finish is composited at paint time, slightly darkening the displayed wood and giving it the warmer reddish tone requested. Bevel lighting and shadows are drawn separately.
+The housing, channel sections, EQ frames and sequencer enclosure use the original user-supplied JPEG. See [asset provenance and checksum](../Assets/README.md). The source image is not edited, recoloured or regenerated; its natural grain is drawn at uniform scale and cropped as needed. A 48% matte red-brown finish is composited at paint time, calming the grain contrast while preserving the warmer reddish tone. Bevel lighting and shadows are drawn separately.
 
 Round controls follow the supplied knob reference: tall metal cylinders with broad vertical flutes, black bases, thin scalloped silver lips and matte coloured top discs. Thick radial bars reach the rim; the off-white cap has a black bar and the other caps have white bars. Colours: SIZE teal, DAMPING off-white, WIDTH burgundy, PITCH blue, DRIVE red and COMP purple. Fader caps follow the console reference with a concave saddle, raised wings, dark end cheeks, brushed aluminium centre and white index line. The same profile is scaled/rotated for SEND, PAN and TIMING handles. EQ nodes and screws retain metal surfaces. Cool directional highlights and fine brushing distinguish them from the wood.
 
@@ -16,3 +16,7 @@ The dark-red RaBubanj wordmark uses embedded Great Vibes lettering inspired by t
 
 ![Wood and metal mixer](preview.png)
 ![Wood and metal sequencer](sequencer-window.png)
+
+The sequencer is a dedicated page below the shared header. Mixer controls and EQ panels are hidden until MIXER or the red X returns to the mixer; no cut-off mixer edges remain. The page fills the working area at all supported sizes and cannot be dragged over other controls. Its title, transport status, timing popup captions and footer use larger bold black print on wood. Dark screens keep light text.
+
+The grid has labelled eight-step groups and a stronger divider between steps 16 and 17. Four-dark/four-light cells remain. Grid, waveform and EQ interiors use an opaque solid dark screen material; original wood remains on their carved frames.

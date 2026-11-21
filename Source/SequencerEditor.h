@@ -88,22 +88,19 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> enabledAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> patternAttachment;
 };
-// Explicit child-panel controls avoid native title-button recreation by host/look-and-feel changes.
+// A dedicated page inside the plugin, with explicit controls independent of native title bars.
 class SequencerWindow final : public juce::Component
 {
 public:
     explicit SequencerWindow(RaBubanjProcessor&);
-    void closeButtonPressed() { setVisible(false); }
+    void closeButtonPressed() { if (onClose) onClose(); else setVisible(false); }
+    std::function<void()> onClose;
     void visibilityChanged() override { content.refresh(); }
     juce::Button* getCloseButton() noexcept { return &close; }
     void resized() override;
     void paint(juce::Graphics&) override;
-    void mouseDown(const juce::MouseEvent&) override;
-    void mouseDrag(const juce::MouseEvent&) override;
     bool keyPressed(const juce::KeyPress&) override { return false; }
 private:
     SequencerPanel content;
     juce::TextButton close { "X" };
-    juce::ComponentDragger dragger;
-    juce::ComponentBoundsConstrainer constrainer;
 };

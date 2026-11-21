@@ -17,12 +17,12 @@ void NoteTimingEditor::resized() { close.setBounds(getWidth()-31, 5, 25, 22); ti
 void NoteTimingEditor::paint(juce::Graphics& g)
 {
     raisedPanel(g, getLocalBounds().toFloat(), menuFace);
-    text(g, juce::String(rabubanj::padNames[static_cast<size_t>(row)])+" / STEP "+juce::String(step+1), { 12, 7, getWidth()-50, 22 }, 14, ink, juce::Justification::centredLeft, true);
-    text(g, "EARLIER                    TIMING                    LATER", { 16, 34, getWidth()-32, 20 }, 11, axis, juce::Justification::centred, true);
-    text(g, "DOUBLE-CLICK SLIDER: RESET TO GRID", { 10, 111, getWidth()-20, 18 }, 10, axis, juce::Justification::centred, true);
+    woodText(g, juce::String(rabubanj::padNames[static_cast<size_t>(row)])+" / STEP "+juce::String(step+1), { 12, 7, getWidth()-50, 22 }, 16);
+    woodText(g, "EARLIER               TIMING               LATER", { 16, 34, getWidth()-32, 20 }, 12, juce::Justification::centred);
+    woodText(g, "DOUBLE-CLICK SLIDER: RESET TO GRID", { 10, 111, getWidth()-20, 18 }, 12, juce::Justification::centred);
 }
 StepGrid::StepGrid(RaBubanjProcessor& p) : processor(p) { setName("32 step grid"); setWantsKeyboardFocus(false); }
-juce::Rectangle<float> StepGrid::plot() const { return getLocalBounds().toFloat().reduced(8, 4).withTrimmedLeft(86).withTrimmedTop(27); }
+juce::Rectangle<float> StepGrid::plot() const { return getLocalBounds().toFloat().reduced(8, 4).withTrimmedLeft(86).withTrimmedTop(50); }
 juce::Rectangle<float> StepGrid::cellBounds(int row, int step) const
 {
     const auto r = plot(); return { r.getX()+static_cast<float>(step)*r.getWidth()/32, r.getY()+static_cast<float>(row)*r.getHeight()/8, r.getWidth()/32, r.getHeight()/8 };
@@ -101,13 +101,24 @@ void StepGrid::refresh()
 }
 void StepGrid::paint(juce::Graphics& g)
 {
-    insetPanel(g, getLocalBounds().toFloat()); const auto r = plot(); const auto playing = processor.getPlayingStep();
+    insetPanel(g, getLocalBounds().toFloat(), true); const auto r = plot(); const auto playing = processor.getPlayingStep();
     const auto cells = processor.getPattern().timedSnapshot();
+    for (int group = 0; group < 4; ++group)
+    {
+        const auto first = cellBounds(0, group*8), lastBox = cellBounds(0, group*8+7);
+        const auto heading = juce::Rectangle<float>(first.getX(), 8, lastBox.getRight()-first.getX(), 19);
+        text(g, "BAR "+juce::String(group/2+1)+"  /  "+juce::String(group*8+1)+"–"+juce::String(group*8+8), heading.toNearestInt(), 13, axis, juce::Justification::centred, true);
+        if (group > 0)
+        {
+            g.setColour(group == 2 ? gold.withAlpha(.85f) : axis.withAlpha(.55f));
+            g.fillRect(first.getX()-(group == 2 ? 1.5f : 1), 8.0f, group == 2 ? 3.0f : 2.0f, r.getBottom()-8);
+        }
+    }
     for (int step = 0; step < 32; ++step)
     {
         const auto box = cellBounds(0, step);
         if (step == playing) { g.setColour(gold.withAlpha(.18f)); g.fillRect(box.withHeight(r.getHeight()).expanded(0, 1)); }
-        text(g, juce::String(step+1), { juce::roundToInt(box.getX()), 5, juce::roundToInt(box.getWidth()), 22 }, 11, step == playing ? gold : ink, juce::Justification::centred, true);
+        text(g, juce::String(step+1), { juce::roundToInt(box.getX()), 28, juce::roundToInt(box.getWidth()), 22 }, 13, step == playing ? gold : ink, juce::Justification::centred, true);
         for (int row = 0; row < 8; ++row)
         {
             auto cell = cellBounds(row, step).reduced(2, 3);
@@ -182,15 +193,15 @@ void SequencerPanel::resized()
     enabled.setBounds(header.removeFromLeft(90)); header.removeFromLeft(18);
     patternChoice.setBounds(header.removeFromLeft(220));
     midiDrag.setBounds(header.removeFromRight(122));
-    grid.setBounds(getLocalBounds().reduced(12).withTrimmedTop(64).withTrimmedBottom(170));
+    grid.setBounds(getLocalBounds().reduced(12).withTrimmedTop(68).withTrimmedBottom(170));
     waveform.setBounds(12, getHeight()-168, getWidth()-24, 128);
 }
 void SequencerPanel::paint(juce::Graphics& g)
 {
     raisedPanel(g, getLocalBounds().toFloat(), panel);
     const auto status = !processor.hasSequenceHostPosition() ? "WAITING FOR DAW" : processor.isSequenceHostPlaying() ? "DAW PLAY" : "DAW STOP";
-    text(g, juce::String(status)+"  /  "+juce::String(processor.getHostBpm(), 2)+" BPM  /  1/16  /  2 BARS", { 20, 43, getWidth()-40, 24 }, 12, ink, juce::Justification::centredLeft, true);
-    text(g, "LEFT: CLICK / CYCLE VELOCITY   DRAG: WRITE   HOLD: NOTE TIMING   RIGHT / DRAG: ERASE", { 20, getHeight()-34, getWidth()-40, 24 }, 11, ink, juce::Justification::centredLeft, true);
+    woodText(g, juce::String(status)+"  /  "+juce::String(processor.getHostBpm(), 2)+" BPM  /  1/16  /  2 BARS", { 20, 43, getWidth()-40, 26 }, 14);
+    woodText(g, "LEFT: CLICK / CYCLE VELOCITY   DRAG: WRITE   HOLD: NOTE TIMING   RIGHT / DRAG: ERASE", { 20, getHeight()-34, getWidth()-40, 24 }, 14);
 }
 void PadWaveform::update(int pad, bool active)
 {
@@ -206,9 +217,9 @@ float PadWaveform::getDisplayedPeak() const noexcept
 { float peak = 0; for (const auto& frame : history) peak = std::max(peak, std::max(std::abs(frame.low), std::abs(frame.high))); return peak; }
 void PadWaveform::paint(juce::Graphics& g)
 {
-    insetPanel(g, getLocalBounds().toFloat());
+    insetPanel(g, getLocalBounds().toFloat(), true);
     const auto info = processor.getSampleInfo(selectedPad);
-    text(g, juce::String(rabubanj::padNames[static_cast<size_t>(selectedPad)])+" / LIVE WAVEFORM"+(info.name.isNotEmpty() ? " / "+info.name : ""), { 12, 5, getWidth()-24, 23 }, 12, ink, juce::Justification::centredLeft, true);
+    text(g, juce::String(rabubanj::padNames[static_cast<size_t>(selectedPad)])+" / LIVE WAVEFORM"+(info.name.isNotEmpty() ? " / "+info.name : ""), { 12, 5, getWidth()-24, 23 }, 14, ink, juce::Justification::centredLeft, true);
     const auto plot = getLocalBounds().toFloat().reduced(12, 7).withTrimmedTop(25); const auto cy = plot.getCentreY();
     g.setColour(grid); g.drawHorizontalLine(juce::roundToInt(cy), plot.getX(), plot.getRight());
     g.setColour(gold); const auto columns = juce::jmax(1, juce::roundToInt(plot.getWidth()));
@@ -225,10 +236,8 @@ SequencerWindow::SequencerWindow(RaBubanjProcessor& p) : content(p)
     setName("RaBubanj / STEP SEQUENCER"); setWantsKeyboardFocus(false);
     close.setName("Close sequencer"); close.setWantsKeyboardFocus(false); close.setTooltip("Close step sequencer");
     close.onClick = [this] { closeButtonPressed(); }; addAndMakeVisible(content); addAndMakeVisible(close);
-    constrainer.setMinimumOnscreenAmounts(650, 200, 40, 200); setSize(1160, 650);
+    setSize(1160, 650);
 }
 void SequencerWindow::resized() { close.setBounds(getWidth()-36, 3, 31, 25); content.setBounds(0, 30, getWidth(), getHeight()-30); }
 void SequencerWindow::paint(juce::Graphics& g)
-{ raisedPanel(g, getLocalBounds().toFloat(), panel); text(g, getName(), { 40, 0, getWidth()-80, 30 }, 15, ink, juce::Justification::centred, true); }
-void SequencerWindow::mouseDown(const juce::MouseEvent& e) { if (e.position.y < 30) dragger.startDraggingComponent(this, e); }
-void SequencerWindow::mouseDrag(const juce::MouseEvent& e) { dragger.dragComponent(this, e, &constrainer); }
+{ raisedPanel(g, getLocalBounds().toFloat(), panel); woodText(g, getName(), { 40, 0, getWidth()-80, 30 }, 17, juce::Justification::centred); }

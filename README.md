@@ -1,21 +1,21 @@
-# RaBubanj 0.14.0
+# RaBubanj 0.15.0
 
 Windows x64 VST3 and standalone drum sample instrument by Voyagersquare, with raised wood panels and metal controls, per-channel processing and a shared stereo Reverb. Portable ZIP, without an installer.
 
-[**Download Windows x64 ZIP — VST3 + standalone, no installer**](https://github.com/voyagersquare/RaBubanj/actions/runs/44877626388/artifacts/14696612610) · [Successful Windows build](https://github.com/voyagersquare/RaBubanj/actions/runs/44877626388) · [Validation](VALIDATION.md).
+Portable Windows packages are produced by the [Windows workflow](https://github.com/voyagersquare/RaBubanj/actions/workflows/windows.yml); see [validation](VALIDATION.md).
 
 [Windows instructions in Croatian](docs/WINDOWS-HR.md) · [Validation](VALIDATION.md)
 
-![RaBubanj 0.14 PAD mixer and spectrum displays](docs/preview.png)
+![RaBubanj 0.15 PAD mixer and spectrum displays](docs/preview.png)
 
-## Step sequencer 0.10
+## Step sequencer
 
-- **STEP SEQ** toggles a floating child window; click it again or the **red X** to hide the window. It has **32 sixteenth-note steps × 8 rows**. **PAD 1–PAD 8 labels are on the left.** One pattern is two bars in 4/4.
+- **STEP SEQ** opens a dedicated sequencer page that replaces the mixer below the shared header. Click **MIXER** or the **red X** to return; mixer controls and EQ panels are hidden while sequencing. It has **32 sixteenth-note steps × 8 rows**. **PAD 1–PAD 8 labels are on the left.** One pattern is two bars in 4/4.
 - **Left-click** an empty cell to write the strongest hit. Repeated clicks on the same cell cycle **127 → 88 → 48 → 32 → 127**. Right-click is the only erase action; cycling never deletes a note.
 - **Right-click** erases. Hold and drag the right button to erase several cells, including intervening cells during fast drags. **Hold and drag left** to write strongest notes into empty cells, including intervening cells in fast strokes. Existing notes keep their velocity and timing; revisiting them does not cycle them.
-- **Hold a note for 650 ms without moving** to open its dark **TIMING** slider. Choose **−50% to +50% of a sixteenth-note step**; negative is earlier, positive is later, and 0% is on the grid. The readout also shows milliseconds at the current DAW tempo. Double-click the slider to reset to 0. A long press preserves note velocity; a long press on an empty cell creates a strong note. Click the grid or X to dismiss. A small cyan/orange mark identifies shifted notes.
+- **Hold a note for 650 ms without moving** to open its **TIMING** slider. Choose **−50% to +50% of a sixteenth-note step**; negative is earlier, positive is later, and 0% is on the grid. The readout also shows milliseconds at the current DAW tempo. Double-click the slider to reset to 0. A long press preserves note velocity; a long press on an empty cell creates a strong note. Click the grid or X to dismiss. A small cyan/orange mark identifies shifted notes.
 - Click a **PAD label on the left** to select and audition its current sample once. The selected PAD label is brighter and updates the main channel selection. Clicking grid cells keeps the existing four-strength editing workflow.
-- A larger window includes a **live selected-pad waveform** below the grid. It shows approximately one second of stereo peak envelopes after Pitch/Drive/Comp/EQ, before level/pan. Both stereo sides are included, so opposite-phase audio remains visible. Select another PAD label to clear the view and follow that sound; incoming MIDI, pad audition and sequence hits all appear. Imported sample filenames remain on the mixer strips.
+- The sequencer page includes a **live selected-pad waveform on a solid dark background** below the grid. It shows approximately one second of stereo peak envelopes after Pitch/Drive/Comp/EQ, before level/pan. Both stereo sides are included, so opposite-phase audio remains visible. Select another PAD label to clear the view and follow that sound; incoming MIDI, pad audition and sequence hits all appear. Imported sample filenames remain on the mixer strips.
 - Flat cells alternate four darker steps and four lighter steps for clearer beat divisions.
 - The SLABA/SREDNJA/JAKA brush buttons are removed. Cell bar height and brightness show the four strengths.
 - The **Pattern 1–Pattern 4 dropdown** chooses one of four independent patterns. Selection changes playback at the next audio block while retaining DAW phase. All four patterns, their per-note timing offsets and the selected pattern are saved in the project.
@@ -34,13 +34,13 @@ The sequencer requires an active DAW audio engine and a monitored instrument tra
 
 ## Wood panels and metal controls
 
-- The user's original **7680×4302 JPEG** from `wood texture.rar` is embedded **byte for byte** as `Assets/wood-reference.jpg`. Natural wood grain covers the housing, channel sections, EQ frames, Reverb/FX panels and sequencer enclosure. Rendering uses uniform scaling/cropping, a subtle red-brown finish that makes the wood slightly darker and more reddish, and separate relief lighting. The source JPEG remains unchanged.
+- The user's original **7680×4302 JPEG** from `wood texture.rar` is embedded **byte for byte** as `Assets/wood-reference.jpg`. Natural wood grain covers the housing, channel sections, EQ frames, Reverb/FX panels and sequencer enclosure. Rendering uses uniform scaling/cropping, a matte red-brown finish that reduces grain contrast while keeping the warm reddish tone, and separate relief lighting. The source JPEG remains unchanged.
 - **Flat caption controls** replace raised metal pushbuttons: STEP SEQ, MIDI/keyboard modes, EQ BYPASS/RESET, channel names, M/S and PLAY. The sequencer uses the same flat treatment for SEQ ON/OFF, DRAG MIDI, pattern selection, PAD labels and close controls. They look like the dark REVERB/PAD legend plates and retain their click actions, meters, state feedback and keyboard focus behaviour.
 - Rotary knobs retain the supplied-reference silhouette: tall fluted metal cylinders, black bases, coloured matte top discs and thick position bars. They are **15% larger than 0.12** (80.5% of the original reference-model artwork size). Colours remain SIZE teal, DAMPING off-white, WIDTH burgundy, PITCH blue, DRIVE red and COMP purple.
 - Faders keep the contoured saddle profile, dark end cheeks, brushed aluminium centre and white index. PAN/TIMING use the matching horizontal profile.
-- **Sequencer cells are flat again**, with **four dark steps followed by four light steps**, starting dark at step 1. Four velocity bar heights/colours, the playhead and per-note timing markers retain their meanings.
+- **Sequencer cells are flat again**, with **four dark steps followed by four light steps**, starting dark at step 1. Eight-step separators and bar/range headings clarify the two-bar layout, with a stronger divider after step 16. Four velocity bar heights/colours, the playhead and per-note timing markers retain their meanings.
 - Larger white bold command labels stay on dark contrast plates. PLAY still lights yellow; close controls stay red. Wood texture, raised panel frames and original sample/sequence workflows remain.
-- **Larger black lettering on wood:** channel/master EQ headings, the six-band caption, mixer instructions, sample-source rows, PAN/dB/SEND, WET RETURN/STEREO OUT and strip routing captions. White lettering remains on dark controls and graph readouts. The crossed-out bottom-right `C1-G1 MIDI / SAMPLE PLAYER` footer tag is removed.
+- **Larger black lettering on wood:** channel/master EQ headings, the six-band caption, mixer instructions, sample-source rows, PAN/dB/SEND, WET RETURN/STEREO OUT and strip routing captions. Sequencer titles, tempo/status, timing popup captions and editing help use larger black wood lettering too. White lettering remains on dark controls and graph readouts. Waveform, grid and EQ screen interiors are solid dark for clear data contrast. The crossed-out bottom-right `C1-G1 MIDI / SAMPLE PLAYER` footer tag is removed.
 - **RaBubanj wordmark:** dark red calligraphic lettering inspired by the supplied script example. The bundled **Great Vibes** font is under SIL OFL 1.1; the logo is rendered as cached glyph outlines and needs no system font installation.
 - [Material and original-asset details](docs/WOOD-UI.md).
 - **Right-click an EQ node** for the dark context menu with **Curve shape** (six types), **Gain (dB)**, **Invert gain** and **Band enabled**. Alt-click toggles a band. Drag, wheel, double-click, bypass and reset retain their actions.
@@ -121,7 +121,7 @@ GitHub Actions builds both targets, runs the DSP tests, and validates the VST3 w
 
 A full build runs nine suites: drum engine/pitch, parametric EQ, legacy source regression, processor MIDI/state, mixer/editor, sample import/recall, channel colour/spectrum, sequencer timing and sequencer/MIDI/editor integration. The colour/spectrum suite checks neutral bypass, compressor calibration and stereo linking, saturation harmonics, exact pitch-rate conversion, FFT frequency/dBFS calibration, anti-phase stereo, decay, concurrent buffers, real processor taps and state recall. UI tests cover name meters without triggering, yellow PLAY buttons, curve/gain menu actions and cancellation, per-channel knob binding and minimum/default/maximum bounds.
 
-`mixer_tests <absolute-directory>` exports actual JUCE editor snapshots. `sequencer_integration_tests <absolute-directory>` exports sequencer and window previews using a demonstration pattern and simulated host transport. Sequencer coverage includes fractional-BPM/block-boundary accuracy, loops inside a block, start/stop, seeks, pre-roll, same-offset panic, MIDI file parsing, click velocity cycling, left-drag painting, stationary long-press timing, early/late audio offsets and MIDI export, right-drag erasing, four-pattern recall/migration and Space forwarding. Native Windows CI also runs pluginval strictness 5 before packaging.
+`mixer_tests <absolute-directory>` exports actual JUCE editor snapshots. `sequencer_integration_tests <absolute-directory>` exports sequencer and window previews using a demonstration pattern and simulated host transport. Sequencer coverage includes fractional-BPM/block-boundary accuracy, loops inside a block, start/stop, seeks, pre-roll, same-offset panic, MIDI file parsing, click velocity cycling, left-drag painting, stationary long-press timing, early/late audio offsets and MIDI export, right-drag erasing, four-pattern recall/migration, dedicated-page layout, mixer visibility restoration, MIXER/X navigation and Space forwarding. Native Windows CI also runs pluginval strictness 5 before packaging.
 
 ## License
 

@@ -17,8 +17,8 @@ inline void woodSurface(juce::Graphics& g, const juce::Path& path, juce::Colour 
     }
     else g.setColour(fallback);
     g.fillPath(path);
-    // A translucent red-brown finish darkens the grain without replacing the source.
-    g.setColour(juce::Colour(0xff6c1e14).withAlpha(.20f));
+    // A matte red-brown finish calms the grain while retaining the original image.
+    g.setColour(juce::Colour(0xff965d40).withAlpha(.48f));
     g.fillPath(path);
 }
 inline void woodSurface(juce::Graphics& g, juce::Rectangle<float> bounds, juce::Colour fallback, float radius = 2)
@@ -69,11 +69,12 @@ inline void raisedPanel(juce::Graphics& g, juce::Rectangle<float> bounds, juce::
     g.setColour(juce::Colours::black.withAlpha(.55f)); g.drawLine(face.getX()+2, face.getBottom(), face.getRight()-1, face.getBottom(), 1.8f);
     g.setColour(juce::Colour(0xffe4b579).withAlpha(.45f)); g.drawLine(body.getX()+3, body.getBottom()-1.5f, body.getRight()-3, body.getBottom()-1.5f, .8f);
 }
-inline void insetPanel(juce::Graphics& g, juce::Rectangle<float> bounds)
+inline void insetPanel(juce::Graphics& g, juce::Rectangle<float> bounds, bool plainScreen = false)
 {
     woodSurface(g, bounds, juce::Colour(0xff6b4225));
     const auto well = bounds.reduced(4);
-    woodSurface(g, well, dark); g.setColour(juce::Colours::black.withAlpha(.88f)); g.fillRoundedRectangle(well, 2);
+    if (plainScreen) { g.setColour(juce::Colour(0xff171a18)); g.fillRoundedRectangle(well, 2); }
+    else { woodSurface(g, well, dark); g.setColour(juce::Colours::black.withAlpha(.88f)); g.fillRoundedRectangle(well, 2); }
     g.setColour(juce::Colour(0xff2c160d)); g.drawRoundedRectangle(bounds.reduced(1), 2, 2);
     g.setColour(juce::Colours::black.withAlpha(.85f)); g.drawLine(well.getX(), well.getY(), well.getRight(), well.getY(), 3);
     g.setColour(juce::Colour(0xffebbd86).withAlpha(.65f)); g.drawLine(bounds.getX()+2, bounds.getBottom()-1, bounds.getRight()-2, bounds.getBottom()-1, 1);
