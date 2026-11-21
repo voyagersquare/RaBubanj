@@ -2,7 +2,7 @@
 
 Windows x64 VST3 and standalone drum sample instrument by Voyagersquare, with raised wood panels and metal controls, per-channel processing and a shared stereo Reverb. Portable ZIP, without an installer.
 
-Windows 0.14 package links will be added after native validation.
+[**Download Windows x64 ZIP — VST3 + standalone, no installer**](https://github.com/voyagersquare/RaBubanj/actions/runs/44877626388/artifacts/14696612610) · [Successful Windows build](https://github.com/voyagersquare/RaBubanj/actions/runs/44877626388) · [Validation](VALIDATION.md).
 
 [Windows instructions in Croatian](docs/WINDOWS-HR.md) · [Validation](VALIDATION.md)
 
