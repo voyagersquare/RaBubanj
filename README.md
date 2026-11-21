@@ -1,10 +1,10 @@
-# RaBubanj 0.16.0
+# RaBubanj 0.16.1
 
-Windows x64 VST3 and standalone drum sample instrument by Voyagersquare, with raised wood panels and metal controls, per-channel processing and a shared stereo Reverb. Portable ZIP, without an installer.
+Windows x64 VST3 and standalone drum sample instrument by Voyagersquare, with raised wood panels and metal controls, per-channel processing and a shared stereo Reverb. Windows installer with selectable VST3/Standalone components, plus a portable ZIP.
 
-[**Download Windows x64 ZIP — VST3 + standalone, no installer**](https://github.com/voyagersquare/RaBubanj/actions/runs/44881454949/artifacts/14697942611) · [Successful Windows build](https://github.com/voyagersquare/RaBubanj/actions/runs/44881454949) · [Validation](VALIDATION.md).
+Installer and portable package links will be added after Windows install/uninstall validation.
 
-[Windows instructions in Croatian](docs/WINDOWS-HR.md) · [Validation](VALIDATION.md)
+[Installer instructions in Croatian](docs/INSTALLER-HR.md) · [Full Windows instructions](docs/WINDOWS-HR.md) · [Validation](VALIDATION.md)
 
 ![RaBubanj 0.16 PAD mixer and spectrum displays](docs/preview.png)
 

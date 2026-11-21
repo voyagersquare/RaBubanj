@@ -93,3 +93,7 @@ Dedicated full working-area sequencer page with MIXER/X navigation and hidden mi
 ## 0.16 — 32/64/128-step patterns
 
 Independent saved length per pattern; matching DAW phase and MIDI clip length. Horizontal wheel/scrollbar navigation with fixed PAD labels and readable 32-column viewport. Inactive tails survive shortening. Schema-9 capacity expansion preserves old 32-step notes and signed microtiming.
+
+## 0.16.1 — Windows installer
+
+Inno Setup x64 installer with VST3/Standalone selections, Start menu and optional desktop shortcuts, source/license bundling and uninstall registration. CI tests fresh component selections, full reinstall/repair, installed pluginval, standalone launch and uninstall while preserving untracked data.

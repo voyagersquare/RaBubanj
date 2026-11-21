@@ -6,4 +6,7 @@
 .DS_Store
 *.wav
 *.zip
+/package/
+/installer-package/
+/validation/
 

@@ -1,9 +1,10 @@
-# RaBubanj 0.16.0 — Windows x64, bez instalera
+# RaBubanj 0.16.1 — Windows x64, VST3 + Standalone
 
-1. Preuzmi ZIP `RaBubanj-0.16.0-Windows-x64` iz uspješnog GitHub Actions builda i raspakiraj ga.
-2. Zatvori DAW i kopiraj cijelu mapu **RaBubanj.vst3** u `C:\Program Files\Common Files\VST3\`. Zamijeni cijeli prethodni paket.
-3. Ponovno skeniraj VST3 instrumente u 64-bitnom DAW-u, dodaj RaBubanj na MIDI traku i uključi arm/monitoring.
-4. `RaBubanj.exe` je samostalna aplikacija, bez instalera; u njoj odaberi audio i MIDI uređaj.
+Preporučena instalacija: raspakiraj installer ZIP i pokreni **RaBubanj-0.16.1-Setup-x64.exe**. Odaberi VST3, Standalone ili oboje. Installer postavlja VST3 u zajedničku Windows mapu, dodaje odabrane prečace i deinstalaciju. Zatvori DAW prije instalacije ili deinstalacije. [Detaljne upute za installer](INSTALLER-HR.md).
+
+Ako koristiš **portable ZIP** umjesto instalera, zatvori DAW i kopiraj cijelu mapu **RaBubanj.vst3** u `C:\Program Files\Common Files\VST3\`. Zamijeni cijeli prethodni paket. `RaBubanj.exe` iz portable ZIP-a pokreće se samostalno.
+
+Nakon instalacije ponovno skeniraj VST3 instrumente u 64-bitnom DAW-u, dodaj RaBubanj na MIDI traku i uključi arm/monitoring. U samostalnoj aplikaciji odaberi audio i MIDI uređaj u Options.
 
 ## PAD nazivi i veći natpisi
 
@@ -104,4 +105,4 @@ Audio datoteka ugrađuje se u spremljeni DAW projekt, pa projekt radi i nakon pr
 
 Bez uvezenog sempla svaki kanal zadržava jedan početni ugrađeni zvuk. Učitani stari projekti mogu zadržati svoj prijašnji izvor do zamjene semplom. Tvornički izbor i novi paket tvorničkih WAV pregleda nisu dio verzije 0.5.
 
-Ako nema zvuka, provjeri monitoring, MIDI ulaz/raspored, M/S gumbe i audio izlaz. Za uklanjanje zatvori DAW i izbriši kopiranu `.vst3` mapu.
+Ako nema zvuka, provjeri monitoring, MIDI ulaz/raspored, M/S gumbe i audio izlaz. Za uklanjanje instalirane verzije koristi Windows Apps → RaBubanj → Uninstall. Ako si koristio samo portable paket, zatvori DAW i izbriši kopiranu `.vst3` mapu.
