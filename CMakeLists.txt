@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(RaBubanj VERSION 0.13.0 LANGUAGES C CXX)
+project(RaBubanj VERSION 0.14.0 LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 if(MSVC)
@@ -45,7 +45,10 @@ if(RABUBANJ_BUILD_PLUGIN)
     VST3_CATEGORIES Instrument Drum
     FORMATS VST3 Standalone)
   juce_generate_juce_header(RaBubanj)
-  target_sources(RaBubanj PRIVATE Source/PluginProcessor.cpp Source/PluginEditor.cpp Source/EqPanel.cpp Source/SampleLoader.cpp Source/SequencerEditor.cpp Source/WoodTexture.cpp)
+  target_sources(RaBubanj PRIVATE Source/PluginProcessor.cpp Source/PluginEditor.cpp Source/EqPanel.cpp Source/SampleLoader.cpp Source/SequencerEditor.cpp Source/WoodTexture.cpp Source/Branding.cpp)
+  juce_add_binary_data(RaBubanjBrandFont NAMESPACE RaBubanjBrandFont
+    HEADER_NAME RaBubanjBrandFont.h SOURCES Assets/Fonts/GreatVibes-Regular.ttf)
+  target_link_libraries(RaBubanj PRIVATE RaBubanjBrandFont)
   set(RABUBANJ_WOOD_REFERENCE "")
   foreach(extension png jpg jpeg)
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/Assets/wood-reference.${extension}")

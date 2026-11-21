@@ -1,6 +1,6 @@
-# RaBubanj 0.13.0 — Windows x64, bez instalera
+# RaBubanj 0.14.0 — Windows x64, bez instalera
 
-1. Preuzmi ZIP `RaBubanj-0.13.0-Windows-x64` iz uspješnog GitHub Actions builda i raspakiraj ga.
+1. Preuzmi ZIP `RaBubanj-0.14.0-Windows-x64` iz uspješnog GitHub Actions builda i raspakiraj ga.
 2. Zatvori DAW i kopiraj cijelu mapu **RaBubanj.vst3** u `C:\Program Files\Common Files\VST3\`. Zamijeni cijeli prethodni paket.
 3. Ponovno skeniraj VST3 instrumente u 64-bitnom DAW-u, dodaj RaBubanj na MIDI traku i uključi arm/monitoring.
 4. `RaBubanj.exe` je samostalna aplikacija, bez instalera; u njoj odaberi audio i MIDI uređaj.
@@ -32,13 +32,19 @@ MIDI izvoz je datoteka jednog tracka, 960 PPQ, kanal 10, duljine osam beatova. P
 
 ## Drveni paneli i metalne kontrole
 
-Kućište, kanalni paneli, EQ okviri te Reverb/FX i sekvencer koriste izvornu drvenu teksturu iz poslane arhive. JPEG je ugrađen bez izmjene datoteke; prilagodba prikaza zadržava omjer slike, uz odvojeno osvjetljenje reljefa.
+Kućište, kanalni paneli, EQ okviri te Reverb/FX i sekvencer koriste izvornu drvenu teksturu iz poslane arhive. JPEG je ugrađen bez izmjene datoteke; prilagodba prikaza zadržava omjer slike, uz odvojeno osvjetljenje reljefa. Drvena tekstura u verziji 0.14 malo je tamnija i crvenkastija zahvaljujući prozirnom crvenosmeđem sloju pri iscrtavanju; izvorni JPEG ostaje nepromijenjen.
 
 Zaokružene metalne tipke zamijenjene su **ravnim bijelim natpisima na tamnim podlogama**, poput REVERB/PAD naslova: STEP SEQ, MIDI/KEYS, EQ BYPASS/RESET, nazivi kanala, M/S i PLAY. Isto vrijedi u sekvenceru za SEQ ON/OFF, DRAG MIDI, izbor patterna, PAD oznake i X. Klikovi i sve dosadašnje funkcije ostaju; PLAY pri pritisku svijetli žuto, X je crven, aktivna stanja i kanalni metri i dalje se prikazuju.
 
 Kružni metalni gumbi s obojenim gornjim plohama **povećani su za 15% u odnosu na 0.12**, uz zadržane proporcije. Boje: SIZE tirkizna, DAMPING bijela, WIDTH bordo, PITCH plava, DRIVE crvena i COMP ljubičasta. Profilirani faderi ostaju prema primjeru konzole. Veliki natpisi iznad kontrola ostaju podebljani i kontrastni.
 
 Ćelije sekvencera vraćene su na **jednostavan ravan izgled**: prve četiri su tamnije, sljedeće četiri svjetlije i tako do 32. Četiri jačine udarca, pomaci nota, uređivanje i MIDI izvoz ostaju kao prije.
+
+## Veći crni natpisi i novi naziv
+
+Natpisi otisnuti na drvenim površinama sada su veći i crni: EQ zaglavlja, 6-BAND PARAMETRIC, naslov miksera, nazivi semplova/Drop sample, PAN/dB/SEND, WET RETURN/STEREO OUT, POST SENDS/OUT 1/2 i donje upute. Bijeli natpisi na tamnim kontrolama i zaslonima ostaju čitljivi. Uklonjen je prekriženi natpis C1-G1 MIDI / SAMPLE PLAYER dolje desno; MIDI funkcije ostaju.
+
+Naziv RaBubanj prikazan je tamnocrvenom kaligrafijom prema primjeru. Ugrađen je font Great Vibes, pa nije potrebna instalacija fonta na računalu.
 
 ## Nazivi kanala i preslušavanje
 

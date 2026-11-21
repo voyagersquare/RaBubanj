@@ -3,7 +3,7 @@
 #include "WoodTexture.h"
 namespace rabubanj::ui
 {
-// Carved relief; the source wood image is filled without colour conversion or image edits.
+// Carved relief; the original wood image is embedded unchanged and warmed at paint time.
 inline const juce::Colour background { 0xff8b5d34 }, panel { 0xffb68855 }, dark { 0xff201e18 }, ink { 0xffffffff }, muted { 0xffffffff }, cyan { 0xff82b9ba }, gold { 0xffe7bb49 };
 inline const juce::Colour axis { 0xffcbb77d }, grid { 0xff494438 }, menuFace { 0xff28241c };
 inline const std::array<juce::Colour, 6> bandColours { juce::Colour(0xffe8bc56), juce::Colour(0xff9ac985), juce::Colour(0xff80c1c2), juce::Colour(0xffa8b7d1), juce::Colour(0xffc6a5c5), juce::Colour(0xffd79b83) };
@@ -16,6 +16,9 @@ inline void woodSurface(juce::Graphics& g, const juce::Path& path, juce::Colour 
         g.setFillType(juce::FillType(woodTexture(), juce::AffineTransform::scale(scale)));
     }
     else g.setColour(fallback);
+    g.fillPath(path);
+    // A translucent red-brown finish darkens the grain without replacing the source.
+    g.setColour(juce::Colour(0xff6c1e14).withAlpha(.20f));
     g.fillPath(path);
 }
 inline void woodSurface(juce::Graphics& g, juce::Rectangle<float> bounds, juce::Colour fallback, float radius = 2)
@@ -88,6 +91,13 @@ inline void text(juce::Graphics& g, const juce::String& value, juce::Rectangle<i
     g.setColour(juce::Colours::black.withAlpha(.8f));
     for (const auto offset : { juce::Point<int>(-1, 0), { 1, 0 }, { 0, -1 }, { 0, 1 } }) g.drawText(value, bounds.translated(offset.x, offset.y), alignment);
     g.setColour(colour); g.drawText(value, bounds, alignment);
+}
+inline void woodText(juce::Graphics& g, const juce::String& value, juce::Rectangle<int> bounds,
+    float size = 12, int alignment = juce::Justification::centredLeft, bool bold = true)
+{
+    const auto font = juce::Font(juce::FontOptions(size)); g.setFont(bold ? font.boldened() : font);
+    g.setColour(juce::Colour(0xffffe9c4).withAlpha(.6f)); g.drawText(value, bounds.translated(0, 1), alignment);
+    g.setColour(juce::Colours::black); g.drawText(value, bounds, alignment);
 }
 inline void slider(juce::Slider& s, juce::Slider::SliderStyle style, int textWidth = 46)
 {

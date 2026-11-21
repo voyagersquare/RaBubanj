@@ -1,12 +1,12 @@
-# RaBubanj 0.13.0
+# RaBubanj 0.14.0
 
 Windows x64 VST3 and standalone drum sample instrument by Voyagersquare, with raised wood panels and metal controls, per-channel processing and a shared stereo Reverb. Portable ZIP, without an installer.
 
-[Download Windows x64 ZIP](https://github.com/voyagersquare/RaBubanj/actions/runs/44805979313/artifacts/14662543878) · [Passed Windows build and validation](https://github.com/voyagersquare/RaBubanj/actions/runs/44805979313). Artifacts are retained for 30 days and may require GitHub sign-in.
+Windows 0.14 package links will be added after native validation.
 
 [Windows instructions in Croatian](docs/WINDOWS-HR.md) · [Validation](VALIDATION.md)
 
-![RaBubanj 0.13 PAD mixer and spectrum displays](docs/preview.png)
+![RaBubanj 0.14 PAD mixer and spectrum displays](docs/preview.png)
 
 ## Step sequencer 0.10
 
@@ -34,12 +34,14 @@ The sequencer requires an active DAW audio engine and a monitored instrument tra
 
 ## Wood panels and metal controls
 
-- The user's original **7680×4302 JPEG** from `wood texture.rar` is embedded **byte for byte** as `Assets/wood-reference.jpg`. Natural wood grain covers the housing, channel sections, EQ frames, Reverb/FX panels and sequencer enclosure. Rendering uses uniform scaling/cropping and separate relief lighting; no replacement texture or recoloured source image is used.
+- The user's original **7680×4302 JPEG** from `wood texture.rar` is embedded **byte for byte** as `Assets/wood-reference.jpg`. Natural wood grain covers the housing, channel sections, EQ frames, Reverb/FX panels and sequencer enclosure. Rendering uses uniform scaling/cropping, a subtle red-brown finish that makes the wood slightly darker and more reddish, and separate relief lighting. The source JPEG remains unchanged.
 - **Flat caption controls** replace raised metal pushbuttons: STEP SEQ, MIDI/keyboard modes, EQ BYPASS/RESET, channel names, M/S and PLAY. The sequencer uses the same flat treatment for SEQ ON/OFF, DRAG MIDI, pattern selection, PAD labels and close controls. They look like the dark REVERB/PAD legend plates and retain their click actions, meters, state feedback and keyboard focus behaviour.
 - Rotary knobs retain the supplied-reference silhouette: tall fluted metal cylinders, black bases, coloured matte top discs and thick position bars. They are **15% larger than 0.12** (80.5% of the original reference-model artwork size). Colours remain SIZE teal, DAMPING off-white, WIDTH burgundy, PITCH blue, DRIVE red and COMP purple.
 - Faders keep the contoured saddle profile, dark end cheeks, brushed aluminium centre and white index. PAN/TIMING use the matching horizontal profile.
 - **Sequencer cells are flat again**, with **four dark steps followed by four light steps**, starting dark at step 1. Four velocity bar heights/colours, the playhead and per-note timing markers retain their meanings.
 - Larger white bold command labels stay on dark contrast plates. PLAY still lights yellow; close controls stay red. Wood texture, raised panel frames and original sample/sequence workflows remain.
+- **Larger black lettering on wood:** channel/master EQ headings, the six-band caption, mixer instructions, sample-source rows, PAN/dB/SEND, WET RETURN/STEREO OUT and strip routing captions. White lettering remains on dark controls and graph readouts. The crossed-out bottom-right `C1-G1 MIDI / SAMPLE PLAYER` footer tag is removed.
+- **RaBubanj wordmark:** dark red calligraphic lettering inspired by the supplied script example. The bundled **Great Vibes** font is under SIL OFL 1.1; the logo is rendered as cached glyph outlines and needs no system font installation.
 - [Material and original-asset details](docs/WOOD-UI.md).
 - **Right-click an EQ node** for the dark context menu with **Curve shape** (six types), **Gain (dB)**, **Invert gain** and **Band enabled**. Alt-click toggles a band. Drag, wheel, double-click, bypass and reset retain their actions.
 - [EQ context-menu preview](docs/eq-menu.png).

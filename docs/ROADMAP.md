@@ -80,3 +80,8 @@ Tall fluted metal cylinders with six coloured matte cap discs, thick rim-reachin
 ## 0.13 — flat captions and sequencer cells
 
 Flat legend-style commands across the main editor and sequencer, retaining all actions and feedback. Rotary artwork enlarged 15% from 0.12. Sequencer cells return to a simple flat style with four dark/four light grouping.
+
+
+## 0.14 — black wood lettering and calligraphic wordmark
+
+Larger black printed captions and sample-source labels, removed lower-right footer tag, and a dark-red script RaBubanj logo using an embedded OFL font. A slightly darker red-brown finish warms the original wood image at paint time. Existing controls, state and audio workflows retained.

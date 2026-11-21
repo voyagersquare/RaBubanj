@@ -1,4 +1,5 @@
 #include "PluginEditor.h"
+#include "Branding.h"
 using namespace rabubanj::ui;
 
 MixerLookAndFeel::MixerLookAndFeel()
@@ -224,8 +225,8 @@ MixerStrip::MixerStrip(RaBubanjProcessor& p, int busToUse) : processor(p), bus(b
         clear.setName(channelName+" clear sample"); clear.setTooltip("Remove the imported sample");
         clear.onClick = [this] { processor.clearSample(bus); refresh(); };
         for (auto* b : { &preview, &clear }) { b->setWantsKeyboardFocus(false); addAndMakeVisible(*b); }
-        sampleName.setFont(juce::FontOptions(10.0f)); sampleName.setJustificationType(juce::Justification::centred);
-        sampleName.setColour(juce::Label::textColourId, ink); sampleName.setBorderSize(juce::BorderSize<int>()); addAndMakeVisible(sampleName);
+        sampleName.setFont(juce::Font(juce::FontOptions(12.0f)).boldened()); sampleName.setJustificationType(juce::Justification::centred);
+        sampleName.setColour(juce::Label::textColourId, juce::Colours::black); sampleName.setBorderSize(juce::BorderSize<int>()); addAndMakeVisible(sampleName);
         sampleName.setName(channelName+" sample source");
     }
     else
@@ -288,14 +289,14 @@ void MixerStrip::paint(juce::Graphics& g)
     if (dragging) { g.setColour(cyan.withAlpha(.18f)); g.fillRect(getLocalBounds()); g.setColour(cyan); g.drawRect(getLocalBounds().reduced(2), 2); }
     g.setColour(selected ? colour : colour.darker(.5f)); g.fillRect(0, 0, getWidth(), 3);
     g.setColour(juce::Colour(0xff6d5412)); g.drawRoundedRectangle(getLocalBounds().toFloat().reduced(.5f), 3, .7f);
-    if (bus < 8) text(g, "PAN", { 8, 61, getWidth()-16, 16 }, 11, ink, juce::Justification::centred, true);
+    if (bus < 8) woodText(g, "PAN", { 8, 59, getWidth()-16, 17 }, 12, juce::Justification::centred);
     else
     {
-        text(g, bus == 8 ? "WET" : "STEREO", { 5, 56, getWidth()-10, 15 }, 11, ink, juce::Justification::centred, true);
-        text(g, bus == 8 ? "RETURN" : "OUT", { 5, 71, getWidth()-10, 15 }, 11, ink, juce::Justification::centred, true);
+        woodText(g, bus == 8 ? "WET" : "STEREO", { 5, 56, getWidth()-10, 15 }, 12, juce::Justification::centred);
+        woodText(g, bus == 8 ? "RETURN" : "OUT", { 5, 71, getWidth()-10, 15 }, 12, juce::Justification::centred);
     }
-    text(g, "dB", { gain.getX(), faderArea.getY()-15, gain.getWidth(), 13 }, 9, muted, juce::Justification::centred);
-    if (bus < 8) text(g, "SEND", { send.getX(), faderArea.getY()-15, send.getWidth(), 13 }, 8, ink, juce::Justification::centred);
+    woodText(g, "dB", { gain.getX(), faderArea.getY()-15, gain.getWidth(), 13 }, 10, juce::Justification::centred);
+    if (bus < 8) woodText(g, "SEND", { send.getX(), faderArea.getY()-15, send.getWidth(), 13 }, 10, juce::Justification::centred);
     g.setColour(dark); g.fillRect(meterArea);
     const auto db = juce::Decibels::gainToDecibels(processor.getPeak(bus), -60.0f);
     const auto amount = juce::jlimit(0.0f, 1.0f, (db+60)/60);
@@ -305,7 +306,7 @@ void MixerStrip::paint(juce::Graphics& g)
     {
         g.setColour(colour.withAlpha(.12f + flash*.88f)); g.fillRect(8, getHeight()-5, getWidth()-16, 2);
     }
-    else text(g, bus == 8 ? "POST SENDS" : "OUT 1 / 2", { 5, getHeight()-32, getWidth()-10, 18 }, 8, muted, juce::Justification::centred);
+    else woodText(g, bus == 8 ? "POST SENDS" : "OUT 1 / 2", { 5, getHeight()-32, getWidth()-10, 18 }, 10, juce::Justification::centred);
 }
 void MixerStrip::refresh()
 {
@@ -324,7 +325,7 @@ void MixerStrip::refresh()
         const bool loading = info.status == SampleLoader::Status::Loading;
         const bool problem = info.status == SampleLoader::Status::Error || info.status == SampleLoader::Status::Missing;
         sampleName.setText(dragging ? "DROP SAMPLE" : loading ? "Loading..." : problem ? "Load error" : info.active ? info.name : "Drop sample", juce::dontSendNotification);
-        sampleName.setColour(juce::Label::textColourId, problem ? juce::Colour(0xffeea18c) : muted);
+        sampleName.setColour(juce::Label::textColourId, problem ? juce::Colour(0xff8b1018) : juce::Colours::black);
         sampleName.setTooltip(info.message.isNotEmpty() ? info.message : "Drag a mono/stereo audio file here from your DAW browser");
         clear.setVisible(info.active || loading || problem);
     }
@@ -473,9 +474,9 @@ void RaBubanjEditor::paint(juce::Graphics& g)
     g.fillAll(background);
     raisedPanel(g, getLocalBounds().toFloat(), background.brighter(.18f), 1.0f);
     raisedPanel(g, { 4, 3, static_cast<float>(getWidth()-8), 55 }, panel, 1.0f);
-    text(g, "RaBubanj", { 23, 9, 220, 35 }, 28, ink);
+    drawBrand(g, { 24, 6, 300, 44 });
     screw(g, 12, 28); screw(g, static_cast<float>(getWidth()-13), 28);
-    text(g, "MIXER  /  SELECT A CHANNEL TO EDIT ITS EQ", { mixerArea.getX(), mixerArea.getY()-24, 500, 18 }, 10, muted);
+    woodText(g, "MIXER  /  SELECT A CHANNEL TO EDIT ITS EQ", { mixerArea.getX(), mixerArea.getY()-25, 540, 20 }, 12);
     raisedPanel(g, reverbControlsArea.toFloat(), panel, 1.0f);
     raisedPanel(g, reservedArea.toFloat(), panel.darker(.1f), 1.0f);
     drawControlLegend(g, "REVERB", reverbControlsArea.reduced(6).removeFromTop(25), 17);
@@ -486,8 +487,7 @@ void RaBubanjEditor::paint(juce::Graphics& g)
     for (const auto& item : { std::pair<juce::Slider*, const char*>(&pitch, "PITCH"), { &drive, "DRIVE" }, { &compression, "COMP" } })
         drawControlLegend(g, item.second, { item.first->getX(), item.first->getY()-24, item.first->getWidth(), 22 });
     drawControlLegend(g, "WIDTH", { width.getX(), width.getY()-24, width.getWidth(), 22 });
-    text(g, "DRAG EQ: FREQ / GAIN    WHEEL: Q    RIGHT-CLICK: SHAPE / GAIN", footerArea, 9, muted);
-    text(g, "C1-G1 MIDI  /  SAMPLE PLAYER", footerArea, 9, muted, juce::Justification::centredRight);
+    woodText(g, "DRAG EQ: FREQ / GAIN    WHEEL: Q    RIGHT-CLICK: SHAPE / GAIN", footerArea, 11);
 }
 void RaBubanjEditor::timerCallback()
 {

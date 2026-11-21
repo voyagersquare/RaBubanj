@@ -48,6 +48,7 @@ jobs:
           Copy-Item README.md, LICENSE, THIRD_PARTY.md package
           New-Item -ItemType Directory -Force package/ThirdParty
           Copy-Item build/_deps/juce-src/LICENSE.md package/ThirdParty/JUCE-LICENSE.md
+          Copy-Item Assets/Fonts/OFL.txt package/ThirdParty/GreatVibes-OFL.txt
           Copy-Item build/_deps/juce-src/modules/juce_audio_processors/format_types/VST3_SDK/LICENSE.txt package/ThirdParty/VST3-LICENSE.txt
           git archive --format=zip --output=package/RaBubanj-source.zip HEAD
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -56,7 +57,7 @@ jobs:
       - name: Upload portable Windows x64 package
         uses: actions/upload-artifact@v4
         with:
-          name: RaBubanj-0.13.0-Windows-x64
+          name: RaBubanj-0.14.0-Windows-x64
           path: package/
           if-no-files-found: error
           retention-days: 30
